@@ -234,6 +234,14 @@ export class People {
         if (Math.abs(d) < 1.9) { const k = Math.min(1, (12 - d2) / 6); P.headYaw = P.headYaw * (1 - k) + Math.max(-1.0, Math.min(1.0, d)) * k; P.headPitch = -0.05; }
       }
     }
+    // a nod or a tip of the hat to a passing neighbour
+    if (p.nodUntil > t && p.nodYaw !== undefined && !(p.greetUntil > t)) {
+      let d = p.nodYaw - P.yaw;
+      while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+      P.headYaw = Math.max(-1.1, Math.min(1.1, d));
+      const k = 1 - Math.abs((p.nodUntil - t) / 1.6 - 0.5) * 2; // 0 → 1 → 0 over the greeting
+      if (p.nodHat) { P.aRp = -2.5 * k + P.aRp * (1 - k); P.aRr = 0.2 * k; } else P.headPitch = 0.25 * Math.sin(k * Math.PI);
+    }
     // look at the player when greeted
     if (p.greetUntil > t && p.greetYaw !== undefined) {
       let d = p.greetYaw - P.yaw;

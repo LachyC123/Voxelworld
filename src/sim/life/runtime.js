@@ -44,7 +44,44 @@ export class LifeRuntime {
       f.h.yaw = yaw + f.yawOff;
       f.h.room = P.room || 0;
     }
+    this.passing(g);
     for (const fn of L.updaters) { try { fn(rt); } catch (e) { if (!this._warned) { this._warned = true; console.warn('life hook failed', e); } } }
+  }
+
+  // Townsfolk passing each other on the sidewalk nod, tip a hat, and (within earshot) say so.
+  passing(g) {
+    this._pt = (this._pt || 0) + 1;
+    if (this._pt % 6) return;
+    const t = g.time, m = g.clock.minutes, pl = g.player.pos;
+    const W = this.ctx.people.visible.filter((p) => p.state.mode === 'walk' && !p.state.room && p.state.camDist < 45 && !(p.nodUntil > t - 4));
+    for (let i = 0; i < W.length; i++) {
+      const a = W[i], A = a.state;
+      if (a.nodUntil > t) continue;
+      for (let j = i + 1; j < W.length; j++) {
+        const b = W[j], B = b.state;
+        if (b.nodUntil > t) continue;
+        const dx = B.x - A.x, dz = B.z - A.z, d2 = dx * dx + dz * dz;
+        if (d2 > 6.5 || d2 < 0.3) continue;
+        // approaching each other (not walking together)
+        const fa = [Math.sin(A.yaw), Math.cos(A.yaw)], fb = [Math.sin(B.yaw), Math.cos(B.yaw)];
+        if (fa[0] * fb[0] + fa[1] * fb[1] > -0.3) continue;
+        if (fa[0] * dx + fa[1] * dz < 0) continue;
+        if (((a.id * 31 + b.id * 17) % 10) > 5) continue; // not everybody stops to say hello
+        const now = t;
+        for (const [p, q, S, Q] of [[a, b, A, B], [b, a, B, A]]) {
+          p.nodUntil = now + 1.6; p.nodYaw = Math.atan2(Q.x - S.x, Q.z - S.z);
+          p.nodHat = !!(p.look && p.look.hat) && p.sex === 'M' && p.age > 16;
+        }
+        if (Math.hypot(A.x - pl.x, A.z - pl.z) < 18 && g.bubbles) {
+          const who = a.age > 12 ? a : b, other = who === a ? b : a;
+          const part = m < 720 ? 'Morning' : m < 1050 ? 'Afternoon' : 'Evening';
+          const name = other.age < 14 ? other.first : who.age < 18 ? `${other.sex === 'F' ? 'Mrs.' : 'Mr.'} ${other.last}` : (who.last === other.last ? other.first : ((a.id + b.id) % 3 === 0 ? other.first : `${other.sex === 'F' ? (other.age > 24 ? 'Mrs.' : 'Miss') : 'Mr.'} ${other.last}`));
+          const lines = [`${part}, ${name}.`, `${part}, ${name}! Some day for it.`, `Hello there, ${name}.`, `${name}! Going to the fair?`, `${part}. Give my best to your mother.`];
+          g.bubbles.say(who, lines[(a.id + b.id + Math.floor(m / 7)) % lines.length], t, 2.6);
+        }
+        break;
+      }
+    }
   }
 
   // live ambient sound sources for the audio engine
