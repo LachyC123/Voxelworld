@@ -74,7 +74,8 @@ export class People {
   add(o) {
     const p = new Person({ id: this.list.length, ...o });
     this.list.push(p);
-    this.byName.set(`${p.first} ${p.last}`.toLowerCase(), p);
+    const k = `${p.first} ${p.last}`.toLowerCase(), prev = this.byName.get(k);
+    if (!prev || (p.notable && !prev.notable)) this.byName.set(k, p); // a named townsperson wins over a namesake
     return p;
   }
   find(first, last) { return this.byName.get(`${first} ${last}`.toLowerCase()); }

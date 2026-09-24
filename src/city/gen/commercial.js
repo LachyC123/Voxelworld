@@ -1166,7 +1166,7 @@ TRADES.pawn = {
   },
   window(S, a, c) { P(S, 'radio_table', a + 1.5, 3, 2.2, 0); P(S, 'trumpet', (a + c) / 2, 3, 2.2, 0); P(S, 'camera', c - 1.5, 3, 2.2, 0); P(S, 'typewriter', (a + c) / 2 + 2, 3, 2.3, 0); },
   readables(S) {
-    read(S, S.X0 + 10.5, 6, S.Zb - 11, 'Pledge ticket No. 4471', 'ELLSWORTH LOAN & JEWELRY — PLEDGE No. 4471\nDate: Feb. 9, 1932\nArticle: One gold pocket watch, hunter case, engraved inside the lid:\n"J. TOBEY — MARY ELLEN — 1866"\nLoaned: $4.00\n\nNever redeemed. Old Ellsworth would not sell it. It is still in the safe.\n\n(John Tobey was the MARY ELLEN\'s mate. The schooner was lost with all eleven hands off Gannet Ledge in the Great Gale of 1867.)');
+    read(S, S.X0 + 10.5, 6, S.Zb - 11, 'Pledge ticket No. 4471', 'ELLSWORTH LOAN & JEWELRY — PLEDGE No. 4471\nDate: Feb. 9, 1932\nArticle: One gold pocket watch, hunter case, engraved inside the lid:\n"J. TOBEY — MARY ELLEN — 1866"\nLoaned: $4.00\n\nNever redeemed. Old Ellsworth would not sell it. It is still in the safe.\n\n(John Tobey was the MARY ELLEN\'s mate until he broke his arm on the wharf a week before her last voyage. Young Nathaniel Dunmore sailed in his place. The schooner was lost with all eleven hands off Gannet Ledge in the Great Gale of October 1867, and Tobey never went to sea again.)');
   },
 };
 
@@ -1234,7 +1234,7 @@ TRADES.bar = {
   },
   readables(S) {
     if (S.anchor) {
-      read(S, S.X1 - 1, 7, 14, 'Photograph over the booths', 'The schooner MARY ELLEN at Whitcomb\'s wharf, summer of 1867 — the last picture of her.\n\nLost off Gannet Ledge in the Great Gale, October 1867, with all eleven hands:\nCapt. Josiah Tobey — John Tobey, mate — Asa Crowell — Daniel Pruitt — Michael Duffy — Peter Silva — Thomas Hatch — Ezra Coffin — William Beal — Samuel Nye — the cook, a boy named Patrick Doyle, 14.\n\nThere is a glass of rum on the shelf under the picture that nobody drinks.');
+      read(S, S.X1 - 1, 7, 14, 'Photograph over the booths', 'The schooner MARY ELLEN at Whitcomb\'s wharf, summer of 1867 — the last picture of her.\n\nLost off Gannet Ledge in the Great Gale, October 1867, with all eleven hands:\nCapt. Josiah Dunmore, master, 41 — Nathaniel Dunmore, his son, mate, 19 — Samuel Whitcomb, 23 — Ezra Coffin, 35 — Thomas Pruitt, 28 — John Hallett, 44 — William Doane, 31 — Patrick Flynn, 22 — Benjamin Crowell, 38 — Hiram Nickerson, cook, 52 — and Isaiah Snow, cabin boy, 14.\n\nThere is a glass of rum on the shelf under the picture that nobody drinks.');
     } else {
       read(S, S.X0 + 6, 8, 18, 'The Signal Lamp', 'This brass lamp hung in the lantern room of Whitcomb Point Light from its first lighting in 1868 until the new Fresnel lens came in 1901.\n\nKeeper Amos Fisk comes in every Saturday at four for one beer, and to check that it is being polished.');
     }
@@ -1505,8 +1505,8 @@ TRADES.chandlery = {
   window(S, a, c) { P(S, 'lantern', a + 2, 3, 2.3, 0); P(S, 'bell_brass', (a + c) / 2, 3, 2.3, 0); P(S, 'rope_coil', c - 2, 3, 2.2, 0); P(S, 'globe_desk', (a + c) / 2 + 3, 3, 2.3, 0); },
   yardProps(S, y0) { P(S, 'dory', S.W / 2, 0, y0 + 4, 1, { tint: '#3a5a4a' }); },
   readables(S) {
-    read(S, S.X0 + 12, 6, S.Zb - 12, 'Day book, October 1867', 'Oct. 3, 1867 — Sch. MARY ELLEN, Capt. J. Tobey, for the Banks:\n  40 fms manila 2 in. — 2 lanterns — 1 bbl salt pork — 1 bbl flour\n  6 lbs coffee — 1 compass (repaired) — oakum, pitch — 11 oilskins\nAccount: settle on return.\n\nThe account was never settled. In the margin, in another hand, much later: "Forgiven. N.W."');
-    read(S, S.X0 + 10, 9, S.Zb - 0.6, 'Portrait', 'Captain Elias Whitcomb (1811–1889), founder of Juniper Bay.\nPainted in 1860 by a traveling artist for the price of a new mainsail.\n\nHe is not smiling. "He never did," says Miss Augusta Whitcomb, "except at the sea."');
+    read(S, S.X0 + 12, 6, S.Zb - 12, 'Day book, October 1867', 'Oct. 3, 1867 — Sch. MARY ELLEN, Capt. J. Dunmore, for the Banks:\n  40 fms manila 2 in. — 2 lanterns — 1 bbl salt pork — 1 bbl flour\n  6 lbs coffee — 1 compass (repaired) — oakum, pitch — 11 oilskins\nAccount: settle on return.\n\nThe account was never settled. In the margin, in another hand, much later: "Forgiven. N.W."');
+    read(S, S.X0 + 10, 9, S.Zb - 0.6, 'Portrait', 'Captain Elias Whitcomb (1809–1889), founder of Juniper Bay.\nPainted in 1860 by a traveling artist for the price of a new mainsail.\n\nHe is not smiling. "He never did," says Miss Augusta Whitcomb, "except at the sea."');
   },
 };
 
@@ -2423,7 +2423,7 @@ function buildDiner(ctx, lot, spec, T, rng) {
   f.carve(vx + 2, 2, 3, 4, 9, 1); f.carve(vx + 2, 2, CZ0, 4, 9, 2);
   f.box(vx, 5, 4, 1, 6, 5, MAT.glass); f.box(vx + 7, 5, 4, 1, 6, 5, MAT.glass);
   f.box(vx - 1, 13, 2, 10, 1, 9, MAT.steel_white);
-  f.text('EAT', vx + 4, 14, 3, MAT.neon_red, { align: 'center', font: 'small' });
+  b.prop(glassType('OPEN 5 A.M. TO MIDNIGHT', { px: 1 / 22, color: '#e8c060' }), vx + 4, 11.2, 2.94, 0, {});
   f.box(vx + 1, 0, 1, 6, 1, 2, MAT.granite);
   b.light(vx + 4, 12, 1.5, { mode: 'night', radius: 6, color: [1, 0.85, 0.6] });
   const vest = b.room('Vestibule', vx + 1, 2, 4, 6, 10, 6, { lightMode: 'always', kind: 'shop' });

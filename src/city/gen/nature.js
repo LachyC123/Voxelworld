@@ -58,8 +58,7 @@ function defineNatureProps() {
     size: [7, 16, 2], cat: 'exterior',
     build(m) { m.box(3, 0, 0, 1, 10, 1, '#3a3a36'); m.box(1, 10, 0, 5, 5, 1, '#8a6a3a'); m.box(3, 15, 0, 1, 1, 1, '#8a6a3a'); m.box(0, 12, 0, 7, 1, 1, '#8a6a3a'); m.box(2, 11, 1, 3, 3, 1, '#c9a24a'); },
   });
-  if (!PROP_DEFS.has('hb_grave_old')) for (const [k, st] of [['a', 'slate'], ['b', 'slate'], ['c', 'marble'], ['d', 'granite']]) graveType('old_' + k, ['---- ----', '-- ------', '', '---- ----', '-- ----'], st, { lichen: true, w: k === 'b' ? 40 : 46, h: k === 'b' ? 50 : 58 });
-  PROP_DEFS.set('hb_grave_old', PROP_DEFS.get('hb_grave:old_a'));
+  for (const [k, st] of [['a', 'slate'], ['b', 'slate'], ['c', 'marble'], ['d', 'granite']]) graveType('old_' + k, ['---- ----', '-- ------', '', '---- ----', '-- ----'], st, { lichen: true, w: k === 'b' ? 40 : 46, h: k === 'b' ? 50 : 58 });
 }
 
 // ============================================================ THE OLD BURYING GROUND
@@ -124,12 +123,12 @@ function buildBuryingGround(ctx) {
   K.B(456, 20, -232, 456.5, 22, -231.5, MAT.granite);
   K.B(455.4, 3, -231.9, 455.5, 5, -231.6, MAT.trim_cream);
   ctx.props.add(textSignType('WHITCOMB', { bg: '#8e8b87', fg: '#f0ece2', border: '#8e8b87', scale: 1 / 28 }), 455.45, 1.05, -231.75, YAW.W, {});
-  stone(graveType('elias', ['CAPT.', 'ELIAS', 'WHITCOMB', '1802-1879', 'FOUNDER'], 'marble', { w: 50, h: 62 }), 453, -234.5);
+  stone(graveType('elias', ['CAPT.', 'ELIAS', 'WHITCOMB', '1809-1889', 'FOUNDER'], 'marble', { w: 50, h: 62 }), 453, -234.5);
   stone(graveType('abigail', ['ABIGAIL', 'HIS WIFE', '1806-1881'], 'marble'), 453, -232.5);
   stone(graveType('samuel_w', ['SAMUEL', 'WHITCOMB', '1844-1867', 'LOST AT SEA'], 'cenotaph'), 453, -229.5);
   stone(graveType('henry_w', ['HENRY L.', 'WHITCOMB', '1851-1924'], 'granite'), 459.5, -234.5);
   K.P('vase_flowers', 452.2, Y1, -234.5, 'W', { tint: '#e0d0f0' });
-  readStone(453, -234.5, 'Capt. Elias Whitcomb', 'CAPT. ELIAS WHITCOMB\nBorn Salem, Mass., March 3, 1802\nDied at Juniper Bay, November 18, 1879\n\nMaster of the schooner JUNIPER.\nHe found this cove in a storm, and kept his promise to come back.\nFOUNDER OF THIS TOWN\n\n"I have fought a good fight, I have finished my course."\n\n(A small bunch of asters has been left at the foot. The card says: "100 years, Grandfather. — A.W.")');
+  readStone(453, -234.5, 'Capt. Elias Whitcomb', 'CAPT. ELIAS WHITCOMB\nBorn Salem, Mass., March 3, 1809\nDied at Juniper Bay, November 18, 1889\n\nMaster of the schooner JUNIPER.\nHe found this cove in a storm, and kept his promise to come back.\nFOUNDER OF THIS TOWN\n\n"I have fought a good fight, I have finished my course."\n\n(A small bunch of asters has been left at the foot. The card says: "100 years, Great-Grandfather. — A.W.")');
   readStone(453, -232.5, 'Abigail Whitcomb', 'ABIGAIL (HALE) WHITCOMB\nwife of Capt. Elias Whitcomb\n1806 – 1881\n\nShe kept the first school in the chapel, 1853–1860,\nand the town\'s books for twenty years after.\n"Her children arise up, and call her blessed."');
   readStone(453, -229.5, 'Samuel Whitcomb (cenotaph)', 'IN MEMORY OF\nSAMUEL WHITCOMB\nson of Elias & Abigail\nlost with the schooner MARY ELLEN\noff Gannet Ledge, October 1867\naged 23 years\n\nThere is no grave under this stone.');
   readStone(459.5, -234.5, 'Henry L. Whitcomb', 'HENRY LOWELL WHITCOMB\n1851 – 1924\nGrandson of the founder. Selectman, Commodore, and father of Augusta.\n"He gave the Cup and never won it."');

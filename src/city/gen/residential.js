@@ -2713,9 +2713,9 @@ export function buildApartment(ctx, lot, spec) {
   for (const q of rng.shuffle(flats.filter((q) => !q.superFlat)).concat(flats.filter((q) => q.superFlat))) b.home(q.home);
   // ---- lobby: mailboxes, directory, bench, palm, notices
   const L = halls[0];
-  L.setBack('+z');
-  const mb = L.hang(null, 'left', 5, 3, { w: 6 });
-  if (mb) { L.box(0, 2, 1, 6, 3, 4, MAT.trim_gold); L.box(0, 2.5, 1, 5, 4, 1, MAT.brass ?? MAT.trim_gold); }
+  L.setBack('-z');                       // the lobby is the front of the hall: measure from the entrance wall
+  const mb = L.hang(null, 'left', 6, 3, { w: 6 });
+  if (mb) { L.box(0, 3, 1, 6, 3, 4, MAT.trim_gold); L.box(0, 4, 1, 1, 4, 1, MAT.wood_dark); L.box(0, 7, 1, 1, 4, 1, MAT.wood_dark); }
   const dir = {
     title: 'Tenants — The Marlowe',
     get html() {
@@ -2724,16 +2724,16 @@ export function buildApartment(ctx, lot, spec) {
       return docList('Tenants — The Marlowe', 'Brass mailboxes, polished every Friday by the super', flats.map((q) => `${q.label} ........ ${who(q)}${q.superFlat ? '  (SUPT.)' : ''}`)).html;
     },
   };
-  readAt(L, 1.2, 5, 4, dir, 'Read the mailboxes');
-  L.wall('garden_bench', 'right', [0.25], { fp: [6, 2.5] });
-  const bs = L.spot('sit', L.U - 1.6, L.V * 0.25, 3, { act: 'read', tags: ['bench'], seat: 0.45, public: true });
+  readAt(L, 1.2, 6, 4, dir, 'Read the mailboxes');
+  L.wall('garden_bench', 'right', [{ at: 8 }], { fp: [6, 2.5] });
+  const bs = L.spot('sit', L.U - 1.6, 8, 3, { act: 'read', tags: ['bench'], seat: 0.45, public: true });
   void bs;
-  L.wall('palm_pot', ['left', 'right'], [0.9, 0.1]);
-  L.wall('radiator', ['right', 'left'], [0.5]);
-  L.hangAny('mirror_wall', ['right'], 4.5, { w: 3 });
-  L.prop('chandelier', L.U / 2, 5, 0, {}, L.h - 3.8);
-  L.prop('baby_carriage', L.U - 2.5, L.V * 0.1 + 2, 1, {});
-  readHung(L, 'painting', ['right', 'left'], 6, docList('NOTICE TO TENANTS', 'posted by the Superintendent', ['Laundry on the roof MONDAYS & THURSDAYS only.', 'No radios after 10 P.M. — this means YOU, 3C.', 'Coal delivery Tuesday. Keep the areaway clear.', 'Rent is due the 1st. Mr. Harlow does not accept pies.', 'HARBOR DAYS: the roof will be OPEN for the fireworks at 9 P.M. Bring a chair. No children on the parapet!', '— J. Kowalczyk, Supt., apt. 1A']), { po: { tint: '#e8e0c8' } });
+  L.wall('palm_pot', ['left', 'right'], [{ at: 1.2 }, { at: 11 }], { fp: [3, 3] });
+  L.wall('radiator', ['back'], [0.25, 0.75]);
+  L.hang('mirror_wall', 'right', 3, 4.5, { w: 3 });
+  L.prop('chandelier', L.U / 2, 6, 0, {}, L.h - 3.8);
+  L.prop('baby_carriage', L.U - 2.5, 11.5, 1, {});
+  readHung(L, 'painting', ['left', 'right'], 6, docList('NOTICE TO TENANTS', 'posted by the Superintendent', ['Laundry on the roof MONDAYS & THURSDAYS only.', 'No radios after 10 P.M. — this means YOU, 3C.', 'Coal delivery Tuesday. Keep the areaway clear.', 'Rent is due the 1st. Mr. Harlow does not accept pies.', 'HARBOR DAYS: the roof will be OPEN for the fireworks at 9 P.M. Bring a chair. No children on the parapet!', '— J. Kowalczyk, Supt., apt. 1A']), { po: { tint: '#e8e0c8' } });
   // ---- entrance: steps, limestone surround, canopy, name
   const dcx = W / 2;
   f.carve(dcx - 3, A0, z0, 6, 10, 2);

@@ -273,6 +273,11 @@ export class Game {
     out.push('tags: ' + tags.map((t) => `${t}=${ctx.spots.tagged(t).length}`).join(' '));
     const noSched = ctx.people.list.filter((p) => !p.schedule.length).length;
     const jobsOpen = ctx.jobs.filter((j) => !j.person).length;
+    const names = new Map(); for (const p of ctx.people.list) { const k = p.first + ' ' + p.last; names.set(k, (names.get(k) || 0) + 1); }
+    const dupes = [...names].filter(([, n]) => n > 1).map(([k, n]) => `${k}×${n}`);
+    const homeless = ctx.people.list.filter((p) => p.notable && !p.home && !p.commuter).map((p) => p.first + ' ' + p.last);
+    const fg = ctx.people.find('Francis', 'Garrity');
+    out.push(`duplicate names: ${dupes.length} ${dupes.slice(0, 12).join(', ')}\nnotables without a home: ${homeless.join(', ') || 'none'}\nFather Garrity: ${fg ? fg.age + ' ' + (fg.home ? fg.home.building.name : '-') + ' / ' + (fg.job ? fg.job.building.name : '-') : 'missing'}`);
     out.push(`people ${ctx.people.list.length}, no schedule ${noSched}, jobs ${ctx.jobs.length} (unfilled ${jobsOpen}), homes ${ctx.homes.length}, households ${(ctx.households || []).length}`);
     let fails = 0; const why = new Map();
     const node = (e) => e.route ? e.route[0] : e.spot ? e.spot.node : undefined;

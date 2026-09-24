@@ -1047,7 +1047,7 @@ export const NOTABLES = [
     lines: [
       "Six percent, thirty days, and I don't take sob stories. Well. I take them. I don't pay for them.",
       "In '34 I held forty watches for the strikers. Nineteen days. Didn't sell a one. Don't spread that around; it's bad for business.",
-      "No. 4471. John Tobey's watch — he was mate of the MARY ELLEN. Lonnie pawned it in '32 for four dollars. Three men have offered for it since. It's not for sale. It's being kept.",
+      "No. 4471. John Tobey's watch — he was mate of the MARY ELLEN till he broke his arm on the wharf a week before her last trip. The Dunmore boy took his berth. Lonnie pawned it in '32 for four dollars. Three men have offered for it since. It's not for sale. It's being kept.",
       "Walter Kowalski borrowed the price of a scale in 1915 and paid it back to the penny. Sends me a ham every Christmas. I've never had the heart to tell him I don't eat ham.",
       "Everybody in this town owes me something, and I owe the town the rest. Books balance. Eventually.",
     ] },
@@ -1172,7 +1172,7 @@ export const NOTABLES = [
       "I'll be at the tent for the judging. Not to watch. To observe.",
     ] },
   { first: 'Alonzo', nick: 'Lonnie', last: 'Tobey', age: 52, sex: 'M', home: { name: 'Harbor Nets & Tackle' }, look: lk(SK.fair, HC.salt, FC.beard, HS.short, { hat: 'hat_flatcap', hatTint: '#5a5a5a' }),
-    bio: "Alonzo “Lonnie” Tobey, 52, great-grandson of John Tobey, mate of the MARY ELLEN. During the war he ran the steam box at Bayside Boat Works, bending oak frames for forty-one wooden minesweepers, sixteen hours a day. His wife Mary died in the winter of '47, and Lonnie has not been quite right since. The town looks after him in its quiet way: Eleni Papadakis “forgets” to charge him for breakfast, Mike Flanagan cuts him off at two, Frank Rourke walks him home, and Cyrus Ellsworth keeps his great-grandfather's watch in the safe, not for sale.",
+    bio: "Alonzo “Lonnie” Tobey, 52, great-grandson of John Tobey, mate of the MARY ELLEN until he broke his arm a week before her last voyage; nineteen-year-old Nathaniel Dunmore sailed in his place, and John Tobey never went to sea again. During the war he ran the steam box at Bayside Boat Works, bending oak frames for forty-one wooden minesweepers, sixteen hours a day. His wife Mary died in the winter of '47, and Lonnie has not been quite right since. The town looks after him in its quiet way: Eleni Papadakis “forgets” to charge him for breakfast, Mike Flanagan cuts him off at two, Frank Rourke walks him home, and Cyrus Ellsworth keeps his great-grandfather's watch in the safe, not for sale.",
     lines: [
       "I'm on the wagon for the centennial. Since breakfast. Nick's breakfast. Eleni forgets to charge me. She's getting forgetful, Eleni.",
       "In '42 I bent the oak frames for the minesweepers down at Bayside. Steam box, sixteen hours a day. Forty-one boats. I could tell you every one.",

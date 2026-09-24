@@ -14,23 +14,37 @@ export function populate(ctx) {
   const usedSurnames = new Set();
   const claimed = new Set();
   // ------------------------------------------------ helper to create a person
+  let generated = 0;
   const make = (o, home) => {
-    const r = rng.fork(o.first + o.last + (o.age || 0));
+    const r = rng.fork(o.first ? o.first + o.last + (o.age || 0) : `gen${generated++}:${o.last || ''}:${o.age || 0}`);
     const sex = o.sex || (r.chance(0.5) ? 'M' : 'F');
     const age = o.age ?? r.int(20, 70);
-    const nm = o.first ? { first: o.first, last: o.last } : pickName(r, sex, age, o.last);
+    let nm = o.first ? { first: o.first, last: o.last } : pickName(r, sex, age, o.last);
+    // no two townsfolk share a full name (siblings, lodgers and commuters included)
+    for (let t = 0; !o.first && t < 16 && people.byName.has(`${nm.first} ${nm.last}`.toLowerCase()); t++) nm = pickName(r, sex, age, o.last);
     const look = { ...makeLook(r, { sex, age, role: o.outfit || o.role, formal: o.formal }), ...(o.look || {}) };
     const p = people.add({ first: nm.first, last: nm.last, nick: o.nick || null, title: o.title || null, age, sex, look, role: o.role || null, home: home || null, bio: o.bio || null, lines: o.lines || [], tags: o.tags || [], notable: !!o.bio, job: null, household: null });
     return p;
   };
   // ------------------------------------------------ named households from the roster
+  const matches = (h, sel) => (sel.special && h.special === sel.special) || (sel.name && h.building.name === sel.name) || (sel.family && h.family === sel.family);
   const findHome = (sel) => {
     if (!sel) return null;
-    return homes.find((h) => !claimed.has(h) && ((sel.special && h.special === sel.special) || (sel.name && h.building.name === sel.name) || (sel.family && h.family === sel.family)));
+    return homes.find((h) => !claimed.has(h) && matches(h, sel));
   };
+  // homes somebody on the roster asked for by name are kept back from the "any free house" picks
+  const reserved = new Set();
+  for (const sel of [...HOUSEHOLDS.map((hh) => hh.home), ...NOTABLES.map((n) => n.home)]) {
+    if (!sel) continue;
+    const h = homes.find((q) => !reserved.has(q) && matches(q, sel));
+    if (h) reserved.add(h);
+  }
+  const free = (h) => !claimed.has(h) && !reserved.has(h);
+  // keep the roster's surnames for the roster, so "Father Garrity" is never a stranger's name
+  for (const n of NOTABLES) usedSurnames.add(n.last);
   const households = [];
   for (const hh of HOUSEHOLDS) {
-    let home = findHome(hh.home) || homes.find((h) => !claimed.has(h) && h.building.kind === 'house' && (h.beds || []).length >= hh.members.length);
+    let home = findHome(hh.home) || homes.find((h) => free(h) && h.building.kind === 'house' && (h.beds || []).length >= hh.members.length);
     if (!home) continue;
     claimed.add(home);
     home.building.name = hh.homeName || (home.building.name.match(/^\d/) ? `${hh.surname} Residence` : home.building.name);
@@ -45,7 +59,7 @@ export function populate(ctx) {
   for (const [, grp] of groups) {
     let home = null;
     for (const n of grp) if (n.home) home = home || findHome(n.home);
-    if (!home) home = homes.find((h) => !claimed.has(h) && !h.special && (h.beds || []).length >= grp.length && (grp.length > 1 ? h.building.kind === 'house' : true));
+    if (!home) home = homes.find((h) => free(h) && !h.special && (h.beds || []).length >= grp.length && (grp.length > 1 ? h.building.kind === 'house' : true));
     if (home) claimed.add(home);
     const members = grp.map((n) => { const p = make(n, home); notablePeople.set(n, p); return p; });
     if (home) {
@@ -54,12 +68,12 @@ export function populate(ctx) {
     }
   }
   // ------------------------------------------------ everyone else
-  for (const home of homes) {
+  for (const [hi, home] of homes.entries()) {
     if (claimed.has(home)) continue;
     claimed.add(home);
     const beds = (home.beds || []).length;
     if (!beds) continue;
-    const r = rng.fork('hh' + home.building.id);
+    const r = rng.fork('hh' + home.building.id + ':' + hi);
     let surname = home.family || r.pick(SURNAMES);
     let tries = 0; while (usedSurnames.has(surname) && tries++ < 8 && !home.family) surname = r.pick(SURNAMES);
     usedSurnames.add(surname);

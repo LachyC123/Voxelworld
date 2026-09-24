@@ -360,6 +360,21 @@ function buildWaterfront(ctx) {
     K.P(rng.pick(['crate_stack', 'barrel_stack', 'lobster_trap_stack', 'sack_pile']), 22, WALK_Y, g.z0 + 1.2, 'E');
     K.P(rng.pick(['barrel', 'crate', 'trash_basket']), 42.5, WALK_Y, g.z1 - 1.0, 'W');
   });
+  // the coal & lumber yard at the north end, beside the stub track
+  for (let k = 0; k < 6; k++) K.B(24 + k * 0.75, 1 + k, -296 + k * 0.75, 40 - k * 0.75, 2 + k, -282 - k * 0.75, MAT.trim_black);
+  K.B(23.5, 1, -296.5, 40.5, 3, -296, MAT.wood_dark); K.B(23.5, 1, -296.5, 24, 3, -281.5, MAT.wood_dark); K.B(40, 1, -296.5, 40.5, 3, -281.5, MAT.wood_dark);
+  for (let k = 0; k < 4; k++) { const z = -272 + k * 5; K.B(24, 1, z, 36, 3 + (k % 2), z + 2.5, MAT.wood_light); K.B(24, 1, z + 0.5, 36, 2, z + 0.75, MAT.wood_dark); }
+  K.B(38, 1, -276, 43, 11, -270, MAT.siding_gray); K.B(37.75, 11, -276.25, 43.25, 12, -269.75, MAT.roof_tar); K.B(38, 1, -273.5, 38.25, 9, -272.5, MAT.trim_dark); K.B(38, 5, -275.5, 38.25, 8, -274.25, MAT.glass);
+  worldText(ctx, 'COAL', 'W', V(38) - 1, V(-273), 12, MAT.sign_white); K.B(37.75, 12, -276, 38, 14, -270, MAT.sign_black);
+  worldText(ctx, 'COAL', 'W', V(37.75) - 1, V(-273), 12, MAT.sign_white);
+  K.P(textSignType('BAY COAL & LUMBER CO.', { bg: '#1c1c1c', fg: '#e8e0c8' }), 37.6, 2.4, -273, 'W');
+  K.P('wheelbarrow', 36, WALK_Y, -278, 'W'); K.P('truck_pickup', 42, WALK_Y, -262, 'N', { tint: '#2a2a2e', cat: 'far' });
+  // the club's boat yard south of the sheds: boats hauled out on cradles for the winter
+  for (const [t, x, z, c] of [['sailboat', 26, 184, '#f0ece2'], ['sailboat', 33, 186, '#2a4a7a'], ['lobster_boat', 40, 184, '#8a2a24'], ['dory', 24, 196, '#d8cfa8']]) {
+    K.P(t, x, t === 'dory' ? 0.9 : 1.6, z, 'N', { tint: c, cat: 'far' });
+    for (const dz of [-2, 2]) { K.B(x - 1, 1, z + dz - 0.25, x + 1, t === 'dory' ? 3 : 5, z + dz + 0.25, MAT.wood_dark); }
+  }
+  K.P('car_wagon', 38, WALK_Y, 198, 'N', { tint: '#6a4a2a', cat: 'far' }); K.P('hb_sawhorse', 30, WALK_Y, 194, 'E'); K.P('paint_cans', 31, WALK_Y, 192.5, 'S');
   // the MARY ELLEN memorial and the WPA seawall plaque
   buildMaryEllen(K, -10, quayAt(-10));
   K.P('hb_plaque', 0.9, WALK_Y + 0.02, 60.4, 'W');
@@ -1534,6 +1549,8 @@ function buildBathHouse(ctx) {
   b.readable(W / 2, 4, Z0 + 13, { title: 'Bath House Prices', body: 'JUNIPER BEACH BATH HOUSE — Town of Juniper Bay, 1926\n\nCheck room & locker ... 10¢\nTowel ... 5¢\nBathing suit for hire (wool, washed daily) ... 15¢\n\nOPEN TODAY FOR THE CENTENNIAL, 10 A.M. to 6 P.M.\nThe bathing season is closed. The attendant will say so twice.' }, { r: 2.2 });
   b.light(W / 2, 9, bz - 2, { mode: 'night', radius: 7 });
   for (const e of b.entrances) linkToSidewalk(ctx, e.node);
+  b.m = lot.m;
+  ctx.landmarks.push({ name: b.name, kind: 'shop', x: 26, z: 219, rect: lot.m, building: b });
   return b;
 }
 
