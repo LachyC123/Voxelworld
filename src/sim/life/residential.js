@@ -18,12 +18,16 @@ import { MAT } from '../../world/materials.js';
 import { AVENUES, STREETS, GAPS } from '../../city/layout.js';
 
 export function run(L) {
+  const tA = Date.now();
   const R = new Hood(L);
+  const prof = { survey: Date.now() - tA };
+  L.ctx.resProf = prof;
   if (!R.homes.length) return R;
-  const step = (name, fn) => { try { fn(R); } catch (e) { console.error('residential: ' + name + ' failed', e); } };
+  const step = (name, fn) => { const t = Date.now(); try { fn(R); } catch (e) { console.error('residential: ' + name + ' failed', e); } prof[name] = Date.now() - t; };
   step('trades', trades);
   step('doorways', doorways);
   step('scenes', planScenes);
+  step('diary', diary);
   return R;
 }
 
@@ -358,6 +362,8 @@ class Hood {
     let d = 0; for (let i = 1; i < path.length; i++) d += Math.hypot(this.nav.x[path[i]] - this.nav.x[path[i - 1]], this.nav.y[path[i]] - this.nav.y[path[i - 1]], this.nav.z[path[i]] - this.nav.z[path[i - 1]]);
     return d / ((speed || p.speed) * 60) + 0.1;
   }
+  // remember where/when a diary-worthy thing happens: seen('leaf', {t0, t1, x, y, z} | {t0, t1, p})
+  seen(key, q) { (this.seenList = this.seenList || {}); (this.seenList[key] = this.seenList[key] || []).push({ ...q, t0: T(q.t0), t1: T(q.t1) }); }
   // a running itinerary: it = R.day(p, t0); it.go(spot, dwell, {act,label,held,arms}); it.commit()
   day(p, t0, o = {}) { return new Itinerary(this, p, t0, o); }
   // leaf smoke rising off a fire from t0 to t1 (animated in planScenes' hook)
@@ -388,6 +394,33 @@ class Itinerary {
     this.R.L.plan(this.p, this.t0, end, this.entries, { noResume: o.noResume, lines: o.lines, label: this.o.label });
     return end;
   }
+}
+
+// ================================================================ the Spotter's Diary
+// A few of the neighbourhood's most particular sights. Things that happen in several places are one
+// diary item whose point follows whichever instance is happening right now (R.now, set every frame).
+function diary(R) {
+  const L = R.L, S = R.seenList || {};
+  const multi = (key, o) => {
+    const list = (S[key] || []).sort((a, b) => a.t0 - b.t0);
+    if (!list.length) return;
+    const cur = () => { const m = R.now ?? -1; return list.find((q) => m >= q.t0 && m < q.t1) || null; };
+    L.spottable({ ...o, t0: list[0].t0, t1: Math.max(...list.map((q) => q.t1)), r: o.r ?? 1.2, range: o.range ?? 24,
+      get x() { const q = cur(); return q ? (q.p ? q.p.state.x : q.x) : 0; },
+      get y() { const q = cur(); return q ? (q.p ? q.p.state.y + 1.1 : q.y) : -1000; },
+      get z() { const q = cur(); return q ? (q.p ? q.p.state.z : q.z) : 0; } });
+  };
+  const one = (key, o) => { const q = (S[key] || [])[0]; if (q && q.p) L.spottable({ ...o, person: q.p, t0: q.t0, t1: q.t1 }); };
+  one('milkman', { id: 'res_milkman', cat: 'Only at certain times', what: 'The milkman with his wire carrier of quarts', hint: 'Before breakfast — the captains\' houses on Hillcrest first' });
+  one('paperboy', { id: 'res_paperboy', cat: 'Only at certain times', what: 'The paperboy tossing the Courier onto porches', hint: 'Dawn on Maple Street (his chain comes off at Elm)' });
+  one('iceman', { id: 'res_iceman', cat: 'Only at certain times', what: 'The iceman with a block in his tongs', hint: 'Mid-morning; follow the kids begging for chips' });
+  one('fuller', { id: 'res_fuller', cat: 'Townsfolk', what: 'The Fuller Brush man at somebody\'s door', hint: 'All day around Maple Street — look for his maroon Plymouth' });
+  one('grinder', { id: 'res_grinder', cat: 'Only at certain times', what: 'The knife grinder at his wheel', hint: 'Late morning, east end of Church and Maple — listen for a bell' });
+  one('icecream', { id: 'res_icetruck', cat: 'Only at certain times', what: 'A queue of kids at the ice-cream truck', hint: 'After two — listen for the bell on the side streets' });
+  multi('antenna', { id: 'res_antenna', cat: 'Townsfolk', what: 'A husband on the roof, fixing the TV antenna', hint: 'Somebody\'s picture is snowing — look up at the rooftops', range: 30 });
+  multi('leaf', { id: 'res_leafjump', cat: 'Townsfolk', what: 'Kids leaping into a pile of raked leaves', hint: 'Front lawns, once the raking\'s done' });
+  multi('lemonade', { id: 'res_lemonade', cat: 'Around town', what: 'A kids\' lemonade stand (five cents a glass)', hint: 'Side-street sidewalks, late morning or late afternoon' });
+  multi('moving', { id: 'res_moving', cat: 'Only at certain times', what: 'A family moving in, furniture on the sidewalk', hint: 'The Marlowe Apartments, Church Street, in the morning', range: 30 });
 }
 
 // ================================================================ vehicles that really drive
@@ -521,6 +554,7 @@ class Fleet {
   }
   update(rt) {
     const m = rt.minutes, cam = rt.cam;
+    this.R.now = m;
     for (const v of this.list) {
       const h = v.h; if (h.dummy) continue;
       let show = false;
@@ -684,6 +718,7 @@ function milkman(R) {
   it.go(R.L.offstage(380, -64), 0, { teleport: true });
   it.commit({ end: tEnd + 30, lines });
   R.scene('The milkman\'s rounds', null, t0, tEnd, [p], { x: 392, z: 100, street: 'Hillcrest Avenue' });
+  R.seen('milkman', { p, t0, t1: tEnd });
   // noon: the last stop is always Mrs. Hatch, a quart of milk and a pint of cream "for the cat"
   const hatch = R.byName.get('Hatch Residence'), mildred = L.person('Mildred', 'Hatch');
   if (hatch) {
@@ -747,6 +782,7 @@ function paperboy(R) {
   R.trails.add(p, 'bicycle', { side: 0.55, fwd: 0.1, when: 'walk', t0: tEnd + 0.4, t1: T('8:00'), tint: '#8a2a24' }); // walking it home
   L.follow(p, 'paper_bag_canvas', { side: -0.22, fwd: 0.02, y: 0.48, when: 'always', t0, t1: tEnd });
   R.scene('The paperboy\'s route', null, t0, tEnd, [p], { x: 300, z: 150, street: 'Maple Street' });
+  R.seen('paperboy', { p, t0, t1: tEnd });
   R.scene('The paperboy\'s route (Orchard)', null, t0, tEnd, [], { x: 300, z: 210, street: 'Orchard Street' });
 }
 
@@ -848,6 +884,7 @@ function iceman(R) {
     R.scene('The iceman', H, t, tDep, [aldo]);
   }
   truck.leave(it.t);
+  R.seen('iceman', { p: aldo, t0: '8:44', t1: it.t });
   it.go(aldo.offstageSpot, 0, { teleport: true });
   it.commit({ end: it.t + 1, noResume: true });
 }
@@ -895,6 +932,7 @@ function fullerBrush(R) {
   it.go(harvey.offstageSpot, 0, { teleport: true });
   it.commit({ end: it.t + 1, noResume: true });
   R.scene('The Fuller Brush man\'s rounds', carH, T('9:30'), it.t, [harvey]);
+  R.seen('fuller', { p: harvey, t0: '9:31', t1: it.t });
 }
 
 // ---------------------------------------------------------------- the ice-cream truck, 13:50 - 16:45
@@ -942,6 +980,7 @@ function iceCream(R) {
     R.scene('The ice-cream truck', H, t, tDep, used);
   }
   truck.leave(it.t);
+  R.seen('icecream', { p: sonny, t0: '13:52', t1: it.t });
   it.go(sonny.offstageSpot, 0, { teleport: true });
   it.commit({ end: it.t + 1, noResume: true });
 }
@@ -989,6 +1028,7 @@ function knifeGrinder(R) {
   const tEnd = it.t;
   it.commit({ end: tEnd + 1, noResume: true });
   R.trails.add(pat, 'grinder_cart', { fwd: 1.05, when: 'walk', park: true, t0: T('10:08'), t1: tEnd });
+  R.seen('grinder', { p: pat, t0: '10:10', t1: tEnd });
 }
 
 // ---------------------------------------------------------------- the diaper service, 8:15 - 10:30
@@ -1274,6 +1314,7 @@ function movingDay(R) {
   const gawk = R.cast(H, '9:20', '10:15', 3, { filter: isKid, radius: 60, household: false });
   gawk.forEach((g, i) => { const q = f.at(-9 - i * 0.8, 3.4); L.block(g, '9:20', '10:15', R.spotAt(q.x, q.z, { faceTo: [tail.x, tail.z], act: 'look' }), 'look', { label: 'Watching the movers carry in a piano (it\'s a radio cabinet)' }); });
   R.scene('Moving day at the Marlowe', H, '8:25', '13:30', [carl, ruth, nancy, jimmy], null);
+  R.seen('moving', { t0: '8:40', t1: '13:05', x: tail.x, y: 1.5, z: tail.z });
   R.scene('Moving day at the Marlowe (movers)', H, '8:36', '13:05', [carl, ruth]);
 }
 
@@ -1460,6 +1501,7 @@ recipe('rake', [['8:20', '12:00'], ['13:20', '17:25']], [50, 95], 16, (R, H, t0,
     if (kids.length) {
       const js = R.spotAt(pile.x, pile.z, { act: 'jump_rope', spread: 0.8, faceTo: [pile.x + 0.01, pile.z] });
       kids.forEach((k) => blk(R, k, t1 - 28, t1 + 2, js, 'jump_rope', `Jumping in ${theirs(H)} leaf pile`, { lines: ['Geronimo!', 'Don\'t tell Pop!', 'There\'s a worm in my collar!', 'Again! Again!'] }));
+      R.seen('leaf', { t0: t1 - 27, t1: t1 + 2, x: pile.x, y: pile.y + 0.6, z: pile.z });
       L.sound(pile.x, 1, pile.z, t1 - 28, t1 + 2, 'kids', { range: 35, vol: 0.5 });
       L.convo([rakers[0], kids[0]], t1 - 26, t1, [[0, 'Not in the pile! ...Oh, all right. Once more.'], [1, 'Once more!'], [0, 'That was four times.']]);
       ppl.push(...kids);
@@ -1590,6 +1632,7 @@ recipe('antenna', [['10:00', '11:50'], ['13:00', '16:50'], ['18:40', '19:20']], 
   const ent = []; let t = t0 + 2, k = 0;
   while (t < t1 - 2) { ent.push({ t, spot: k % 2 ? door : shout, act: k % 2 ? 'talk' : 'wave', label: k % 2 ? 'Checking the picture on the Admiral' : 'Shouting up to the roof: "Better! ...No!"' }); t += k % 2 ? 2.5 : 3.5; k++; }
   L.plan(her, t0 + 2, t1, ent);
+  R.seen('antenna', { p: him, t0: t0 + 1.5, t1 });
   L.convo([him, her], t0 + 3, t1, [[0, 'How\'s that?'], [1, 'Better! ...No!'], [0, 'Now?'], [1, 'Now it\'s snowing!'], [0, 'It was snowing before!'], [1, 'It\'s snowing differently!'], [0, 'What about now?'], [1, 'You\'ve got Channel 4 and a ghost of Channel 7!'], [0, 'Which one\'s the ghost?'], [1, 'Milton Berle has two heads!'], [0, 'That\'s not the antenna.']]);
   L.timed('ladder_extension', lad.foot.x, lad.foot.z, lad.footYaw, t0 - 2, t1 + 3, { scale: lad.scale });
   if (fresh) { L.timed('tv_antenna', a.x, a.z, R.rng.float(0, 3), t0 + 4, T('23:59'), { y: a.y }); L.label(a.x, a.y + 1.5, a.z, t0 + 4, T('23:59'), `${theirs(H)} brand-new TV antenna, pointed at Boston (more or less)`, 2); }
@@ -1839,6 +1882,7 @@ recipe('lemonade', [['10:00', '12:10'], ['15:50', '17:40']], [70, 110], 4, (R, H
   L.timed('lemonade_stand', st.x, st.z, H.P.yawOut, t0 - 3, t1 + 2);
   kids.forEach((k, i) => { const q = H.at(sw.s + (i ? 0.55 : -0.55), 0.75); blk(R, k, t0, t1, R.spotAt(q.x, q.z, { yaw: H.P.yawOut, act: 'counter' }), 'counter', 'Selling lemonade on the sidewalk, five cents a glass', { lines: ['Lemonade! Ice cold! Five cents!', 'Two cents for kids. Five for grown-ups. That\'s the rule.', 'We\'re saving up for a Flexible Flyer.'] }); });
   L.label(st.x, 1.1, st.z, t0 - 3, t1 + 2, `${first(kids[0])}'s lemonade stand: LEMON-ADE 5¢`, 1.4);
+  R.seen('lemonade', { t0, t1, x: st.x, y: H.lawnY + 0.9, z: st.z });
   // customers
   const custs = R.cast(H, t0, t1, 5, { filter: (x) => x.age >= 8, exclude: kids, radius: 110 });
   const ppl = kids.slice();

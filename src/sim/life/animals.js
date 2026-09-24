@@ -259,27 +259,22 @@ class Zoo {
   spotDefs() {
     const L = this.L, list = L.life.spottables;
     if (!list) { this.spots = []; return; }
-    const has = (n) => this.animals.some((a) => a.name === n);
     const defs = [
-      ['dog_walk', 'A dog out for a walk on its lead', 'Mornings and evenings, on the east-side streets', (a) => a.kind === 'dog' && a.leash, null, null],
-      ['dog_bark', 'A dog barking at you over the front fence', 'Stroll past the front yards on Maple and Orchard', (a) => a.kind === 'dog' && a.P && a.barking && a.st.mode === 'bark', null, null],
-      ['dog_chase', 'A child and a dog running round in circles', 'Front yards and Juniper Park, late morning and after lunch', (a) => a.kind === 'dog' && a.sess && a.sess.kind !== 'walk' && a.sess.p.state.act === 'play', null, null],
-      ['dog_window', 'A dog waiting while its owner looks in a shop window', 'Main and Market Streets, during the day', (a) => a.kind === 'dog' && a.sess && a.sess.p.state.act === 'browse', null, null],
-      ['stray_butcher', 'A stray dog hoping for scraps at the butcher\'s', 'Market Street, by Russo\'s Meats', (a) => a.name === 'Scraps' && /Russo/.test(a.cap), '6:00', '21:40'],
-      ['cat_pigeons', 'A cat stalking the pigeons', 'Founders Square — watch the north side', (a) => a.name === 'Duchess' && /stalk|freeze|pounce/.test(a.st.mode || ''), '6:30', '20:50'],
-      ['cat_hood', 'A cat asleep on a warm car hood', 'Driveways on the east side, in the sun', (a) => a.kind === 'cat' && a.perch && a.perch.surface === 'car' && a.st.mode === 'perch', '6:40', '20:40'],
-      ['fish_cat', 'The fish-house cat', 'On the quay by Castellano Fish Co.', (a) => a.name === 'Mackerel', '6:40', '20:40'],
-      ['ragman', 'The ragman\'s horse and wagon', 'Clip-clopping round the east-side streets after breakfast', (a) => a.name === 'Dolly', null, null],
-      ['police_horse', 'Duke, the police horse', 'Round Founders Square while the fair is on', (a) => a.name === 'Duke', null, null],
+      ['an_dog_porch', 'A dog asleep on a front porch', 'The east-side streets — look up the front steps', (a) => a.kind === 'dog' && a.P && a.home.where === 'porch' && a.frame === 'lie', '6:20', '21:30'],
+      ['an_dog_walk', 'A dog taking its owner for a walk', 'Mornings and evenings, on the residential sidewalks', (a) => a.kind === 'dog' && a.leash, null, null],
+      ['an_dog_bark', 'A dog barking at you over the front fence', 'Stroll past the front yards on Maple and Orchard', (a) => a.kind === 'dog' && a.P && a.barking && a.st.mode === 'bark', null, null],
+      ['an_dog_chase', 'A child and a dog running round in circles', 'Front yards and Juniper Park, late morning and after lunch', (a) => a.kind === 'dog' && a.sess && a.sess.kind !== 'walk' && a.sess.p.state.act === 'play', null, null],
+      ['an_stray', 'A stray hoping for scraps at the butcher\'s', 'Market Street, by Russo\'s Meats', (a) => a.name === 'Scraps' && /Russo/.test(a.cap), '6:00', '21:40'],
+      ['an_cat_fence', 'A cat on a fence post', 'Front fences on the east side — cats like the gateposts', (a) => a.kind === 'cat' && a.perch && a.perch.surface === 'fence' && a.st.mode === 'perch' && a.name !== 'Admiral', '6:40', '20:40'],
+      ['an_cat_pigeons', 'A cat stalking the pigeons', 'Founders Square — watch the north side', (a) => a.name === 'Duchess' && /stalk|freeze|pounce/.test(a.st.mode || ''), '6:30', '20:50'],
+      ['an_squirrel_tree', 'A squirrel scolding you from halfway up a tree', 'Juniper Park — walk up to one and see where it goes', (a) => a.kind === 'squirrel' && a.trees && /climb|perch/.test(a.st.mode || ''), '6:45', '18:45'],
+      ['an_ragman', 'The ragman\'s horse and wagon', 'Clip-clopping round the east-side streets after breakfast', (a) => a.name === 'Dolly', null, null],
+      ['an_police_horse', 'Duke, the police horse', 'Round Founders Square while the fair is on', (a) => a.name === 'Duke', null, null],
     ];
     this.spots = [];
     for (const [id, what, hint, test, t0, t1] of defs) {
-      if (id === 'stray_butcher' && !has('Scraps')) continue;
-      if (id === 'cat_pigeons' && !has('Duchess')) continue;
-      if (id === 'fish_cat' && !has('Mackerel')) continue;
-      if (id === 'ragman' && !has('Dolly')) continue;
-      if (id === 'police_horse' && !has('Duke')) continue;
-      if (id === 'cat_hood' && !this.animals.some((a) => a.perch && a.perch.surface === 'car')) continue;
+      const need = { an_dog_porch: (a) => a.home && a.home.where === 'porch', an_dog_walk: (a) => a.sessions && a.sessions.some((q) => q.leash), an_dog_bark: (a) => a.barker, an_dog_chase: (a) => a.sessions && a.sessions.some((q) => q.kind === 'yard' || q.kind === 'park'), an_stray: (a) => a.name === 'Scraps', an_cat_fence: (a) => a.perch && a.perch.surface === 'fence' && a.name !== 'Admiral', an_cat_pigeons: (a) => a.name === 'Duchess', an_squirrel_tree: (a) => a.kind === 'squirrel' && a.trees, an_ragman: (a) => a.name === 'Dolly', an_police_horse: (a) => a.name === 'Duke' }[id];
+      if (need && !this.animals.some(need)) continue;
       const sp = { id, cat: 'Dogs, cats & horses', what, hint, r: 1.0, range: 22, t0: t0 === null ? null : tm(t0), t1: t1 === null ? null : tm(t1), by: L.id, x: 0, y: -1000, z: 0, test };
       list.push(sp); this.spots.push(sp);
     }

@@ -23,6 +23,7 @@ export class RW {
     this.cache = new Map();       // misc spot caches
     this.count = {};              // scene counters (diagnostics)
     this.touched = new Set();     // people given a routine
+    this.diary = {};              // candidates for the Spotter's Diary
     this.wcache = new Map();      // person -> their free windows (invalidated by W.plan)
     this.homeOf = new Map();      // person -> home place
   }

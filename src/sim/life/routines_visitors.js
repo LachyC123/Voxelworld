@@ -649,6 +649,9 @@ export function visitors(W) {
     const ppl = makeParty(V, spec, i);
     if (!ppl.length) { i++; continue; }
     sights += planParty(V, spec, ppl, i);
+    if (spec.kind === 'scouts') W.diary.scouts = { person: ppl[0] };
+    if (spec.kind === 'camera') W.diary.camera = { person: ppl[0] };
+    if (spec.kind === 'church') W.diary.church = { person: ppl[0] };
     people += ppl.length; parties++; i++;
   }
   // their cars, parked out along Grand Avenue toward the edge of town

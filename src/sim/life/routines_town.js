@@ -607,6 +607,7 @@ export function kidGangs(W) {
       trip.commit();
       gang.forEach((k) => used.add(k));
       n++;
+      if (am && (!W.diary.gang || gang.length > W.diary.gang.n)) W.diary.gang = { person: lead, n: gang.length, t0: t0 + 3, t1: trip.t - 3, street: LP.building.lot && LP.building.lot.street, names: gang.map((k) => k.first) };
     }
   }
   W.tally('Gangs of kids', n);
@@ -794,6 +795,7 @@ export function beautyKitchens(W) {
     W.plan(hd, T('9:00'), Math.min(T('12:05'), lastEnd + 25), hs);
     W.touched.add(hd);
     L.scene('Kitchen beauty parlor', P.door.x, P.door.z, '9:00', lastEnd, done.length + 1);
+    if (!W.diary.beauty) W.diary.beauty = { person: hd, t0: done[0][1], t1: lastEnd, street: P.building.lot && P.building.lot.street };
     n++;
   }
   W.tally('Kitchen beauty parlors', n);
@@ -826,6 +828,7 @@ export function confession(W) {
     slot += inBox + 1; n++;
   }
   W.tally('Confessions', n);
+  if (n >= 3) W.diary.confession = { x: box.x, y: box.y + 1, z: box.z };
   L.scene("Saturday confession at St. Brigid's", box.x, box.z, '15:20', '17:10', n);
 }
 
@@ -858,7 +861,11 @@ export function casseroles(W) {
       trip.to(step, stay, { label: d.label, act: d.leave ? 'kneel' : 'talk', held: 'pie', lines: d.lines });
       homeAfter(W, c, trip, 'Walking home, feeling useful');
       trip.commit();
-      if (d.leave) L.timed('food_pie', step.x + P.r[0] * 0.5 * (k - 1), step.z + P.r[1] * 0.5 * (k - 1), P.yawOut, tArr + stay, '23:59', { y: step.y + 0.02, scale: 0.8 });
+      if (d.leave) {
+        const px = step.x + P.r[0] * 0.5 * (k - 1), pz = step.z + P.r[1] * 0.5 * (k - 1);
+        L.timed('food_pie', px, pz, P.yawOut, tArr + stay, '23:59', { y: step.y + 0.02, scale: 0.8 });
+        if (!W.diary.pie) W.diary.pie = { x: px, y: step.y + 0.2, z: pz, t0: tArr + stay };
+      }
       else {
         const host = P.members.find((m) => m.age >= 18 && W.free(m, tArr, tArr + stay) && W.atHome(m, tArr));
         if (host) {
@@ -910,6 +917,7 @@ export function couples(W) {
       trip.commit();
       man.lane = 0.3; wife.lane = -0.3; // side by side, arm in arm
       n++;
+      if (eve && (!W.diary.couple || r.len > W.diary.couple.len)) W.diary.couple = { person: man, label: trip.E[0][1] && trip.E[0][1].label, len: r.len, t0: t0, t1: trip.t, last: man.last, street: P.building.lot && P.building.lot.street };
     }
   }
   W.tally('Couples out walking', n);

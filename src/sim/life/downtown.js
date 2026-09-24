@@ -41,6 +41,8 @@ export function run(kit) {
     afterTheSpeech, dinerSupper, eveningStroll, blueLanternNight, signalLampNight, dinerNightOwls,
     // last: cars parked along the curbs wherever nothing else claimed the space, and the meter man who chalks them
     parkedCars, meterMan,
+    // the Spotter's Diary entries for the best of the above
+    spotterDiary,
   ];
   const nt = L.life.timed.length, nf = L.life.follows.length, np = L.ctx.people.list.length;
   const ms = {};
@@ -567,7 +569,7 @@ function stationLife() {
   if (!b) return;
   claim(b.x, b.z, 1.2);
   timed('town_shine_box', b.x, b.z, Math.PI, '6:40', '18:40');
-  const boy = visitor({ first: 'Leroy', last: 'Tate', age: 13, sex: 'M', from: 'station', visitor: false,
+  const boy = G.leroy = visitor({ first: 'Leroy', last: 'Tate', age: 13, sex: 'M', from: 'station', visitor: false,
     bio: 'Leroy Tate, 13, shines shoes on the station forecourt every Saturday. Ten cents, fifteen with the snap of the rag. Saving for a Schwinn.',
     lines: ['Shine, mister? Ten cents. You could see your face in \'em.', 'Fifteen with the snap. Everybody takes the snap.', 'The 9:52 is the best train. Salesmen. Salesmen always want a shine.'] });
   const ks = spot(b.x, b.z + 0.62, { yaw: Math.PI, act: 'shine' });
@@ -824,6 +826,7 @@ function trafficCop() {
   const p = visitor({ first: 'Walt', last: 'Keough', sex: 'M', age: 38, outfit: 'police', from: 'police', visitor: false, look: { arm: 4 },
     bio: 'Patrolman Walt Keough, on traffic duty at Main & Market for Harbor Days. White gloves, a whistle, and the patience of a saint with a headache.',
     lines: ['Keep it moving, folks, keep it moving.', 'Twelve years on traffic. The Centennial is the worst and the best.'] });
+  G.keough = p;
   const s = spot(x, z, { yaw: Math.PI / 2, act: 'hail_taxi' });
   const s2 = spot(x, z, { yaw: 0, act: 'wave', link: s.node });
   const whistle = ['(Tweeeet!) Hold it right there, Mac!', 'Come on, come on, let\'s go!', 'Ladies, cross now. Now, please!', 'Easy with that truck! Easy!', '(Tweet! Tweet!) You — yes, you — wait.'];
@@ -931,7 +934,7 @@ function crossingGuard() {
 
 // the organ grinder and Beppo the monkey, working the town all day
 function organGrinder() {
-  const p = visitor({ first: 'Ottavio', last: 'Ruggiero', sex: 'M', age: 67, from: 'station', visitor: false, look: { hat: 'hat_flatcap', hatTint: '#5a2a24', face: 2 },
+  const p = G.grinder = visitor({ first: 'Ottavio', last: 'Ruggiero', sex: 'M', age: 67, from: 'station', visitor: false, look: { hat: 'hat_flatcap', hatTint: '#5a2a24', face: 2 },
     bio: 'Ottavio Ruggiero of Federal Hill, Providence, and Beppo, a capuchin of uncertain age and firm opinions. They come up for every Harbor Days and take the 7:30 home.',
     lines: ['Beppo, say grazie to the lady. Grazie! Grazie!', 'Forty years I play this organ. Beppo, only twelve. He is still learning.'] });
   const at = (name, side, out, dir) => () => { const P = place(name); if (!P) return null; const q = P.at(side, out); return { ...q, yaw: dir > 0 ? P.yawRight : P.yawLeft }; };
@@ -1102,6 +1105,7 @@ function quartet() {
       put(p, a, b, s, { act: 'sing_free', costume, label: 'Singing with the Harbor Chords, Elks Lodge No. 812', say: i === 1 ? songs[k % songs.length] : null, song: true });
     });
     claim(cx.x, cx.z, 2.4, a, b);
+    (G.quartet = G.quartet || []).push({ x: cx.x, z: cx.z, t0: T(a), t1: T(b) });
     const fans = cast(L.rng.int(4, 7), a, b, { age: [8, 80] }, cx.x, cx.z);
     crowd(fans, T(a) + 3, T(b) - 2, audience.x, audience.z, { spread: 1.5, faceTo: [cx.x, cx.z], acts: ['listen', 'clap', 'listen', 'laugh'], label: 'Listening to the barbershop quartet', stagger: 5 });
     sound(cx.x, cx.z, a, b, 'crowd', 25, 0.25);
@@ -1248,7 +1252,7 @@ function windowWasher() {
   // find the face of the building at each height (it may step back)
   const W = L.ctx.world;
   const faceAt = (y) => { for (let o = 1.5; o >= -3; o -= 0.25) { const q = P.at(side, o); const m = W.matAt(Math.floor(q.x / VS), Math.floor(y / VS), Math.floor(q.z / VS)); if (m && !(W.matFlags[m] & MFLAG.NOCOLLIDE)) return o; } return null; };
-  const p = visitor({ first: 'Dutch', last: 'Hendricks', sex: 'M', age: 41, outfit: 'painter', from: 'garage', visitor: false,
+  const p = G.washer = visitor({ first: 'Dutch', last: 'Hendricks', sex: 'M', age: 41, outfit: 'painter', from: 'garage', visitor: false,
     bio: 'Dutch Hendricks washes the windows of every building in Juniper Bay taller than three stories. There are four. He does them twice a year and the Beacon Building every September.', lines: ['Best view in town, and I\'m the only one who gets it.', 'Twelve floors, forty-eight windows a floor. I count them in my sleep.'] });
   const f0 = faceAt(1.0);
   const gq = P.at(side, (f0 ?? 0) + 0.7);
@@ -1569,7 +1573,7 @@ function fenderBender() {
   park('car_sedan', A.x, A.z, A.yaw, t0, t1, { len: 11, tint: '#2a4a3a', tint2: '#d8d0b8' });
   G.curb.push({ x: B.x, z: B.z, t0, t1, len: 6 });
   timed('truck_pickup', B.x, B.z, B.yaw, t0, t1, { y: 0.02, tint: '#8a2a24', tint2: '#d8d0b8' });
-  const mid = along(A, -2.9, 0.2);
+  const mid = G.fender = along(A, -2.9, 0.2);
   timed('town_car_debris', mid.x, mid.z, 0.4, t0, t1 + 20, { y: 0.02 });
   timed('crate', along(B, 1.2, -1.6).x, along(B, 1.2, -1.6).z, 0.7, t0, t1, { pitch: 0.4 });
   label(A.x, 1.2, A.z, t0, t1, "A '49 Hudson with a pickup truck in its trunk", 2.6);
@@ -1726,6 +1730,7 @@ function newlyweds() {
   const car = truckFor(P, 'car_convertible', '14:05', '18:47', { len: 5.2, sides: [2.6, 5, -2], tint: '#f0ece0', tint2: '#c8c0b0' });
   if (!car) return;
   const rear = along(car, -2.55);
+  G.getaway = { x: rear.x, z: rear.z };
   timed('town_just_married', rear.x, rear.z, car.yaw, '14:52', '18:47', { y: 0.02 });
   label(car.x, 1.3, car.z, '14:52', '18:47', "The Brennans' getaway car, tin cans and all", 2.6);
   // two boys tie the cans on during the ceremony
@@ -2045,7 +2050,7 @@ function sandcastles() {
         const q = { x: x + Math.cos(ang) * 0.95, z: z + Math.sin(ang) * 0.95 };
         put(p, a, b, spot(q.x, q.z, { faceTo: [x, z], act: 'garden' }), { act: 'garden', label: 'Building a sandcastle on Juniper Beach', lines: ['It\'s got a moat! A real moat! Get more water!', 'That tower\'s the dungeon. You\'re the dragon.', 'The tide\'s coming! Build the wall, build the wall!'] });
       });
-      if (!built) { timed('town_sandcastle_small', x, z, i * 0.9, T(a) + 20, T(a) + 55); timed('town_sandcastle', x, z, i * 0.9, T(a) + 55, '21:30'); built = true; }
+      if (!built) { timed('town_sandcastle_small', x, z, i * 0.9, T(a) + 20, T(a) + 55); timed('town_sandcastle', x, z, i * 0.9, T(a) + 55, '21:30'); built = true; if (!G.castle) G.castle = { x, z, t0: T(a) + 20 }; }
       timed('town_sand_pail', x + 1.3, z - 0.9, i, a, b);
       // a parent on a towel close by
       const pq = { x: x + 2.6, z: z + 1.8 };
@@ -2080,6 +2085,7 @@ function kiteFlyer() {
   if (!kid) return;
   const s = spot(x, z, { yaw: Math.PI / 2 + 0.2, act: 'look' });
   put(kid, '13:00', '16:30', s, { act: 'look', label: 'Flying a kite on Juniper Beach', lines: ['Let out more string! More!', 'It\'s higher than the lighthouse! Almost!'] });
+  { const ky = Math.PI / 2 + 0.2; G.kite = { x: x + Math.sin(ky) * 9.2, z: z + Math.cos(ky) * 9.2 }; }
   L.follow(kid, 'town_kite', { fwd: 0.35, y: 1.15, when: 'spot', t0: '13:05', t1: '16:30', bob: 0.3, tint: '#c83a2a', tint2: '#f0d040' });
   const [dad] = cast(1, '13:00', '16:30', { age: [30, 55], sex: 'M', fill: kid.visitor }, x, z);
   if (dad) put(dad, '13:00', '16:30', spot(x - 1.6, z + 1.2, { yaw: Math.PI / 2, act: 'look' }), { act: 'look', label: 'Minding the kite string', lines: ['Keep it out of the wires, son.'] });
@@ -2209,4 +2215,26 @@ function dinerNightOwls() {
   const early = cast(4, '7:05', '8:05', { age: [20, 70], sex: 'M' }, c.x, c.z);
   crowd(early, '7:05', '8:05', c.x, c.z, { spread: 1.5, acts: ['drink_stand', 'talk', 'drink_stand'], held: 'coffee_cup', label: 'Coffee outside the Harbor Light Diner', lines: ['Boats came in heavy. Castellano\'s paying time and a half.'], stagger: 6 });
   if (ppl.length + early.length) scene('Coffee outside the Harbor Light Diner', c.x, c.z, '7:05', '22:30', ppl.length + early.length);
+}
+
+// ================================================================== the Spotter's Diary
+function spotterDiary() {
+  if (!L.spottable) return;
+  // the runtime clock, for the items that come and go (kept by a tiny per-frame hook)
+  let now = 0;
+  L.every((rt) => { now = rt.minutes; });
+  const far = -1000;
+  if (G.grinder) L.spottable({ id: 'town_monkey', cat: 'Around town', what: "The organ grinder's monkey, collecting pennies", hint: "Wherever there's a crowd: Harlow's at half past nine, Playland after lunch", person: G.grinder, t0: '9:30', t1: '19:25', range: 20 });
+  if (G.keough) L.spottable({ id: 'town_traffic_cop', cat: 'Townsfolk', what: 'A policeman in white gloves directing traffic', hint: 'Main & Market, at breakfast, lunch and half past four', person: G.keough, label: 'Directing traffic at Main & Market', range: 30 });
+  if (G.washer) L.spottable({ id: 'town_window_washer', cat: 'Around town', what: 'A window washer, high on the Beacon Building', hint: 'Canal Street — look up, any time from nine till four', person: G.washer, label: 'Washing the windows of the Beacon Building', range: 45 });
+  if (G.leroy) L.spottable({ id: 'town_shoeshine', cat: 'Townsfolk', what: 'A shoeshine boy at work', hint: 'Where the salesmen come off the trains', person: G.leroy, label: 'Shining shoes on the station forecourt', range: 16 });
+  if (G.fender) L.spottable({ id: 'town_fender_bender', cat: 'Only at certain times', what: "A fender-bender, and a policeman's notebook", hint: 'Canal Street by the Luncheonette, about half past two', x: G.fender.x, y: 0.9, z: G.fender.z, r: 2.4, range: 30, t0: '14:30', t1: '15:15' });
+  if (G.quartet && G.quartet.length) {
+    const Q = G.quartet, on = () => Q.find((q) => now >= q.t0 && now < q.t1);
+    L.spottable({ id: 'town_quartet', cat: 'Only at certain times', what: 'A barbershop quartet in straw boaters', hint: "Outside Freeman's Barber Shop: noon, four, and before seven",
+      get x() { const q = on(); return q ? q.x : 0; }, get y() { return on() ? 1.6 : far; }, get z() { const q = on(); return q ? q.z : 0; }, r: 2.2, range: 25 });
+  }
+  if (G.castle) L.spottable({ id: 'town_sandcastle', cat: 'Down by the water', what: 'A sandcastle with a moat and a paper flag', hint: 'Juniper Beach, from late morning — follow the shrieks', x: G.castle.x, y: 0.1, z: G.castle.z, r: 1.2, range: 22, t0: G.castle.t0, t1: '21:30' });
+  if (G.getaway) L.spottable({ id: 'town_getaway_car', cat: 'Only at certain times', what: 'A getaway car trailing tin cans', hint: "Church Street by St. Brigid's, after the wedding", x: G.getaway.x, y: 0.8, z: G.getaway.z, r: 2.0, range: 30, t0: '14:52', t1: '18:47' });
+  if (G.kite) L.spottable({ id: 'town_kite', cat: 'Down by the water', what: 'A kite over Juniper Beach', hint: 'Afternoons, the south end of the beach — look up', x: G.kite.x, y: 13, z: G.kite.z, r: 3, range: 80, t0: '13:05', t1: '16:30' });
 }
