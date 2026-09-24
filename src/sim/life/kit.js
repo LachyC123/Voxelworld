@@ -97,6 +97,9 @@ function buildPlaces(ctx) {
 // the minutes a person is spoken for (asleep, at work, in an event or another scene), cached
 // until their schedule changes: [a0, b0, a1, b1, …]
 const WORK = /^(Working|Back at work)/;
+const PAD = 15;
+// how many street-life outings fit in one person's Saturday
+const dayCap = (p) => (p.age < 13 ? 8 : p.age < 18 ? 7 : p.age >= 66 ? 5 : 6);
 const blocking = (e) => e.act === 'sleep' || e.event || e.life || (e.label && WORK.test(e.label));
 function blockedTimes(p) {
   const s = p.schedule, nb = p.busy ? p.busy.length : 0, c = p._lifeBlk;
@@ -106,6 +109,8 @@ function blockedTimes(p) {
   for (let k = 0; k < s.length; k++) if (blocking(s[k])) v.push(s[k].t, k + 1 < s.length ? s[k + 1].t : 1440);
   if (s.length && s[0].t > 0 && blocking(s[s.length - 1])) v.push(0, s[0].t);
   if (p.busy) for (const [a, b] of p.busy) v.push(a, b);
+  // a breather either side of every street-life outing, so nobody is whisked from scene to scene
+  if (p._lifeWins) for (const [a, b] of p._lifeWins) v.push(a - PAD, b + PAD);
   p._lifeBlk = { s, n: s.length, b: nb, v };
   return v;
 }
@@ -200,6 +205,7 @@ export class LifeKit extends EventKit {
   // awake, not at work, not already in an event or scene, and a townsperson (not a commuter)
   idle(p, t0, t1) {
     if (p.commuter || p.visitor || !p.schedule.length) return false;
+    if ((p._lifeWins ? p._lifeWins.length : 0) >= dayCap(p)) return false;
     t0 = tm(t0); t1 = tm(t1);
     const v = blockedTimes(p);
     for (let i = 0; i < v.length; i += 2) if (v[i] < t1 && v[i + 1] > t0) return false;
@@ -245,9 +251,17 @@ export class LifeKit extends EventKit {
       if (!e.spot && !e.route) continue;
       p.schedule.push({ t: tm(e.t), spot: e.spot || null, route: e.route || null, act: e.act || (e.route ? 'stroll' : e.spot.act), lines: e.lines || null, label: e.label || o.label || this.ev.title, held: e.held || o.held || null, event: null, life: this.id, speed: e.speed || o.speed || null, costume: e.costume || o.costume || null, arms: e.arms || o.arms || null });
     }
-    if (resume && !o.noResume) p.schedule.push({ ...resume, t: t1 });
+    if (resume && !o.noResume) {
+      const r = { ...resume, t: t1 };
+      // coming home from an outing isn't sitting down to the same meal (or the same dishes) again
+      if (t1 - resume.t > 20 && (resume.act === 'eat' || resume.act === 'cook' || resume.act === 'wash') && p.lounge && !resume.event) {
+        r.spot = p.lounge; r.act = p.lounge.act === 'sit' ? 'read' : p.lounge.act; r.label = 'Home again'; r.lines = null; r.held = null;
+      }
+      p.schedule.push(r);
+    }
     p.schedule.sort((a, b) => a.t - b.t);
     (p.busy = p.busy || []).push([t0, t1]);
+    (p._lifeWins = p._lifeWins || []).push([t0, t1]);
     const lines = o.lines; if (lines) this.say(p, t0, t1, lines, o.song);
   }
   // one spot from t0 to t1 (EventKit.block, but tagged as street life)

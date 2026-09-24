@@ -27,8 +27,11 @@ export class RW {
     this.diary = {};              // candidates for the Spotter's Diary
     this.wcache = new Map();      // person -> their free windows (invalidated by W.plan)
     this.homeOf = new Map();      // person -> home place
+    this.outings = new Map();     // person -> filler outings so far today
   }
   tally(k, n = 1) { this.count[k] = (this.count[k] || 0) + n; }
+  // a Saturday has room for three or four outings, not ten (kids and the retired get a few more)
+  outingsLeft(p) { const max = p.age < 18 ? 4 : p.age >= 66 ? 3 : (p.job ? 2 : 3); return Math.max(0, max - (this.outings.get(p) || 0)); }
 
   // ---------------------------------------------------------------- time
   // every plan goes through here, so the windows cache stays honest

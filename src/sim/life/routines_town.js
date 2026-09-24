@@ -456,7 +456,8 @@ export function fillWindow(W, p, a, b) {
     const r = rest(W, p, a0);
     if (r) { entries.push({ t: a0, ...r }); t = a0 + walkMin(pos, r.spot, p.speed) + rng.int(5, Math.min(25, Math.floor((b - a0) * 0.25))); pos = { x: r.spot.x, z: r.spot.z, spot: r.spot }; }
   }
-  while (b - t >= 28 && outings < 4) {
+  const cap = Math.min(2, W.outingsLeft(p));
+  while (b - t >= 28 && outings < cap) {
     const menu = menuFor(p, t);
     let trip = null;
     for (const f of order(rng, menu)) { trip = f(W, p, t, b, pos); if (trip) break; }
@@ -465,10 +466,11 @@ export function fillWindow(W, p, a, b) {
     t = trip.t; outings++;
     const r = rest(W, p, t);
     if (r) { entries.push({ t, ...r }); pos = { x: r.spot.x, z: r.spot.z, spot: r.spot }; } else pos = { x: home.x, z: home.z, spot: home };
-    t += rng.int(6, 22) + (t > T('18:30') ? 10 : 0);
+    t += rng.int(25, 70) + (t > T('18:30') ? 10 : 0);   // a proper sit-down at home between outings
   }
   if (!outings) return false;
   if (!L.idle(p, a, b)) return false;
+  W.outings.set(p, (W.outings.get(p) || 0) + outings);
   W.plan(p, a, b, entries.filter((e) => e.t >= a && e.t < b - 0.5));
   W.touched.add(p);
   return true;
@@ -481,7 +483,7 @@ export function filler(W) {
   for (const p of people) {
     for (const [a, b] of W.windows(p, '7:15', '21:40', 22)) {
       // the evening: not everybody goes out again
-      if (a >= T('18:15') && !rng.chance(0.85)) continue;
+      if (a >= T('18:15') && !rng.chance(0.6)) continue;
       if (fillWindow(W, p, a, b)) n++;
     }
   }
