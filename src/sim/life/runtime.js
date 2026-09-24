@@ -3,6 +3,7 @@
 // crosshair caption, and lists the ambient sound sources that are live right now.
 import { MFLAG } from '../../world/materials.js';
 import { VS } from '../../core/config.js';
+import { fmtTime } from '../../core/util.js';
 
 const inWin = (m, t0, t1) => (t0 === null || t1 === null) ? true : t0 <= t1 ? (m >= t0 && m < t1) : (m >= t0 || m < t1);
 
@@ -91,9 +92,43 @@ export class LifeRuntime {
       consider(P.x, P.y + (S.act === 'sleep' ? 0.5 : 1.0), P.z, 0.6, p);
     }
     for (const l of this.L.labels) if (inWin(m, l.t0, l.t1) && Math.abs(l.x - cam.x) < maxD && Math.abs(l.z - cam.z) < maxD) consider(l.x, l.y, l.z, l.r, l);
-    if (!best) return null;
-    if (!this.clear(cam, best)) return null;
-    return best;
+    if (best && this.clear(cam, best)) return best;
+    return g.playerRoom ? null : this.buildingAt(cam, fwd, m);
+  }
+
+  // the building the crosshair rests on (first opaque voxel along the view ray), described
+  buildingAt(cam, fwd, m, maxD = 90) {
+    const W = this.ctx.world;
+    let hit = null;
+    for (let d = 1; d < maxD; d += 0.35) {
+      const x = cam.x + fwd.x * d, y = cam.y + fwd.y * d, z = cam.z + fwd.z * d;
+      if (y < 0.3) return null;
+      const mm = W.matAt(Math.floor(x / VS), Math.floor(y / VS), Math.floor(z / VS));
+      if (mm && !(W.matFlags[mm] & (MFLAG.GLASS | MFLAG.TRANSPARENT | MFLAG.NOCOLLIDE))) { hit = { x, y, z, d }; break; }
+    }
+    if (!hit || hit.d < 2.5) return null;
+    const b = this.ctx.buildings.find((q) => q.rect && hit.x >= q.rect.x0 && hit.x <= q.rect.x1 && hit.z >= q.rect.z0 && hit.z <= q.rect.z1);
+    if (!b) return null;
+    return { ...hit, obj: { text: this.describeBuilding(b, m) } };
+  }
+
+  describeBuilding(b, m) {
+    const cache = this._bdesc || (this._bdesc = new Map());
+    let base = cache.get(b);
+    if (!base) {
+      const hh = (this.ctx.households || []).filter((h) => h.home.building === b);
+      const addr = b.address && !b.name.startsWith(b.address) ? ` · ${b.address}` : '';
+      if (b.kind === 'house' && hh.length === 1) base = `<b>The ${hh[0].surname} house</b>${addr}`;
+      else if (b.kind === 'rowhouse' && hh.length) base = `<b>${b.name}</b>${hh.length === 1 ? ` · the ${hh[0].surname}s` : ''}${addr}`;
+      else base = `<b>${b.name}</b>${addr}${b.established ? ` · est. ${b.established}` : ''}`;
+      cache.set(b, base);
+    }
+    if (b.hours && !(b.hours[0] === 0 && b.hours[1] >= 1440)) {
+      const [o, c] = b.hours;
+      const open = m >= o && m < c;
+      return base + (open ? ` · open till ${fmtTime(c)}` : ` · closed${m < o ? ' — opens ' + fmtTime(o) : ''}`);
+    }
+    return base;
   }
 
   // dynamic interactables live right now
