@@ -8,7 +8,8 @@ import * as civic from './civic.js';
 import * as downtown from './downtown.js';
 import * as harbor from './harbor.js';
 import * as nature from './nature.js';
+import * as stadium from './stadium.js';
 
 export const GEN = {};
 export const SITES = [];
-for (const m of [fallback, residential, commercial, civic, downtown, harbor, nature]) if (m.register) m.register(GEN, SITES);
+for (const m of [fallback, residential, commercial, civic, downtown, harbor, nature, stadium]) if (m.register) m.register(GEN, SITES);

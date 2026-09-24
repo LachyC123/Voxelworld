@@ -111,6 +111,12 @@ export class Diary {
       const list = items.filter((i) => i.cat === c);
       for (let k = 0; k < list.length; k += 9) pages.push({ kind: 'list', cat: c, items: list.slice(k, k + 9), cont: k > 0 });
     }
+    // the Casebook: the town's secrets, as far as you've got with them
+    const sec = this.g.secrets;
+    if (sec && sec.cases.length) {
+      pages.push({ kind: 'casebook' });
+      for (const c of sec.cases) if (sec.opened(c)) pages.push({ kind: 'case', c });
+    }
     pages.push({ kind: 'end' });
     if (pages.length % 2) pages.splice(pages.length - 1, 0, { kind: 'notes' });
     this.pages = pages;
@@ -171,6 +177,7 @@ export class Diary {
       let y = this.write(x, 'Keep your eyes peeled! Everything on my list is somewhere in town. When I look at one properly, I tick it off.', L, 282, 42, INK, { lh: 44 });
       y = this.write(x, 'Some things only happen at certain times of day — the pencil hints help.', L, y + 44, 42, INK, { lh: 44 });
       x.fillStyle = INK; x.font = `700 56px ${HAND}`; x.fillText(`Spotted: ${n} of ${N}`, L, y + 88);
+      x.fillStyle = '#2f6a3a'; x.font = `600 40px ${HAND}`; x.fillText(`Points: ${H.score || 0}`, L, y + 140);
       // a little lighthouse doodle
       this.doodle(x, CW - 190, y + 40);
       const sy = CH - 250;
@@ -186,12 +193,49 @@ export class Diary {
         const got = H.spotted.has(it.id);
         x.strokeStyle = INK; x.lineWidth = 3; x.strokeRect(L, y - 30, 30, 30);
         if (got) this.tick(x, L + 15, y - 15, 36, k + idx * 13);
-        const ny = this.write(x, it.what, L + 50, y, 40, got ? '#3a4a78' : INK, { maxW: CW - L - 110, lh: 40 });
+        if (it.rarity === 'rare' || it.rarity === 'legendary') { x.fillStyle = it.rarity === 'legendary' ? '#b8862c' : '#2f5aa8'; x.font = `700 30px ${HAND}`; x.fillText(it.rarity === 'legendary' ? '★★' : '★', CW - 92, y); }
+        const ny = this.write(x, it.what, L + 50, y, 40, got ? '#3a4a78' : INK, { maxW: CW - L - 130, lh: 40 });
         let hy = ny - 6;
         if (got) { x.fillStyle = PENCIL; x.font = `30px ${HAND}`; x.fillText(`spotted at ${fmtTime(H.spotted.get(it.id)).toLowerCase()}`, L + 50, hy); }
         else if (it.hint) this.write(x, it.hint, L + 50, hy, 30, PENCIL, { maxW: CW - L - 110, lh: 30 });
         y = hy + 58;
       });
+    } else if (pg.kind === 'casebook') {
+      const sec = this.g.secrets;
+      this.write(x, 'The Casebook', L, 118, 70, '#5a1414', { bold: true });
+      this.write(x, 'Things in Juniper Bay that don’t add up', L, 180, 36, PENCIL);
+      let y = 262;
+      for (const c of sec.cases) {
+        const open = sec.opened(c), pr = sec.progress(c);
+        if (open) {
+          y = this.write(x, (sec.isSolved(c) ? '✓ ' : '• ') + c.title, L, y, 44, sec.isSolved(c) ? '#2f5a2f' : INK, { lh: 44 });
+          x.fillStyle = PENCIL; x.font = `500 30px ${HAND}`; x.fillText(sec.isSolved(c) ? 'case closed' : `${pr.n} of ${pr.N} leads`, L + 34, y - 8); y += 34;
+        } else {
+          y = this.write(x, '• ? ? ?', L, y, 44, '#8a8a90', { lh: 44 }) + 10;
+        }
+        if (y > CH - 200) break;
+      }
+      const left = sec.cases.length - sec.openCount;
+      this.write(x, left ? `${left} ${left === 1 ? 'mystery' : 'mysteries'} not yet stumbled on. Read things. Look behind things. Stay out late. Listen.` : 'Every mystery found. Now solve them.', L, CH - 170, 34, PENCIL, { lh: 36 });
+    } else if (pg.kind === 'case') {
+      const sec = this.g.secrets, c = pg.c;
+      let y = this.write(x, c.title, L, 118, 56, '#5a1414', { bold: true, lh: 56 });
+      if (c.teaser) y = this.write(x, c.teaser, L, y + 6, 32, PENCIL, { lh: 34 });
+      y += 26;
+      for (const q of c.clues) {
+        const got = sec.found.has(q.full);
+        if (!got && !q.key) continue;
+        if (got) {
+          x.strokeStyle = INK; x.lineWidth = 3; x.strokeRect(L, y - 28, 26, 26); this.tick(x, L + 13, y - 15, 30, q.id.length + y);
+          y = this.write(x, q.text, L + 44, y, 36, INK, { maxW: CW - L - 100, lh: 37 }) - 6;
+          x.fillStyle = PENCIL; x.font = `500 26px ${HAND}`; x.fillText(`found ${sec.when(q.full)}`, L + 44, y); y += 42;
+        } else {
+          x.strokeStyle = '#9a9aa0'; x.lineWidth = 2; x.strokeRect(L, y - 28, 26, 26);
+          y = this.write(x, q.hint || '…', L + 44, y, 32, '#77777d', { maxW: CW - L - 100, lh: 33 }) + 12;
+        }
+        if (y > CH - 120) break;
+      }
+      if (sec.isSolved(c)) this.stamp(x, CW - 190, CH - 230, 100, 'CASE', 'CLOSED', '#8a1c1c', -0.2);
     } else if (pg.kind === 'notes') {
       this.write(x, 'Notes', L, 118, 58, INK, { bold: true });
       const notes = ['Mother says home by the time the fireworks finish.', 'Ask Mr. Fisk how many steps up the lighthouse.', 'The trolley bell means it\'s coming — stand back.', 'Admiral has been up that tree four times since Easter.', 'Pie judging at the fair. Mrs. Halloran\'s apple is the one to beat.'];

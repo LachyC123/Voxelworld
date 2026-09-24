@@ -6,6 +6,7 @@ import { GEN, SITES } from './gen/index.js';
 import { populate } from '../sim/population.js';
 import { setupEvents } from '../sim/events.js';
 import { setupLife } from '../sim/life/index.js';
+import { secretsWorld } from '../secrets/index.js';
 
 const V = (m) => Math.round(m * 4);
 
@@ -48,6 +49,9 @@ export async function buildCity(onStatus = () => {}) {
     if (++i % 6 === 0) { onStatus(`Raising ${l.spec.name || 'houses on ' + street}…`, 0.05 + 0.4 * i / total); await tick(); }
   }
   for (const s of sites.filter((q) => (q.order ?? 50) >= 50)) { onStatus(`Building ${s.name}…`, 0.46); await tick(); try { s.build(ctx); } catch (e) { console.error('Site failed:', s.name, e); } }
+  // the town's secrets: hidden rooms, documents and clue places (before the world is sealed)
+  onStatus('Hiding a few things…', 0.47); await tick();
+  try { secretsWorld(ctx); } catch (e) { console.error('secrets failed', e); }
   // connect every spot to its room / building graph
   for (const s of ctx.spots.list) {
     if (!s.pendingLink) continue;

@@ -152,7 +152,7 @@ export class Building {
   // Readable plaque / notice / framed article. text: { title, body, kind: 'plaque'|'notice'|'letter'|'photo' }
   readable(x, y, z, text, o = {}) {
     const p = this.m(x, y, z);
-    this.ctx.interactables.push({ kind: 'read', x: p[0], y: p[1], z: p[2], r: o.r || 1.6, prompt: o.prompt || `Read “${text.title}”`, text, building: this });
+    this.ctx.interactables.push({ kind: 'read', x: p[0], y: p[1], z: p[2], r: o.r || 1.6, prompt: o.prompt || `Read “${text.title}”`, text, building: this, clue: o.clue || null });
   }
   // Elevator: stops = [{ y (local floor y), room, label }] at shaft position (x, z) (local, cab centre).
   // The player presses E in the cab to ride to the next floor; people use it as a vertical nav link.

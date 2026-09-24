@@ -257,6 +257,32 @@ export class Audio {
     this.hit(ch, t, { type: 'bandpass', freq: 2600, q: 0.8, vol: 0.12, dur: 0.22 });
     this.hit(ch, t + 0.08, { type: 'bandpass', freq: 4200, q: 1.2, vol: 0.06, dur: 0.16 });
   }
+  // the rubber stamp coming down on a diary card
+  stamp() {
+    if (!this.ok) return;
+    const ch = this.ui || (this.ui = this.channel()); ch.g.gain.value = 1;
+    const t = this.ac.currentTime;
+    this.hit(ch, t, { type: 'lowpass', freq: 220, vol: 0.5, dur: 0.16 });
+    this.hit(ch, t + 0.005, { type: 'bandpass', freq: 1400, q: 1, vol: 0.12, dur: 0.06 });
+  }
+  // a little glockenspiel run: longer and brighter the rarer the find
+  chime(kind = 'common') {
+    if (!this.ok) return;
+    const ch = this.ui || (this.ui = this.channel()); ch.g.gain.value = 1;
+    const t = this.ac.currentTime;
+    const runs = {
+      common: [79, 84], uncommon: [76, 79, 84], rare: [72, 76, 79, 84, 88], legendary: [72, 76, 79, 84, 88, 91, 96],
+      clue: [62, 65, 69, 74], solved: [60, 64, 67, 72, 76, 79, 84],
+    };
+    const notes = runs[kind] || runs.common;
+    notes.forEach((n, i) => {
+      const f = 440 * Math.pow(2, (n - 69) / 12), at = t + i * (kind === 'solved' ? 0.11 : 0.075);
+      this.tone(ch, f, at, 0.5, { type: 'sine', vol: 0.05, decay: 0.12, sustain: 0.15 });
+      this.tone(ch, f * 2, at, 0.35, { type: 'sine', vol: 0.018, decay: 0.08, sustain: 0.1 });
+    });
+    if (kind === 'legendary' || kind === 'solved') this.bell(ch, t + notes.length * 0.09, 1046, 0.06);
+    if (kind === 'solved') [48, 55, 60].forEach((n) => this.tone(ch, 440 * Math.pow(2, (n - 69) / 12), t + 0.02, 1.6, { type: 'sawtooth', vol: 0.03, filter: 1200, attack: 0.05, release: 0.6 }));
+  }
   pencil() {
     if (!this.ok) return;
     const ch = this.ui || (this.ui = this.channel()); ch.g.gain.value = 1;

@@ -7,8 +7,9 @@ import * as downtown from './downtown.js';
 import * as animals from './animals.js';
 import * as routines from './routines.js';
 import * as parking from './parking.js';
+import { secretsLife } from '../../secrets/index.js';
 
-const MODULES = [['residential', 'Neighbourhood life', residential], ['downtown', 'Downtown & waterfront life', downtown], ['animals', 'Dogs, cats and horses', animals], ['routines', 'Errands, strolls and visitors', routines], ['parking', 'Parked cars', parking]];
+const MODULES = [['residential', 'Neighbourhood life', residential], ['downtown', 'Downtown & waterfront life', downtown], ['animals', 'Dogs, cats and horses', animals], ['routines', 'Errands, strolls and visitors', routines], ['secrets', 'Goings-on', { run: secretsLife }], ['parking', 'Parked cars', parking]];
 
 export function setupLife(ctx) {
   ctx.life = new LifeWorld(ctx);

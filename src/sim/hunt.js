@@ -10,6 +10,9 @@ const S = (types) => ({ props: types });
 // what: shown in the diary. hint: pencilled underneath ({near} = the nearest building to it).
 // find: { props:[type or /regex/], dyn:[type…] (moving props), person:(p, S, e) => bool,
 //         building:/regex/, point:{x,y,z,r}, label:/regex/ }, when:(m, night) => bool, range (m)
+const LEGENDARY = new Set(['fireworks', 'top_hat', 'res_courting', 'town_getaway_car', 'babies']);
+const RARE = new Set(['grave', 'vault', 'onair', 'helmet', 'jazz', 'beam', 'train', 'an_police_horse', 'an_ragman', 'town_monkey']);
+
 export const HUNT = [
   // ---------------------------------------------------------------- around town
   { id: 'barber_pole', cat: 'Around town', what: "A barber's pole, striped red and white", hint: 'Market Street — near {near}', find: S(['barber_pole']) },
@@ -114,6 +117,14 @@ export class Hunt {
       const win = (m) => sp.t0 === null || (sp.t0 <= sp.t1 ? m >= sp.t0 && m < sp.t1 : m >= sp.t0 || m < sp.t1);
       this.items.push({ id: sp.id, cat: sp.cat, what: sp.what, hint: sp.hint || '', range: sp.range, when: win, find: sp.person ? { person: (p, s, e) => p === sp.person && (!e || !sp.label || e.label === sp.label) } : { point: sp }, pts: null });
     }
+    // how hard each thing is to come by: sets its ribbon and its points
+    for (const it of this.items) {
+      if (it.rarity) continue;
+      if (LEGENDARY.has(it.id)) it.rarity = 'legendary';
+      else if (it.cat === 'Only at certain times' || RARE.has(it.id)) it.rarity = 'rare';
+      else if ((it.pts && it.pts.length <= 2) || (it.when && !it.find.props) || (it.buildings && it.buildings.length === 1)) it.rarity = 'uncommon';
+      else it.rarity = 'common';
+    }
     const order = ['Around town', 'Down by the water', 'Townsfolk', 'Dogs, cats & horses', 'Only at certain times'];
     this.items.sort((a, b) => (order.indexOf(a.cat) + 99) % 99 - (order.indexOf(b.cat) + 99) % 99);
     this.load();
@@ -137,10 +148,10 @@ export class Hunt {
   get count() { return this.items.filter((it) => this.spotted.has(it.id)).length; }
 
   load() {
-    try { const s = JSON.parse(localStorage.getItem('juniper-bay-diary-v1') || '{}'); for (const [k, v] of Object.entries(s.spotted || {})) this.spotted.set(k, v); } catch (e) { /* private window */ }
+    try { const s = JSON.parse(localStorage.getItem('juniper-bay-diary-v1') || '{}'); for (const [k, v] of Object.entries(s.spotted || {})) this.spotted.set(k, v); this.score = s.score || 0; } catch (e) { /* private window */ }
   }
   save() {
-    try { localStorage.setItem('juniper-bay-diary-v1', JSON.stringify({ spotted: Object.fromEntries(this.spotted) })); } catch (e) { /* ignore */ }
+    try { localStorage.setItem('juniper-bay-diary-v1', JSON.stringify({ spotted: Object.fromEntries(this.spotted), score: this.score || 0 })); } catch (e) { /* ignore */ }
   }
   reset() { this.spotted.clear(); this.save(); }
 
@@ -171,13 +182,14 @@ export class Hunt {
       if (ii % 3 !== this.phase || this.spotted.has(it.id)) continue;
       if (it.when && !it.when(m, night)) continue;
       const range = it.range || 20, f = it.find;
-      let ok = false;
-      if (it.pts) for (const p of it.pts) { if (Math.abs(p[0] - cam.x) > range || Math.abs(p[2] - cam.z) > range) continue; if (this.seen(cam, fwd, p[0], p[1], p[2], range)) { ok = true; break; } }
+      const nearR = Math.min(range, 18);
+      let ok = false, near = false;
+      if (it.pts) for (const p of it.pts) { if (Math.abs(p[0] - cam.x) > range || Math.abs(p[2] - cam.z) > range) continue; if (Math.hypot(p[0] - cam.x, p[2] - cam.z) < nearR) near = true; if (this.seen(cam, fwd, p[0], p[1], p[2], range)) { ok = true; break; } }
       if (!ok && it.dynTypes) for (const h of g.ctx.props.dyn) { if (!h.visible || !it.dynTypes.has(h.tid)) continue; if (this.seen(cam, fwd, h.x, h.y + 1, h.z, range, 2.5)) { ok = true; break; } }
       if (!ok && f.person) for (const p of g.ctx.people.visible) {
         const s = p.state; if (s.camDist > range) continue;
         if (!f.person(p, s, s.entry)) continue;
-        const P = p.ch.pose; if (this.seen(cam, fwd, P.x, P.y + 1, P.z, range)) { ok = true; break; }
+        const P = p.ch.pose; if (s.camDist < nearR) near = true; if (this.seen(cam, fwd, P.x, P.y + 1, P.z, range)) { ok = true; break; }
       }
       if (!ok && it.buildings) {
         if (bHit === undefined) bHit = g.life.buildingAt(cam, fwd, m, 300) || null;
@@ -189,6 +201,7 @@ export class Hunt {
       if (!ok && f.label) for (const l of g.ctx.life.labels) { if (m < l.t0 || m >= l.t1 || !f.label.test(l.text)) continue; if (this.seen(cam, fwd, l.x, l.y, l.z, range, l.r)) { ok = true; break; } }
       const gz = ok ? (this.gaze.get(it.id) || 0) + itemStep : Math.max(0, (this.gaze.get(it.id) || 0) - itemStep * 0.5);
       this.gaze.set(it.id, gz);
+      if (near && !ok && this.onNear) this.onNear(it);
       // seen on two checks running (about 0.6 s of looking)
       if (gz >= 1.1) { this.spotted.set(it.id, Math.round(m)); this.save(); if (this.onSpot) this.onSpot(it); }
     }

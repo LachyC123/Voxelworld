@@ -1,5 +1,6 @@
 // Game: wires the town, renderer, simulation, player and UI together and runs the loop.
 import * as THREE from 'three';
+import { fmtTime } from './core/util.js';
 import { QUALITY, VS, DATE_LABEL } from './core/config.js';
 import { Renderer } from './render/renderer.js';
 import { WorldMeshes } from './render/worldMeshes.js';
@@ -28,6 +29,8 @@ import { LifeRuntime } from './sim/life/runtime.js';
 import { Smoke } from './render/smoke.js';
 import { Hunt } from './sim/hunt.js';
 import { Diary } from './ui/diary.js';
+import { SpotPop, rarityPoints } from './ui/spotpop.js';
+import { Secrets } from './secrets/runtime.js';
 import { Audio } from './audio/audio.js';
 import { LighthouseBeam } from './render/beam.js';
 import { LIGHTHOUSE } from './city/layout.js';
@@ -100,13 +103,16 @@ export class Game {
     // the Spotter's Diary (a model-village "things to spot" list)
     this.hunt = new Hunt(this);
     this.diary = new Diary(this, this.hunt);
-    this.hunt.onSpot = (it) => {
-      this.hud.toast(`✎ Spotted! ${it.what} — ${this.hunt.count} of ${this.hunt.total}`, 5);
-      this.audio.pencil();
-      this.diary.spottedPeek();
-      this.syncDiaryButton();
-      const n = this.hunt.count, N = this.hunt.total;
-      if (n === 10 || n === Math.ceil(N / 2) || n === N) setTimeout(() => this.hud.toast(n === N ? '★ Every last thing spotted! Open your diary — there\'s a certificate in the back.' : `★ A new stamp in your diary (${n} spotted)`, 6), 5200);
+    this.pop = new SpotPop(this);
+    this.secrets = new Secrets(this);
+    this.hunt.onSpot = (it) => this.spotted(it);
+    this.hunt.onNear = (it) => {
+      const now = this.time;
+      if (this.diary.isUp || now - (this._lastNudge || -1e9) < 50) return;
+      this._nudged = this._nudged || new Map();
+      if (now - (this._nudged.get(it.id) ?? -1e9) < 300) return;
+      this._nudged.set(it.id, now); this._lastNudge = now;
+      this.pop.nudge(it.rarity === 'rare' || it.rarity === 'legendary' ? '✎ Something rare from your list is close by…' : '✎ Something on your list is close by…');
     };
     $('btn-diary').onclick = () => this.diary.toggle();
     this.syncDiaryButton();
@@ -151,6 +157,22 @@ export class Game {
     if (this.params.get('diag')) this.diagnostics();
     this.R.fixedResolution = this.params.has('shot') || this.params.has('perf');
     this.perfOn = !!this.params.get('perf'); this.perfN = Math.max(10, Number(this.params.get('perf')) || 240);
+    if (this.params.get('secretsdemo')) {   // for screenshots: a sample case opened, advanced and solved
+      const c = { id: 'demo', title: 'The Sweethearts of Table Six', teaser: 'Two people keep choosing the same library table.', order: 99, points: 250,
+        headline: 'Library Romance Revealed', deck: 'Table Six keeps its secret no longer', body: 'For eleven Saturdays running, the same two readers have asked for the same table at the Carnegie Library. Yesterday the librarian found out why.',
+        clues: [{ id: 'a', text: 'A note in a library book: “Six o’clock, the usual table.”', hint: 'Something tucked in a book', key: true }, { id: 'b', text: 'The same two library cards, stamped on the same days.', hint: 'Ask the librarian', key: true }, { id: 'c', text: 'Initials carved on the bandstand rail.', hint: 'Juniper Park', key: true }] };
+      for (const q of c.clues) { q.caseId = c.id; q.full = `demo/${q.id}`; this.secrets.byClue.set(q.full, { c, q }); }
+      this.secrets.cases.push(c);
+      const step = Number(this.params.get('secretsdemo'));
+      setTimeout(() => this.secrets.find('demo/a'), 800);
+      if (step >= 2) setTimeout(() => this.secrets.find('demo/b', 'Miss Pike: “Table six. Always table six.”'), 900);
+      if (step >= 3) setTimeout(() => this.secrets.find('demo/c'), 1000);
+      if (this.params.get('casebook')) setTimeout(() => { this.diary.openBook(); const i = this.diary.pages.findIndex((p) => p.kind === 'casebook'); this.diary.spread = Math.floor(i / 2); this.diary.dirty = true; }, 1500);
+    }
+    if (this.params.get('popdemo')) setTimeout(() => {   // for screenshots: the spotted card, a clue, a solved case
+      const it = this.hunt.items.find((q) => q.rarity === this.params.get('popdemo')) || this.hunt.items[0];
+      this.hunt.spotted.set(it.id, this.clock.minutes); this.spotted(it);
+    }, 1200);
     if (this.params.get('diary')) {   // for screenshots: ?diary=<spread>[&spotted=<n>]
       const n = Number(this.params.get('spotted') || 0);
       this.hunt.items.slice(0, n).forEach((it, i) => this.hunt.spotted.set(it.id, 600 + i * 7));
@@ -291,6 +313,7 @@ export class Game {
     mk('location');
     if (this.diary.isUp) { this.hud.prompt(null); if (this._capHtml) this.updateCaption(null); } else this.handleInteraction();
     this.hunt.update(dt);
+    this.secrets.update(dt);
     this.diary.update(dt);
     mk('interact+hunt+diary');
     this.bubbles.update(ctx.people, this.player, this.time, minutes, this.playerRoom || 0);
@@ -466,7 +489,7 @@ export class Game {
     this.hud.prompt(text);
     if (!this.input.hit('KeyE')) return;
     if (best.kind === 'person') this.talkTo(o);
-    else if (best.kind === 'read') this.hud.read(o.text);
+    else if (best.kind === 'read') { this.hud.read(o.text); if (o.clue) setTimeout(() => this.secrets.find(o.clue), 400); }
     else if (best.kind === 'sit') this.player.sit({ x: o.x, y: o.seatY ?? o.y - 0.45, z: o.z, yaw: o.yaw, standAt: o.standAt, seatY: o.seatY ?? (o.y - 0.45) });
     else if (o.action) o.action(this);
   }
@@ -497,6 +520,25 @@ export class Game {
       calls[k] = (calls[k] || 0) + (Array.isArray(o.material) ? o.material.length : 1);
     });
     console.log('[perf] draw calls by kind: ' + Object.entries(calls).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' | '));
+  }
+
+  // a thing from the diary has just been spotted: the card, the points, the streak
+  spotted(it) {
+    const H = this.hunt, n = H.count, N = H.total;
+    const now = this.time;
+    this._streak = now - (this._lastSpot ?? -1e9) < 240 ? (this._streak || 1) + 1 : 1;
+    this._lastSpot = now;
+    const pts = rarityPoints(it.rarity) * (this._streak > 1 ? 1 + 0.25 * Math.min(4, this._streak - 1) : 1);
+    H.score = (H.score || 0) + Math.round(pts); H.save();
+    const miles = [[10, 'KEEN EYES'], [Math.ceil(N / 2), 'SHARP AS A TACK'], [N, 'TOWN DETECTIVE']];
+    const next = miles.find(([k]) => n < k);
+    const hit = miles.find(([k]) => n === k);
+    const teaser = hit ? `★ ${hit[1]} stamp earned!` : next ? `${next[0] - n} more for the ${next[1]} stamp` : '';
+    this.pop.show({ kind: 'spot', title: it.what, cat: it.cat, rarity: it.rarity, points: Math.round(pts), time: fmtTime(this.clock.minutes).toLowerCase(), n, N, streak: this._streak, teaser });
+    this.audio.pencil();
+    this.diary.spottedPeek();
+    this.syncDiaryButton();
+    if (n === N) setTimeout(() => this.hud.toast('★ Every last thing spotted! Open your diary — there\'s a certificate in the back.', 7), 4800);
   }
 
   syncDiaryButton() { const el = document.getElementById('diary-count'); if (el) el.textContent = `${this.hunt.count}/${this.hunt.total}`; }
@@ -530,6 +572,7 @@ export class Game {
       line = pool[p.talkIdx % pool.length];
       p.talkIdx++;
       if (p.talkIdx === 1) this.hud.toast(`${p.full}${p.age ? ', ' + p.age : ''} — ${p.bio || ''}`, 6);
+      if (p.clues) for (const c of p.clues) this.secrets.find(c, `${p.full}: “${line}”`);
     }
     this.bubbles.say(p, line, t, 5 + line.length / 30);
   }

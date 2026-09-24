@@ -135,3 +135,57 @@ table.keys td:first-child { font-family: var(--caps); color: var(--gold2); width
   #bigmap { width: 90vw; height: 90vw; }
   #almanac-body, .paper .cols { column-count: 1; }
 }
+
+/* ---------------------------------------------------------------- spotted! cards */
+#spotpop { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 12; pointer-events: none; width: min(380px, 86vw); }
+.pop-card { position: relative; margin: 0 auto; padding: 14px 20px 12px; background: linear-gradient(180deg, #f6efd9, #eadfbf); color: #1c2448;
+  border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(120,90,40,0.25); font-family: 'Diary Hand', 'Caveat', cursive;
+  transform: translateY(-140%) rotate(-4deg); opacity: 0; transition: transform 0.45s cubic-bezier(.2,1.4,.4,1), opacity 0.3s; overflow: hidden; }
+.pop-card.in { transform: translateY(0) rotate(-1.2deg); opacity: 1; }
+.pop-card.out { transform: translateY(-30%) rotate(2deg) scale(0.92); opacity: 0; transition: transform 0.4s ease-in, opacity 0.4s; }
+.pop-card::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 27px, rgba(90,130,190,0.18) 27px 29px); pointer-events: none; }
+.pop-ribbon { position: absolute; top: 12px; right: -34px; transform: rotate(35deg); width: 130px; text-align: center; font: 700 12px 'Diary Type', 'Special Elite', monospace; letter-spacing: 1px; padding: 3px 0; color: #fff; text-transform: uppercase; }
+.r-common .pop-ribbon { background: #7d7a70; }
+.r-uncommon .pop-ribbon { background: #3a7a46; }
+.r-rare .pop-ribbon { background: #2f5aa8; }
+.r-legendary .pop-ribbon { background: linear-gradient(90deg, #b8862c, #f4d27a, #b8862c); color: #3a2608; }
+.r-legendary { box-shadow: 0 0 0 2px #d9b24a, 0 0 26px rgba(244,210,122,0.8), 0 10px 30px rgba(0,0,0,0.45); }
+.r-legendary::after, .r-rare::after { content: ''; position: absolute; inset: -40%; background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.65) 50%, transparent 60%); transform: translateX(-100%); animation: popShine 1.6s 0.7s ease-out; pointer-events: none; }
+@keyframes popShine { to { transform: translateX(100%); } }
+.pop-cat { font: 13px 'Diary Type', 'Special Elite', monospace; letter-spacing: 1px; text-transform: uppercase; color: #6a5a3a; }
+.pop-title { font-size: 30px; font-weight: 700; line-height: 1.05; margin: 2px 60px 2px 0; }
+.pop-sub { font-size: 19px; color: #55565e; }
+.pop-stamp { position: absolute; right: 18px; bottom: 34px; font: 700 22px 'Diary Type', 'Special Elite', monospace; color: #b3262a; border: 3px solid #b3262a; border-radius: 6px; padding: 2px 10px; text-transform: uppercase;
+  transform: rotate(-14deg) scale(3); opacity: 0; mix-blend-mode: multiply; }
+.pop-stamp.clue { color: #7a1f1f; border-color: #7a1f1f; }
+.pop-card.stamped .pop-stamp { animation: popStamp 0.28s cubic-bezier(.3,1.6,.5,1) forwards; }
+@keyframes popStamp { 0% { transform: rotate(-14deg) scale(3); opacity: 0; } 70% { transform: rotate(-14deg) scale(0.92); opacity: 0.9; } 100% { transform: rotate(-14deg) scale(1); opacity: 0.85; } }
+.pop-pts { position: absolute; right: 22px; top: 40px; font: 700 18px 'Diary Type', 'Special Elite', monospace; color: #2f7a3a; opacity: 0; }
+.pop-card.stamped .pop-pts { animation: popPts 1.4s 0.1s ease-out forwards; }
+@keyframes popPts { 0% { transform: translateY(18px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-4px); opacity: 0.9; } }
+.pop-streak { display: inline-block; margin-top: 2px; font: 700 13px 'Diary Type', 'Special Elite', monospace; color: #fff; background: #c8541f; border-radius: 3px; padding: 1px 7px; animation: popPulse 0.6s 0.8s 2; }
+@keyframes popPulse { 50% { transform: scale(1.18); } }
+.pop-bar { height: 7px; margin: 8px 0 3px; background: rgba(60,50,30,0.18); border-radius: 4px; overflow: hidden; }
+.pop-bar i { display: block; height: 100%; background: linear-gradient(90deg, #3a7a46, #7ab85a); transition: width 0.9s cubic-bezier(.3,.9,.3,1); }
+.pop-count { font: 13px 'Diary Type', 'Special Elite', monospace; color: #5a4a2a; }
+.pop-card.clue, .pop-card.case { background: linear-gradient(180deg, #e8d3a2, #d9bf85); color: #2a1d0c; }
+.pop-tab { display: inline-block; font: 700 12px 'Diary Type', 'Special Elite', monospace; letter-spacing: 2px; text-transform: uppercase; color: #fff; background: #7a1f1f; padding: 2px 8px; border-radius: 2px; margin-bottom: 4px; }
+.pop-card.clue .pop-bar i, .pop-card.case .pop-bar i { background: linear-gradient(90deg, #7a1f1f, #c0483a); }
+#btn-diary.wiggle { animation: diaryWiggle 0.9s ease-in-out 2; box-shadow: 0 0 12px rgba(244,210,122,0.9); }
+@keyframes diaryWiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg) scale(1.08); } 75% { transform: rotate(6deg) scale(1.08); } }
+#nudge { position: fixed; left: 50%; top: calc(50% + 40px); transform: translate(-50%, 8px); font: italic 16px 'Diary Hand', 'Caveat', cursive; color: #f3dfae; text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.5s, transform 0.5s; pointer-events: none; z-index: 3; }
+#nudge.in { opacity: 1; transform: translate(-50%, 0); }
+/* the front page, for a solved case */
+#frontpage { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(5,9,12,0); transition: background 0.4s; cursor: pointer; }
+#frontpage.in { background: rgba(5,9,12,0.55); }
+.fp-paper { position: relative; width: min(640px, 90vw); padding: 22px 30px 18px; background: #efe8d6; color: #1a1a1a; box-shadow: 0 20px 60px rgba(0,0,0,0.6); font-family: 'Cormorant Garamond', Georgia, serif;
+  transform: rotate(-14deg) scale(0.3); opacity: 0; transition: transform 0.7s cubic-bezier(.2,1.3,.4,1), opacity 0.4s; }
+#frontpage.in .fp-paper { transform: rotate(-1.5deg) scale(1); opacity: 1; }
+.fp-mast { text-align: center; font: 700 44px 'Cinzel', Georgia, serif; border-bottom: 3px double #1a1a1a; padding-bottom: 4px; }
+.fp-date { text-align: center; font: 13px 'Diary Type', 'Special Elite', monospace; border-bottom: 1px solid #1a1a1a; padding: 3px 0; margin-bottom: 10px; }
+.fp-head { font: 700 34px/1.05 'Cormorant Garamond', Georgia, serif; text-transform: uppercase; text-align: center; }
+.fp-deck { font: italic 20px/1.2 'Cormorant Garamond', Georgia, serif; text-align: center; margin: 6px 0 10px; }
+.fp-body { font-size: 17px; line-height: 1.35; column-count: 2; column-gap: 22px; text-align: justify; }
+.fp-foot { margin-top: 10px; text-align: center; font: 12px 'Diary Type', 'Special Elite', monospace; color: #555; }
+.fp-stamp { position: absolute; right: 18px; top: 12px; font: 700 24px 'Diary Type', 'Special Elite', monospace; color: #b3262a; border: 5px solid #b3262a; border-radius: 8px; padding: 2px 14px; text-transform: uppercase; transform: rotate(-16deg) scale(3); opacity: 0; mix-blend-mode: multiply; }
+#frontpage.stamped .fp-stamp { animation: popStamp 0.3s cubic-bezier(.3,1.6,.5,1) forwards; }
