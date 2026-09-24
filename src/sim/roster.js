@@ -1,0 +1,136 @@
+// The named people of Juniper Bay. HOUSEHOLDS get placed in matching homes (by the home's
+// special tag, building name or family); NOTABLES are townsfolk with particular jobs.
+// job: { building: '<exact building name>', role: '<job role registered by that building>' }
+// Everyone also gets generated lines from sim/dialogue.js; `lines` here are personal ones.
+
+export const HOUSEHOLDS = [
+  {
+    surname: 'Halloran', home: { special: 'tv_dinner' }, homeName: 'Halloran Residence',
+    members: [
+      { first: 'Pat', age: 48, sex: 'M', role: 'baker', job: { building: 'Halloran & Sons Bakery', role: 'baker' }, look: { face: 2 },
+        bio: 'Patrick Halloran III. Third Pat to run Halloran & Sons. Up at four, flour to the elbows, home by one.',
+        lines: ['Four hundred centennial loaves this morning. My grandfather would\'ve fainted.', 'Nora Halloran\'s soda bread, 1887. Same recipe. Don\'t let anyone tell you different.', 'We bought an Admiral in July. Twenty-one inches. The whole street comes round for Groucho.'] },
+      { first: 'Irene', age: 45, sex: 'F', role: null,
+        bio: 'Irene Halloran (née Duffy). Entered her apple pie in the centennial contest. Runs the house and, some say, the bakery.',
+        lines: ['Evening!', 'My pie\'s in the contest. Don\'t tell Pat I used his butter.', 'Supper\'s at six sharp — in front of the set, if you can believe it. Mother Halloran is scandalized.'] },
+      { first: 'Peggy', age: 16, sex: 'F',
+        bio: 'Margaret "Peggy" Halloran. Junior at Juniper Bay High. Going to the sock hop with a boy she won\'t name.',
+        lines: ['The sock hop starts at half past seven. Not that I\'m counting.', 'Dad says I can use the phone after the dishes. He always says that.'] },
+      { first: 'Tommy', age: 11, sex: 'M',
+        bio: 'Thomas Halloran. Collects baseball cards and the bottle caps of the whole neighborhood.',
+        lines: ['Didja see the fire engine? Mrs. Hatch\'s cat went up the maple again!', 'I got a Mickey Mantle. Don\'t even ask.'] },
+      { first: 'Bridget', age: 79, sex: 'F', title: 'Grandma', look: { face: 9 },
+        bio: 'Bridget Halloran. Was eight when Market Street burned in 1902. Still keeps a bucket by the back door.',
+        lines: ['I watched the whole of Market Street go up in nineteen-oh-two. Beal\'s livery. Horses screaming.', 'A television at the supper table. In my day we said grace and talked to each other.', 'Old Captain Whitcomb\'s granddaughter used to buy our barmbrack every Halloween.'] },
+    ],
+  },
+  {
+    surname: 'Castellano', home: { special: 'welcome_home' },
+    members: [
+      { first: 'Sal', age: 58, sex: 'M', role: 'fisherman', job: { building: 'Castellano Fish Market', role: 'fishmonger' },
+        bio: 'Salvatore Castellano Sr. Grandson of Giuseppe, who came from Sciacca in 1894 with one dory.',
+        lines: ['My boy is home. My boy is home from Korea.', 'Three boats, and every one blessed by Father Garrity.'] },
+      { first: 'Rosa', age: 55, sex: 'F',
+        bio: 'Rosa Castellano. Has been cooking for three days. There will be leftovers until Thanksgiving.',
+        lines: ['Mangia! There\'s enough for the whole of Church Street.', 'I lit a candle every Sunday for fourteen months.'] },
+      { first: 'Sal', nick: 'Sal Jr.', age: 24, sex: 'M', role: 'soldier', outfit: 'soldier', tags: ['veteran'],
+        bio: 'Private First Class Salvatore Castellano Jr., 7th Infantry. Home from Korea since Tuesday.',
+        lines: ['It\'s quiet here. I forgot how quiet.', 'Ma keeps feeding me like I\'m still at the front.', 'The harbor looks smaller. Or I got bigger.'] },
+      { first: 'Maria', age: 19, sex: 'F', bio: 'Maria Castellano. Works the counter at the fish market and wants to be a nurse.', lines: ['He\'s been home four days and I still keep crying.'] },
+      { first: 'Lucia', age: 82, sex: 'F', title: 'Nonna', look: { face: 9 }, bio: 'Lucia Castellano. Came over as a bride in 1898.', lines: ['Bello... bello.'] },
+    ],
+  },
+  {
+    surname: 'Novak', home: { special: 'wedding_family' },
+    members: [
+      { first: 'Casimir', age: 48, sex: 'M', bio: 'Casimir Novak, foreman at Harbor Canning. Spoke on the City Hall steps in the \'34 strike.', lines: ['Nineteen days we stood on those steps in \'34. A nickel an hour. Worth it.', 'My Helen. Married. Where did the time go?'] },
+      { first: 'Stella', age: 46, sex: 'F', bio: 'Stella Novak. Sewed the wedding dress herself, every seed pearl.', lines: ['Two hundred and twelve seed pearls. I counted twice.'] },
+      { first: 'Helen', age: 22, sex: 'F', role: 'bride', outfit: 'bride', bio: 'Helen Novak, bookkeeper at the cannery. Marrying Robert Brennan at two o\'clock.', lines: ['I\'m not nervous. I\'m not. Am I?'] },
+      { first: 'Walter', age: 17, sex: 'M', bio: 'Walter Novak. Senior, wide receiver, reluctant usher.', lines: ['This collar is killing me.'] },
+    ],
+  },
+  {
+    surname: 'Moreau', home: { special: 'birthday' }, homeName: 'Moreau Residence — 14 Maple Street',
+    members: [
+      { first: 'Henri', age: 36, sex: 'M', role: 'clerk', bio: 'Henri Moreau, clerk at the post office. Blows up balloons with alarming skill.', lines: ['Seven candles. Seven! I remember when she fit in a bread basket.'] },
+      { first: 'Claire', age: 33, sex: 'F', bio: 'Claire Moreau. Baked the cake at midnight, iced it at dawn.', lines: ['Musical chairs at half past two, cake at half past three, and nobody cries. That\'s the plan.'] },
+      { first: 'Susie', age: 7, sex: 'F', tags: ['birthday'], bio: 'Susie Moreau. Seven years old today!', lines: ['I\'m SEVEN!', 'I wished for a pony. I can\'t tell you, or it won\'t come true. Oh.'] },
+      { first: 'Paul', age: 4, sex: 'M', bio: 'Paul Moreau, four, currently under the table.', lines: ['Is it cake time? Is it cake time now?'] },
+    ],
+  },
+  {
+    surname: 'Whitcomb', home: { special: 'historian' }, homeName: 'Whitcomb House',
+    members: [
+      { first: 'Augusta', age: 81, sex: 'F', title: 'Miss', look: { face: 3, hairStyle: 5 }, tags: ['historian'],
+        bio: 'Miss Augusta Whitcomb, great-granddaughter of Captain Elias Whitcomb, founder. President of the Historical Society.',
+        lines: ['My great-grandfather sheltered the JUNIPER in this cove in \'51 and swore he\'d come back. He did.', 'The time capsule goes in the ground at half past five. My letter to 2053 is in it. I told them to be kind.', 'Look for the cornerstones downtown — 1903, 1904, 1905. Everything after the fire.', 'The widows of the MARY ELLEN raised the stone on the quay. Eleven names. I know them all.'] },
+    ],
+  },
+  {
+    surname: 'Pemberton', home: { name: 'Pemberton House' },
+    members: [
+      { first: 'Walter', age: 61, sex: 'M', title: 'Mayor', role: 'mayor', formal: true, look: { hat: 'hat_top', hatTint: '#1c1c20', face: 4 },
+        bio: 'Mayor Walter Pemberton, in his third term. His speech is eleven pages. His wife cut it to six.',
+        lines: ['Fellow citizens— oh, sorry, just practicing.', 'A hundred years. Imagine what they\'ll think of us in 2053.'] },
+      { first: 'Eleanor', age: 58, sex: 'F', bio: 'Eleanor Pemberton. Chaired the centennial committee. Has not slept since June.', lines: ['If one more person asks me about the fireworks permit...'] },
+    ],
+  },
+  {
+    surname: 'Hatch', home: { special: 'cat' },
+    members: [
+      { first: 'Mildred', age: 72, sex: 'F', title: 'Mrs.', bio: 'Mrs. Mildred Hatch, widow of Captain Horace Hatch. Owner of Admiral, a cat of poor judgment.', lines: ['Admiral! Admiral, you come down this instant!', 'Horace named him. Horace would.'] },
+    ],
+  },
+  {
+    surname: 'Kaminski', home: { family: 'Kaminski' },
+    members: [
+      { first: 'Stan', age: 27, sex: 'M', bio: 'Stanley Kaminski, lineman for the telephone company. Expecting his first child — any minute.', lines: ['Any minute now. Any minute.'] },
+      { first: 'Carol', age: 25, sex: 'F', bio: 'Carol Kaminski. Currently at St. Luke\'s, having a baby.', lines: [] },
+    ],
+  },
+];
+
+export const NOTABLES = [
+  { first: 'Marcus', last: 'Freeman', age: 45, sex: 'M', role: 'barber', outfit: 'barber', job: { building: 'Freeman\'s Barber Shop', role: 'barber' }, look: { skin: '#835236', face: 2 },
+    bio: 'Marcus Freeman. His father Samuel opened the shop in 1921. Knows everything that happens in town by Tuesday.',
+    lines: ['Pop opened this shop in \'21 with one chair and a secondhand mirror.', 'Ruth\'s singing the solo tomorrow. Practice is at four — go listen, it\'ll set you right.', 'Shave and a haircut? Two bits. Same as it ever was.'] },
+  { first: 'Ruth', last: 'Freeman', age: 42, sex: 'F', role: 'choir', look: { skin: '#835236' }, tags: ['choir', 'soloist'],
+    bio: 'Ruth Freeman, soloist of the First Congregational choir for fifteen years.', lines: ['We\'re singing "Now Thank We All Our God" for the centennial. Mr. Pruitt says my high note is "adequate." High praise.'] },
+  { first: 'Leonard', last: 'Pruitt', age: 58, sex: 'M', role: 'organist', job: { building: 'First Congregational Church', role: 'organist' }, look: { face: 3 },
+    bio: 'Leonard Pruitt, organist and choirmaster for thirty years. The orchard on Orchard Street was his grandfather\'s.',
+    lines: ['Altos, you are dragging. Again, from the top.', 'Thirty years at that console. The pedals know my feet better than my shoes do.'] },
+  { first: 'Theodore', last: 'Ashby', age: 52, sex: 'M', title: 'Reverend', role: 'clergy', outfit: 'clergy', home: { name: 'The Parsonage' },
+    bio: 'The Reverend Theodore Ashby of First Congregational.', lines: ['The meetinghouse was raised in 1871 by fifty men in one day. We still have the ledger.'] },
+  { first: 'Francis', last: 'Garrity', age: 63, sex: 'M', title: 'Father', role: 'clergy', outfit: 'clergy', job: { building: 'St. Brigid\'s Church', role: 'priest' },
+    bio: 'Father Francis Garrity of St. Brigid\'s. Blesses the fleet every June.', lines: ['A wedding at two, confessions at four, and the Castellanos have invited me to supper. God is good.'] },
+  { first: 'Frank', last: 'Rourke', age: 44, sex: 'M', title: 'Officer', role: 'police', outfit: 'police', job: { building: 'Police Headquarters', role: 'patrolman' },
+    bio: 'Officer Frank Rourke. Walks the Market Street beat. Knows every dog by name.', lines: ['Evening. Keep to the sidewalk, the fireworks crowd\'ll be thick tonight.', 'Twenty-two years on this beat. Seen the hurricane, seen V-J Day. Never seen a turnout like today.'] },
+  { first: 'Augustine', last: 'Duffy', age: 57, sex: 'M', title: 'Sergeant', role: 'police', outfit: 'police', job: { building: 'Police Headquarters', role: 'desk sergeant' },
+    bio: 'Sgt. Augustine Duffy, desk sergeant. Irene Halloran\'s older brother.', lines: ['Lost child, lost dog, lost wallet. Centennial day. Take a number.'] },
+  { first: 'Joe', last: 'Brennan', age: 52, sex: 'M', title: 'Captain', role: 'fire', outfit: 'fire', job: { building: 'Engine Company No. 1', role: 'captain' },
+    bio: 'Captain Joseph Brennan, Engine Co. No. 1. Father of the groom.', lines: ['My boy gets married at two and I\'m on the cat detail at eleven. Some Saturday.', 'Old Faithful there pumped water on Market Street in 1902. Still shines, doesn\'t she?'] },
+  { first: 'Robert', last: 'Brennan', age: 26, sex: 'M', role: 'groom', outfit: 'groom', job: { building: 'The Juniper Bay Courier', role: 'linotype' },
+    bio: 'Robert Brennan, linotype operator at the Courier. Marrying Helen Novak today.', lines: ['I set the type for our own wedding announcement. Checked it nine times.'] },
+  { first: 'Nathaniel', last: 'Pike', age: 55, sex: 'M', title: 'Dr.', role: 'doctor', outfit: 'doctor', job: { building: 'St. Luke\'s Hospital', role: 'doctor' },
+    bio: 'Dr. Nathaniel Pike. Delivered half the town, including the Mayor.', lines: ['First babies take their time. Tell Stanley to sit down before he wears out the linoleum.'] },
+  { first: 'Ada', last: 'Lowell', age: 49, sex: 'F', role: 'clerk', job: { building: 'The Juniper Bay Courier', role: 'editor' },
+    bio: 'Ada Lowell, editor of the Courier since 1946. Forty-eight pages on Sunday.', lines: ['"CENTURY BY THE SEA" — that\'s tomorrow\'s headline. Don\'t you dare leak it.'] },
+  { first: 'Harriet', last: 'Mayhew', age: 61, sex: 'F', title: 'Miss', job: { building: 'Carnegie Library', role: 'librarian' }, look: { face: 11, hairStyle: 5 },
+    bio: 'Miss Harriet Mayhew, librarian since 1927.', lines: ['Shh. Oh — it\'s only you. The centennial scrapbooks are in the reference room.'] },
+  { first: 'Amos', last: 'Fisk', age: 67, sex: 'M', role: 'fisherman', job: { building: 'Whitcomb Point Light', role: 'keeper' }, look: { face: 5, hat: 'hat_knit', hatTint: '#2a3a5a' },
+    bio: 'Amos Fisk, keeper of Whitcomb Point Light since 1921.', lines: ['Light goes on at sundown. Thirty-two years and I\'ve not missed one.', 'The \'38 blow took the boathouse clean off. The light kept burning.'] },
+  { first: 'Nick', last: 'Papadakis', age: 55, sex: 'M', role: 'cook', outfit: 'cook', job: { building: 'Harbor Light Diner', role: 'cook' },
+    bio: 'Nick Papadakis. His father opened the lunch counter in 1924; the dining car came in \'38.', lines: ['Chowder\'s on Friday. Pie is always.', 'Pop served coffee to the strikers in \'34, on the house. Cannery never forgave him. Town never forgot.'] },
+  { first: 'Eleni', last: 'Papadakis', age: 52, sex: 'F', role: 'waitress', outfit: 'waitress', job: { building: 'Harbor Light Diner', role: 'waitress' },
+    bio: 'Eleni Papadakis. Remembers everybody\'s order since 1938.', lines: ['Coffee, black, two sugars? I knew it.'] },
+  { first: 'Henry', last: 'Lee', age: 62, sex: 'M', role: 'shopkeeper', job: { building: 'Lee\'s Hand Laundry', role: 'clerk' },
+    bio: 'Henry Lee. His father opened the laundry in 1911. His son David is in the Navy.', lines: ['My father pressed shirts for Captain Whitcomb\'s son. Starch, heavy. He always said: heavy.', 'David writes from Yokosuka. He says the sea is the same everywhere.'] },
+  { first: 'Isaac', last: 'Adler', age: 70, sex: 'M', role: 'shopkeeper', job: { building: 'Adler & Son, Tailors', role: 'tailor' }, look: { face: 4 },
+    bio: 'Isaac Adler. Came from Vilna in 1905. Has cut every suit in the Mayor\'s closet.', lines: ['Forty-seven years, and every suit by hand. A machine? A machine doesn\'t know a man\'s shoulders.'] },
+  { first: 'Earl', last: 'Freeman', own: true, age: 39, sex: 'M', role: 'shopkeeper', formal: true, job: { building: 'The Blue Lantern', role: 'bandleader' }, look: { skin: '#653e28' },
+    bio: 'Earl Freeman, pianist and owner of the Blue Lantern. Marcus\'s cousin.', lines: ['Late set starts at nine. Bring someone you like.'] },
+  { first: 'Otto', last: 'Lindqvist', age: 64, sex: 'M', role: 'conductor', outfit: 'conductor', job: { building: 'Union Station', role: 'stationmaster' },
+    bio: 'Otto Lindqvist, stationmaster. Says the station clock has not been wrong since 1911.', lines: ['The 4:52 from Boston is on time. It\'s always on time.'] },
+  { first: 'Clarence', last: 'Ives', age: 59, sex: 'M', role: 'bellhop', outfit: 'bellhop', job: { building: 'The Whitcomb Hotel', role: 'bellhop' },
+    bio: 'Clarence Ives, bellhop at the Whitcomb Hotel for thirty-one years.', lines: ['Carried Mr. Harlow\'s bags in \'22. Carried the Governor\'s in \'48. Heavier.'] },
+];
