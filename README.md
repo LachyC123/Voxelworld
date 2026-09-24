@@ -11,7 +11,13 @@ Mayor's centennial address and time capsule at 5:30, a family eating supper in f
 brand-new television, a welcome-home supper for a boy back from Korea, a sock hop, a street dance,
 jazz at the Blue Lantern, and fireworks over the harbour at nine.
 
-## Running it
+## Play it online
+
+**▶ https://lachyc123.github.io/Voxelworld/** — opens straight in the browser, nothing to install.
+(Served by GitHub Pages from the `claude/voxel-city-exploration-1wpfo7` branch; every push updates it
+within a minute or two.)
+
+## Running it locally
 
 It's plain ES modules + Three.js (vendored) — no build step.
 

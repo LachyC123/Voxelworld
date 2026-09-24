@@ -134,8 +134,8 @@ function buildBuryingGround(ctx) {
   readStone(453, -229.5, 'Samuel Whitcomb (cenotaph)', 'IN MEMORY OF\nSAMUEL WHITCOMB\nson of Elias & Abigail\nlost with the schooner MARY ELLEN\noff Gannet Ledge, October 1867\naged 23 years\n\nThere is no grave under this stone.');
   readStone(459.5, -234.5, 'Henry L. Whitcomb', 'HENRY LOWELL WHITCOMB\n1851 – 1924\nGrandson of the founder. Selectman, Commodore, and father of Augusta.\n"He gave the Cup and never won it."');
   // -- the Dunmores: Hezekiah the miller, Mercy, and the two lost on the MARY ELLEN
-  K.B(436, 0, -237.5, 446, 1, -228.5, MAT.gravel);
-  K.B(436, 1, -237.5, 446, 2, -237.25, MAT.granite); K.B(436, 1, -228.75, 446, 2, -228.5, MAT.granite);
+  K.B(436, 1, -237.5, 446, 2, -237.25, MAT.granite); K.B(436, 1, -228.75, 446, 2, -228.5, MAT.granite); K.B(436, 1, -237.5, 436.25, 2, -228.5, MAT.granite); K.B(445.75, 1, -237.5, 446, 2, -228.5, MAT.granite);
+  K.B(436, 1, -233.25, 436.25, 2, -232.75, 0);
   stone(graveType('hezekiah', ['HEZEKIAH', 'DUNMORE', '1799-1872', 'MILLER'], 'slate'), 438, -235.5);
   stone(graveType('mercy', ['MERCY', 'DUNMORE', '1803-1890'], 'slate'), 438, -233.5);
   stone(graveType('josiah', ['CAPT. JOSIAH', 'DUNMORE', '1826-1867', 'LOST AT SEA'], 'cenotaph'), 442, -235.5);

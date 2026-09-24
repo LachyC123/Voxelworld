@@ -1432,7 +1432,11 @@ function frontDoor(H) {
   // house number beside the door, doorbell, mail slot
   const num = String(H.lot.number);
   const nty = textSignType(num, { bg: '#1d1d22', fg: '#e8c870', border: '#c9a24a', scale: 1 / 22 });
-  f.prop(nty, x0 + 6.4 + (style === 'federal' || style === 'colonial' || style === 'mansard' ? 1.4 : 0), 7.2, hz - 0.12, 0, {});
+  const nx = x0 + 6.4 + (style === 'federal' || style === 'colonial' || style === 'mansard' ? 1.4 : 0);
+  f.prop(nty, nx, 7.2, hz - 0.12, 0, {});
+  // the family's name plate under the number (households the town knows by name)
+  const fam = H.spec.family;
+  if (fam && H.spec.special !== 'historian' && H.spec.name !== 'The Parsonage') f.prop(textSignType(fam.toUpperCase(), { bg: '#e8e0c8', fg: '#2a2a2a', border: '#8a6a3a', scale: 1 / 36 }), nx, 5.9, hz - 0.12, 0, {});
   void FH;
 }
 // A readable plaque by the door / on the facade
@@ -2335,7 +2339,7 @@ export function buildRowhouse(ctx, lot, spec) {
   const W = lot.w, D = lot.d;
   const brown = spec.style === 'brownstone';
   const nb = rowNeighbours(b, lot);
-  const outer = brown ? MAT.sandstone : M(rng.pick(['brick_red', 'brick_dark', 'brick_brown', 'brick_orange', 'brick_red', 'brick_paint_red']));
+  const outer = brown ? (rng.chance(0.6) ? MAT.granite_pink : MAT.sandstone) : M(rng.pick(['brick_red', 'brick_dark', 'brick_brown', 'brick_orange', 'brick_red', 'brick_paint_red']));
   const trim = brown ? MAT.sandstone : M(rng.pick(['limestone', 'limestone', 'trim_white', 'granite']));
   const corniceM = brown ? MAT.trim_dark : M(rng.pick(['trim_dark', 'trim_cream', 'trim_green', 'trim_black', 'trim_white']));
   const pal = H.pal = { siding: outer, trim, accent: corniceM, roof: MAT.roof_tar, shutters: null, door: rng.pick(['#2a2a2e', '#5a2a24', '#2a4a3a', '#3a2a1a', '#7a2a24']), curtain: M(rng.pick(CURTAIN)), itrim: rng.chance(0.5) ? MAT.trim_white : MAT.wood_dark };
@@ -2451,6 +2455,7 @@ export function buildRowhouse(ctx, lot, spec) {
   H.frontOut = out;
   const nty = textSignType(String(lot.number), { bg: '#1d1d22', fg: '#e8c870', border: '#c9a24a', scale: 1 / 22 });
   f.prop(nty, H.doorX, A0 + 9.3, hz - 0.1, 0, {});
+  if (family) f.prop(textSignType(family.toUpperCase(), { bg: '#e8e0c8', fg: '#2a2a2a', border: '#8a6a3a', scale: 1 / 36 }), H.doorX + 3.6, A0 + 5.5, hz - 0.12, 0, {});
   // ---- windows (room-driven)
   const tallW = 7;
   for (const R of H.rooms) {
