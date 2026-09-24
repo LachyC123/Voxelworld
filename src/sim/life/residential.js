@@ -23,7 +23,8 @@ export function run(L) {
   const prof = { survey: Date.now() - tA };
   L.ctx.resProf = prof;
   if (!R.homes.length) return R;
-  const step = (name, fn) => { const t = Date.now(); try { fn(R); } catch (e) { console.error('residential: ' + name + ' failed', e); } prof[name] = Date.now() - t; };
+  const cpu = () => (typeof process !== 'undefined' && process.cpuUsage ? process.cpuUsage().user / 1000 : Date.now());
+  const step = (name, fn) => { const t = Date.now(), c = cpu(); try { fn(R); } catch (e) { console.error('residential: ' + name + ' failed', e); } prof[name] = Date.now() - t; prof[name + 'Cpu'] = Math.round(cpu() - c); };
   step('trades', trades);
   step('doorways', doorways);
   step('scenes', planScenes);
@@ -37,6 +38,7 @@ const hhmm = (m) => { m = Math.round(m); return `${Math.floor(m / 60)}:${String(
 const LAWN = new Set(['grass_lawn', 'leaf_litter', 'dirt', 'mulch', 'grass', 'grass_dry', 'flowerbed_red', 'flowerbed_yellow', 'flowerbed_purple'].map((n) => MAT[n]).filter((v) => v !== undefined));
 const PAVED = new Set(['sidewalk', 'sidewalk_brick', 'plaza_cream', 'concrete', 'gravel', 'asphalt_old', 'asphalt', 'curb'].map((n) => MAT[n]).filter((v) => v !== undefined));
 const GLASSF = 8, NOCOL = 4;
+const OFF5 = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
 
 // ================================================================ names & words
 const surname = (H) => (H.P.household && H.P.household.surname) || (H.members[0] && H.members[0].last) || H.name.replace(/ Residence.*/, '');
@@ -72,6 +74,7 @@ class Hood {
     this.used = new Set();      // `${house}@${quarter}` taken by a scene
     this.count = {};            // scene title -> instances
     this.spotCache = new Map();
+    this._g = new Map();
     this._propIndex();
     this.homes = L.places.homes.map((P) => { try { return this.survey(P); } catch (e) { return null; } }).filter(Boolean);
     this.byName = new Map(this.homes.map((H) => [H.P.name, H]));
@@ -81,6 +84,13 @@ class Hood {
   home(p) { const P = this.L.homePlace(p); return P ? this.byName.get(P.name) || null : null; }
 
   // ---------------------------------------------------------------- voxels
+  // L.ground, cached by voxel column (the survey and the recipes ask about the same spots a lot)
+  ground(x, z, yTop = 3) {
+    const k = Math.floor(x / VS) * 73856093 ^ Math.floor(z / VS) * 19349663 ^ Math.floor(yTop / VS) * 83492791;
+    let v = this._g.get(k);
+    if (v === undefined) { v = this.L.ground(x, z, yTop); this._g.set(k, v); }
+    return v;
+  }
   mat(x, y, z) { return this.world.matAt(Math.floor(x / VS), Math.floor(y / VS), Math.floor(z / VS)); }
   solid(x, y, z) { const m = this.mat(x, y, z); return !!m && !(this.world.matFlags[m] & NOCOL); }
   glass(x, y, z) { const m = this.mat(x, y, z); return !!m && !!(this.world.matFlags[m] & GLASSF); }
@@ -91,8 +101,12 @@ class Hood {
   _propIndex() {
     const P = this.ctx.props, cells = new Map();
     this.cells = cells;
+    // only what stands in or in front of the homes matters here
+    const want = new Set();
+    for (const Q of this.L.places.homes) { const r = Q.rect; for (let x = Math.floor((r.x0 - 8) / 8); x <= Math.floor((r.x1 + 8) / 8); x++) for (let z = Math.floor((r.z0 - 8) / 8); z <= Math.floor((r.z1 + 8) / 8); z++) want.add(x + ',' + z); }
     for (let i = 0; i < P.n; i++) {
       if (P.tCat[i] === 250) continue;
+      if (!want.has(Math.floor(P.tPos[i * 3] / 8) + ',' + Math.floor(P.tPos[i * 3 + 2] / 8))) continue;
       const t = P.types[P.tType[i]]; if (!t) continue;
       const name = t.name, d = t.def, s = (d.scale || 1 / 16) * P.tScale[i];
       const x = P.tPos[i * 3], y = P.tPos[i * 3 + 1], z = P.tPos[i * 3 + 2];
@@ -129,13 +143,14 @@ class Hood {
   // Open ground at (x, z)? o: { r, y (expected ground), tol, lawn, paved, h (clear height), props:false, t0, t1, yTop }
   open(x, z, o = {}) {
     const r = o.r ?? 0.45;
-    const g = this.L.ground(x, z, o.yTop ?? 3);
+    if (o.t0 !== undefined && this.claimed(x, z, r, o.t0, o.t1)) return false;
+    const g = this.ground(x, z, o.yTop ?? 3);
     if (o.y !== undefined && Math.abs(g - o.y) > (o.tol ?? 0.12)) return false;
     const m = this.groundMat(x, z, g);
     if (!o.any && !((o.lawn !== false && LAWN.has(m)) || (o.paved !== false && PAVED.has(m)))) return false;
-    for (const [dx, dz] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) if (!this.airCol(x + dx, z + dz, g + 0.1, g + (o.h ?? 1.9))) return false;
+    const h = g + (o.h ?? 1.9);
+    for (let k = 0; k < 5; k++) if (!this.airCol(x + OFF5[k][0] * r, z + OFF5[k][1] * r, g + 0.1, h)) return false;
     if (o.props !== false && this.propsNear(x, z, r, g).length) return false;
-    if (o.t0 !== undefined && this.claimed(x, z, r, o.t0, o.t1)) return false;
     return g;
   }
 
@@ -218,7 +233,7 @@ class Hood {
     const key = H.name + ':caller:' + side + ':' + (o.act || '') + ':' + (o.back ?? '');
     if (this.spotCache.has(key)) return this.spotCache.get(key);
     const p = H.at(side, H.doorOut + (o.back ?? 0.8));
-    const y = this.L.ground(p.x, p.z, H.doorY + 0.45);
+    const y = this.ground(p.x, p.z, H.doorY + 0.45);
     const s = this.L.spot(p.x, p.z, { y, yaw: H.P.yawIn, act: o.act || 'stand', link: H.ent ? H.ent.node : undefined });
     this.spotCache.set(key, s);
     return s;
@@ -236,37 +251,94 @@ class Hood {
   stoopPoint(H, side = 0.45, back = 0.5) {
     for (const s of [side, -side, side * 1.8, -side * 1.8]) {
       const p = H.at(s, H.doorOut + back);
-      const y = this.L.ground(p.x, p.z, H.doorY + 0.45);
+      const y = this.ground(p.x, p.z, H.doorY + 0.45);
       if (!this.propsNear(p.x, p.z, 0.22, y).length) return { x: p.x, z: p.z, y };
     }
     const p = H.at(side, H.doorOut + back);
-    return { x: p.x, z: p.z, y: this.L.ground(p.x, p.z, H.doorY + 0.45) };
+    return { x: p.x, z: p.z, y: this.ground(p.x, p.z, H.doorY + 0.45) };
   }
   // a spot anywhere (ground found automatically unless o.y), cached by position+options
   spotAt(x, z, o = {}) {
     const key = `${x.toFixed(2)},${z.toFixed(2)},${o.act || ''},${o.pose || ''},${o.yaw !== undefined ? o.yaw.toFixed(2) : ''},${o.faceTo ? o.faceTo.join(':') : ''},${o.pace || 0},${o.y ?? ''},${o.hidden ? 1 : 0},${o.seat ?? ''},${o.link ?? ''},${o.spread || 0}`;
     if (this.spotCache.has(key)) return this.spotCache.get(key);
-    const s = o.hidden ? this.L.offstage(x, z, { y: o.y }) : this.L.spot(x, z, { ...o, y: o.y ?? this.L.ground(x, z, o.yTop ?? 3) });
+    const s = o.hidden ? this.L.offstage(x, z, { y: o.y }) : this.L.spot(x, z, { ...o, y: o.y ?? this.ground(x, z, o.yTop ?? 3) });
     this.spotCache.set(key, s);
     return s;
   }
   spotH(H, side, out, o = {}) { const p = H.at(side, out); return this.spotAt(p.x, p.z, o); }
   // Free points on the front lawn, best first. o: { r, t0, t1, near:[side,out], gapHouse, gapFence, walkGap }
+  // The front yard as a grid of 25 cm cells: free = open lawn you could stand on (no walk, wall,
+  // fence, hedge, porch or prop). Built once per house; clearances come from the nearest blocked cell.
+  lawnMask(H) {
+    if (H._mask) return H._mask;
+    const st = 0.5, s0 = H.lotL, o0 = H.yardFront + 0.2, ns = Math.max(1, Math.round((H.lotR - H.lotL) / st)), no = Math.max(1, Math.round((-0.1 - o0) / st));
+    const free = new Uint8Array(ns * no);
+    for (let j = 0; j < no; j++) for (let i = 0; i < ns; i++) {
+      const sd = s0 + (i + 0.5) * st, od = o0 + (j + 0.5) * st;
+      if (Math.abs(sd) < 0.75 || (H.drive !== null && Math.abs(sd - H.drive) < 1.6)) continue;
+      const p = H.at(sd, od), g = H.lawnY;
+      if (!LAWN.has(this.mat(p.x, g - 0.1, p.z))) continue;
+      if (this.solid(p.x, g + 0.3, p.z) || this.solid(p.x, g + 0.9, p.z) || this.solid(p.x, g + 1.6, p.z)) continue;
+      free[j * ns + i] = 1;
+    }
+    for (const q of H.props) { // props: block every cell under their footprint
+      const qs = H.side(q.x, q.z), qo = H.out(q.x, q.z), ext = Math.max(q.hx, q.hz) + Math.hypot(q.cx, q.cz) + 0.1;
+      for (let j = Math.floor((qo - ext - o0) / st); j <= Math.floor((qo + ext - o0) / st); j++) for (let i = Math.floor((qs - ext - s0) / st); i <= Math.floor((qs + ext - s0) / st); i++) {
+        if (i < 0 || j < 0 || i >= ns || j >= no) continue;
+        const p = H.at(s0 + (i + 0.5) * st, o0 + (j + 0.5) * st);
+        if (this.propDist(q, p.x, p.z) < 0.25) free[j * ns + i] = 0;
+      }
+    }
+    // chamfer distance transform: metres from each cell to the nearest blocked cell (or the yard's edge)
+    const dist = new Float32Array(ns * no), D = 1.4142;
+    for (let j = 0; j < no; j++) for (let i = 0; i < ns; i++) {
+      const k = j * ns + i;
+      if (!free[k]) { dist[k] = 0; continue; }
+      let v = Math.min(i + 1, j + 1, ns - i, no - j);
+      if (i > 0) v = Math.min(v, dist[k - 1] + 1);
+      if (j > 0) { v = Math.min(v, dist[k - ns] + 1); if (i > 0) v = Math.min(v, dist[k - ns - 1] + D); if (i < ns - 1) v = Math.min(v, dist[k - ns + 1] + D); }
+      dist[k] = v;
+    }
+    for (let j = no - 1; j >= 0; j--) for (let i = ns - 1; i >= 0; i--) {
+      const k = j * ns + i; let v = dist[k]; if (!v) continue;
+      if (i < ns - 1) v = Math.min(v, dist[k + 1] + 1);
+      if (j < no - 1) { v = Math.min(v, dist[k + ns] + 1); if (i < ns - 1) v = Math.min(v, dist[k + ns + 1] + D); if (i > 0) v = Math.min(v, dist[k + ns - 1] + D); }
+      dist[k] = v;
+    }
+    H._mask = { st, s0, o0, ns, no, free, dist };
+    return H._mask;
+  }
+  // clearance (metres) around a front-yard point: distance to the nearest non-free cell
+  clearance(H, sd, od, cap = 1.7) {
+    const { st, s0, o0, ns, no, dist } = this.lawnMask(H);
+    const i = Math.floor((sd - s0) / st), j = Math.floor((od - o0) / st);
+    if (i < 0 || j < 0 || i >= ns || j >= no) return 0;
+    return Math.min(cap, Math.max(0, dist[j * ns + i] - 0.5) * st);
+  }
+  // free points on the front lawn, best first. o: { r, t0, t1, near:[side,out], gapHouse, gapFence, walkGap }
   frontLawn(H, o = {}) {
     if (!H.detached) return [];
-    const pts = [];
-    const outFar = H.yardFront + (o.gapHouse ?? 1.0), outNear = -(o.gapFence ?? 0.9);
-    for (let out = outNear; out >= outFar; out -= 0.5) for (let s = H.lotL + 0.8; s <= H.lotR - 0.8; s += 0.5) {
-      if (Math.abs(s) < (o.walkGap ?? 1.0)) continue;
-      if (H.drive !== null && Math.abs(s - H.drive) < 1.8) continue;
-      const p = H.at(s, out);
-      const y = this.open(p.x, p.z, { r: o.r ?? 0.55, t0: o.t0, t1: o.t1, y: H.lawnY, tol: 0.1, paved: false });
-      if (y === false) continue;
-      pts.push({ s, out, x: p.x, z: p.z, y });
+    if (!H._lawn) {
+      H._lawn = [];
+      for (let out = -0.7; out >= H.yardFront + 0.8; out -= 0.5) for (let sd = H.lotL + 0.8; sd <= H.lotR - 0.8; sd += 0.5) {
+        const r = this.clearance(H, sd, out) - 0.12;
+        if (r < 0.5) continue;
+        const p = H.at(sd, out);
+        H._lawn.push({ s: sd, out, x: p.x, z: p.z, y: H.lawnY, r });
+      }
     }
+    const r = o.r ?? 0.55, outFar = H.yardFront + (o.gapHouse ?? 1.0), outNear = -(o.gapFence ?? 0.9), wg = o.walkGap ?? 1.0;
+    const pts = H._lawn.filter((q) => q.r >= r - 1e-6 && q.out <= outNear && q.out >= outFar && Math.abs(q.s) >= wg && (o.t0 === undefined || !this.claimed(q.x, q.z, r, o.t0, o.t1)));
     if (o.near) pts.sort((a, b) => Math.hypot(a.s - o.near[0], a.out - o.near[1]) - Math.hypot(b.s - o.near[0], b.out - o.near[1]));
     else this.rng.shuffle(pts);
     return pts;
+  }
+  // is a lawn point (world x, z) clear to radius r (and unclaimed)?
+  lawnFree(H, x, z, r, t0, t1) {
+    const sd = H.side(x, z), od = H.out(x, z);
+    if (od > -0.3 || od < H.yardFront) return false;
+    if (this.clearance(H, sd, od, r + 0.2) < r) return false;
+    return t0 === undefined || !this.claimed(x, z, r, t0, t1);
   }
   // a free point on the public sidewalk in front of a house (out 0.5..3.6)
   sidewalk(H, side, out = 2, o = {}) {
@@ -333,8 +405,12 @@ class Hood {
     const pool = H.members.filter(ok);
     if (o.prefer) pool.sort((a, b) => (o.prefer(b) ? 1 : 0) - (o.prefer(a) ? 1 : 0));
     if (pool.length >= n || o.household) return pool.slice(0, n);
-    const near = this.L.neighbours(H.P.door.x, H.P.door.z, n * 3 + 6, t0, t1, (p) => !pool.includes(p) && !ex.includes(p) && filter(p) && (o.anywhere || this.homebody(p, t0, t1)))
-      .filter((p) => { const Q = this.L.homePlace(p); return Q && Math.hypot(Q.door.x - H.P.door.x, Q.door.z - H.P.door.z) < (o.radius ?? 75); });
+    if (!H._near) H._near = this.homes.filter((Q) => Q !== H).map((Q) => ({ Q, d: Math.hypot(Q.P.door.x - H.P.door.x, Q.P.door.z - H.P.door.z) })).filter((q) => q.d < 200).sort((a, b) => a.d - b.d);
+    const want = o.anywhere ? n * 3 : n, rad = o.radius ?? 75, near = [];
+    for (const { Q, d } of H._near) {
+      if (d > rad || pool.length + near.length >= want) break;
+      for (const p of Q.members) if (ok(p)) { near.push(p); if (pool.length + near.length >= want) break; }
+    }
     if (o.anywhere) near.sort((a, b) => (this.homebody(b, t0, t1) ? 1 : 0) - (this.homebody(a, t0, t1) ? 1 : 0));
     return pool.concat(near).slice(0, n);
   }
@@ -344,8 +420,9 @@ class Hood {
     t0 = T(t0); t1 = T(t1);
     const x = where ? where.x : H.P.door.x, z = where ? where.z : H.P.door.z;
     this.L.scene(title, x, z, t0, t1, people.length);
+    (this.ctx.resScenes = this.ctx.resScenes || []).push({ title, x, z, t0, t1, people });
     this.count[title] = (this.count[title] || 0) + 1;
-    const key = H ? H.street : (where && where.street) || 'town';
+    const key = (where && where.street) || (H ? H.street : 'town');
     let c = this.cov.get(key); if (!c) this.cov.set(key, (c = new Float32Array(96)));
     for (let q = Math.floor(t0 / 15); q < Math.ceil(t1 / 15) && q < 96; q++) c[q] += people.length;
     if (H) for (let q = Math.floor(t0 / 15); q < Math.ceil(t1 / 15); q++) this.used.add(H.name + '@' + q);
@@ -357,6 +434,10 @@ class Hood {
   // ---------------------------------------------------------------- timing
   walkMin(p, a, b, speed = null) {
     if (a < 0 || b < 0 || a === b) return 0.2;
+    const nv = this.nav, sd = Math.hypot(nv.x[a] - nv.x[b], nv.z[a] - nv.z[b]);
+    // short hops (door to door along a street): a generous estimate beats running A* for every stop
+    // (arriving a little early just means a slightly longer stop)
+    if (sd < 28) return (sd * 1.75 + 2) / ((speed || p.speed) * 60) + 0.1;
     const path = this.nav.path(a, b);
     if (!path) return 1.5;
     let d = 0; for (let i = 1; i < path.length; i++) d += Math.hypot(this.nav.x[path[i]] - this.nav.x[path[i - 1]], this.nav.y[path[i]] - this.nav.y[path[i - 1]], this.nav.z[path[i]] - this.nav.z[path[i - 1]]);
@@ -1396,7 +1477,7 @@ function stepSeat(R, H, side = 0.6) {
   const seat = Math.max(0.12, Math.min(0.5, y - H.lawnY + 0.05));
   return R.spotAt(p.x, p.z, { y: H.lawnY, pose: 'sit', seat, yaw: H.P.yawOut, act: 'sit' });
 }
-const blk = (R, p, t0, t1, spot, act, label, o = {}) => R.L.block(p, t0, t1, spot, act, { label, held: o.held, lines: o.lines, costume: o.costume });
+const blk = (R, p, t0, t1, spot, act, label, o = {}) => { if (!R.focus && spot) R.focus = spot; R.L.block(p, t0, t1, spot, act, { label, held: o.held, lines: o.lines, costume: o.costume }); };
 // a free point on the front walk/lawn or sidewalk suitable for a small group, r metres across
 function yardOrWalk(R, H, t0, t1, r = 1.2) {
   const pts = R.frontLawn(H, { t0, t1, r });
@@ -1410,7 +1491,7 @@ function walls(R, H) {
   if (H._walls) return H._walls;
   const P = H.P, y = H.lawnY + 1.6;
   // the side walls aren't always in line with the facade's ends (wings, bays): find the face at each t
-  const sideFace = (dir) => { const memo = new Map(); return (t) => { const k = Math.round(t * 4); if (memo.has(k)) return memo.get(k); let f = null; const lim = dir > 0 ? H.lotR : H.lotL; for (let sd = lim; dir > 0 ? sd > H.faceR - 3 : sd < H.faceL + 3; sd -= dir * 0.125) { const q = H.at(sd, t); if (R.solid(q.x, y, q.z) || R.solid(q.x, y + 1.2, q.z)) { f = sd; break; } } memo.set(k, f); return f; }; };
+  const sideFace = (dir) => { const memo = new Map(); return (t) => { const k = Math.round(t * 4); if (memo.has(k)) return memo.get(k); let f = null; const lim = dir > 0 ? H.lotR : H.lotL; for (let sd = lim; dir > 0 ? sd > H.faceR - 3 : sd < H.faceL + 3; sd -= dir * 0.25) { const q = H.at(sd, t); if (R.solid(q.x, y, q.z) || R.solid(q.x, y + 1.2, q.z)) { f = sd; break; } } memo.set(k, f); return f; }; };
   const fr = sideFace(1), fl = sideFace(-1);
   const front = { name: 'front', pos: (t, off) => H.at(t, H.doorOut + 0.05 + off), yawOut: P.yawOut, yawIn: P.yawIn, t0: H.faceL + 0.35, t1: H.faceR - 0.35, blocked: (t) => H.hasPorch && t > H.porchL - 0.8 && t < H.porchR + 0.8, room: () => -H.doorOut - 0.6 };
   const right = { name: 'right', pos: (t, off) => { const f = fr(t); return f === null ? null : H.at(f + 0.06 + off, t); }, yawOut: P.yawRight, yawIn: P.yawLeft, t0: H.backOut + 0.6, t1: H.doorOut - 0.5, blocked: (t) => fr(t) === null, room: (t) => H.lotR - (fr(t) ?? H.lotR) - 0.3 };
@@ -1420,26 +1501,45 @@ function walls(R, H) {
 }
 // windows on a wall between heights (above the lawn) y0..y1: [{t, t0, t1, lo, hi}]
 function wallWindows(R, H, W, y0, y1) {
-  const cols = [];
-  for (let t = W.t0; t <= W.t1; t += 0.25) {
-    const p = W.pos(t, -0.17);
-    if (!p) continue;
-    let lo = null, hi = null;
-    for (let y = H.lawnY + y0; y <= H.lawnY + y1; y += VS) if (R.glass(p.x, y, p.z)) { if (lo === null) lo = y; hi = y; }
-    if (lo !== null) cols.push({ t, lo, hi });
+  const key = W.name + ':' + y0 + ':' + y1;
+  H._win = H._win || new Map();
+  if (H._win.has(key)) return H._win.get(key);
+  H._glass = H._glass || new Map();
+  let cols = H._glass.get(W.name);
+  if (!cols) {
+    // one pass up each wall: which heights (above the lawn) are glass, column by column
+    cols = [];
+    for (let t = W.t0; t <= W.t1; t += 0.25) {
+      const p = W.pos(t, -0.17);
+      if (!p) continue;
+      const ys = [];
+      for (let y = 0.7; y <= 5.8; y += 2 * VS) if (R.glass(p.x, H.lawnY + y, p.z)) ys.push(H.lawnY + y);
+      if (ys.length) cols.push({ t, ys });
+    }
+    H._glass.set(W.name, cols);
   }
   const wins = [];
-  for (const c of cols) { const w = wins[wins.length - 1]; if (w && c.t - w.t1 < 0.3) { w.t1 = c.t; w.lo = Math.min(w.lo, c.lo); w.hi = Math.max(w.hi, c.hi); } else wins.push({ t0: c.t, t1: c.t, lo: c.lo, hi: c.hi }); }
+  for (const c of cols) {
+    const ys = c.ys.filter((y) => y >= H.lawnY + y0 && y <= H.lawnY + y1);
+    if (!ys.length) continue;
+    const w = wins[wins.length - 1], lo = ys[0], hi = ys[ys.length - 1];
+    if (w && c.t - w.t1 < 0.3) { w.t1 = c.t; w.lo = Math.min(w.lo, lo); w.hi = Math.max(w.hi, hi); } else wins.push({ t0: c.t, t1: c.t, lo, hi });
+  }
   for (const w of wins) { w.t = (w.t0 + w.t1) / 2; w.w = w.t1 - w.t0 + 0.25; }
-  return wins.filter((w) => w.w >= 0.5);
+  const res = wins.filter((w) => w.w >= 0.5);
+  H._win.set(key, res);
+  return res;
 }
 // top of a wall at t (metres above the lawn): where the eave and gutter are
 function wallTop(R, H, W, t) {
+  const key = W.name + ':' + Math.round(t * 8);
+  H._top = H._top || new Map();
+  if (H._top.has(key)) return H._top.get(key);
   const p = W.pos(t, -0.17);
-  if (!p) return 0;
-  let y = H.lawnY + 2;
-  while (y < H.lawnY + 12 && R.solid(p.x, y, p.z)) y += VS;
-  return y - H.lawnY;
+  let v = 0;
+  if (p) { let y = H.lawnY + 2; while (y < H.lawnY + 12 && R.solid(p.x, y, p.z)) y += VS; v = y - H.lawnY; }
+  H._top.set(key, v);
+  return v;
 }
 // A ladder against wall W at t reaching h metres up (null if the ground, the porch or the air is in the way)
 function ladderOn(R, H, W, t, h, t0, t1) {
@@ -1649,7 +1749,7 @@ recipe('mow', [['9:30', '12:00'], ['13:30', '17:20']], [30, 50], 8, (R, H, t0, t
     for (const dir of [H.P.yawRight, H.P.yawLeft]) {
       const dx = Math.sin(dir), dz = Math.cos(dir);
       let ok = true;
-      for (let k = 1; k <= 4; k++) if (R.open(q.x + dx * k, q.z + dz * k, { r: 0.5, y: H.lawnY, tol: 0.1, paved: false, t0, t1 }) === false) { ok = false; break; }
+      for (let k = 1; k <= 4; k++) if (!R.lawnFree(H, q.x + dx * k, q.z + dz * k, 0.5, t0, t1)) { ok = false; break; }
       if (!ok) continue;
       const [p] = R.cast(H, t0, t1, 1, { filter: (x) => x.age >= 13 && x.age < 72, prefer: (x) => x.sex === 'M' });
       if (!p) return null;
@@ -1880,7 +1980,7 @@ recipe('lemonade', [['10:00', '12:10'], ['15:50', '17:40']], [70, 110], 4, (R, H
   const st = H.at(sw.s, 1.5), be = H.at(sw.s, 0.75);
   if (R.open(be.x, be.z, { r: 0.4, lawn: false, h: 1.5 }) === false) return null;
   L.timed('lemonade_stand', st.x, st.z, H.P.yawOut, t0 - 3, t1 + 2);
-  kids.forEach((k, i) => { const q = H.at(sw.s + (i ? 0.55 : -0.55), 0.75); blk(R, k, t0, t1, R.spotAt(q.x, q.z, { yaw: H.P.yawOut, act: 'counter' }), 'counter', 'Selling lemonade on the sidewalk, five cents a glass', { lines: ['Lemonade! Ice cold! Five cents!', 'Two cents for kids. Five for grown-ups. That\'s the rule.', 'We\'re saving up for a Flexible Flyer.'] }); });
+  kids.forEach((k, i) => { const q = H.at(sw.s + (i ? 1.25 : -1.25), 1.15); blk(R, k, t0, t1, R.spotAt(q.x, q.z, { yaw: H.P.yawOut, act: i ? 'wave' : 'counter' }), i ? 'wave' : 'counter', 'Selling lemonade on the sidewalk, five cents a glass', { lines: ['Lemonade! Ice cold! Five cents!', 'Two cents for kids. Five for grown-ups. That\'s the rule.', 'We\'re saving up for a Flexible Flyer.'] }); });
   L.label(st.x, 1.1, st.z, t0 - 3, t1 + 2, `${first(kids[0])}'s lemonade stand: LEMON-ADE 5¢`, 1.4);
   R.seen('lemonade', { t0, t1, x: st.x, y: H.lawnY + 0.9, z: st.z });
   // customers
@@ -2160,7 +2260,7 @@ recipe('jumprope', [['9:00', '12:05'], ['12:25', '13:10'], ['15:50', '17:40']], 
     for (const dir of [H.P.yawRight, H.P.yawLeft]) {
       const q = { x: p.x + Math.sin(dir) * 2.6, z: p.z + Math.cos(dir) * 2.6 };
       const m = { x: (p.x + q.x) / 2, z: (p.z + q.z) / 2 };
-      if (R.open(q.x, q.z, { r: 0.5, y: H.lawnY, t0, t1 }) !== false && R.open(m.x, m.z, { r: 0.7, y: H.lawnY, t0, t1 }) !== false) { a = p; b = q; break; }
+      if (R.lawnFree(H, q.x, q.z, 0.5, t0, t1) && R.lawnFree(H, m.x, m.z, 0.7, t0, t1)) { a = p; b = q; break; }
     }
     if (a) break;
   }
@@ -2444,7 +2544,7 @@ recipe('evpaper', [['16:30', '17:45']], [25, 45], 14, (R, H, t0, t1) => {
 // ---------------------------------------------------------------- the planner
 // Fill the day in ten-minute slots: wherever the neighbourhoods have fewer people out doing things
 // than the hour calls for, pick a recipe that fits the time and put it on the least-busy street.
-const TARGET = [[6, 5], [6.5, 9], [7, 15], [7.5, 22], [8, 30], [8.5, 40], [9, 48], [12, 48], [12.25, 30], [13, 30], [13.25, 42], [17, 42], [17.5, 30], [17.75, 12], [18.6, 12], [18.75, 32], [20.5, 26], [21, 18], [21.5, 8]];
+const TARGET = [[6, 6], [6.5, 10], [7, 18], [7.5, 26], [8, 36], [8.5, 46], [9, 56], [12, 56], [12.25, 42], [13, 42], [13.25, 52], [17, 52], [17.5, 40], [17.75, 14], [18.6, 14], [18.75, 40], [20.5, 34], [21, 22], [21.5, 8]];
 function targetAt(t) {
   const h = t / 60;
   for (let i = 1; i < TARGET.length; i++) if (h < TARGET[i][0]) { const [h0, v0] = TARGET[i - 1], [h1, v1] = TARGET[i]; return v0 + (v1 - v0) * (h - h0) / (h1 - h0); }
@@ -2454,34 +2554,37 @@ function planScenes(R) {
   const L = R.L;
   R.spinners = []; R.smokes = [];
   if (typeof process !== 'undefined' && process.env && process.env.RESDBG) R.dbg = [];
-  const recs = RECIPES.map((r) => ({ ...r, left: r.max }));
+  // each recipe's budget is shared out over its time windows by length, so mornings can't use it all up
+  const recs = RECIPES.map((r) => { const lens = r.when.map(([a, b]) => T(b) - T(a)), tot = lens.reduce((x, y) => x + y, 0); return { ...r, left: r.max, wleft: lens.map((l) => Math.max(1, Math.round(r.max * 1.25 * l / tot))) }; });
   const streets = [...new Set(R.homes.map((H) => H.street))];
-  for (let t = T('6:05'); t < T('21:10'); t += 10) {
-    const target = targetAt(t + 5);
+  for (const r of recs) { r.by = new Map(); for (const H of R.homes) { if (!r.homes(H)) continue; if (!r.by.has(H.street)) r.by.set(H.street, []); r.by.get(H.street).push(H); } }
+  for (let t = T('6:05'); t < T('21:10'); t += 15) {
+    const target = targetAt(t + 7);
     let guard = 0;
-    while (R.totalAt(t + 5) < target && guard++ < 30) {
-      const avail = recs.filter((r) => r.left > 0.3 && r.when.some(([a, b]) => t >= T(a) && t < T(b)));
+    while (R.totalAt(t + 7) < target && guard++ < 18) {
+      const avail = recs.filter((r) => r.left > 0.3 && r.when.some(([a, b], i) => t >= T(a) && t < T(b) && r.wleft[i] > 0.3));
       if (!avail.length) break;
       let tot = 0; for (const r of avail) tot += r.w * r.left / r.max;
       let x = R.rng.next() * tot, rec = avail[0];
       for (const r of avail) { x -= r.w * r.left / r.max; if (x <= 0) { rec = r; break; } }
-      const win = rec.when.find(([a, b]) => t >= T(a) && t < T(b));
-      const t0 = t + R.rng.int(0, 6), t1 = Math.min(t0 + R.rng.int(rec.dur[0], rec.dur[1]), T(win[1]) + rec.dur[1] * 0.5);
+      const wi = rec.when.findIndex(([a, b], i) => t >= T(a) && t < T(b) && rec.wleft[i] > 0.3), win = rec.when[wi];
+      const t0 = t + R.rng.int(0, 9), t1 = Math.min(t0 + R.rng.int(rec.dur[0], rec.dur[1]), T(win[1]) + rec.dur[1] * 0.5);
       // least-busy streets first, then houses in random order
       const ranked = streets.map((s) => ({ s, c: R.coverage(s, t0, t1) + R.rng.next() * 2 })).sort((a, b) => a.c - b.c);
       let done = false, tries = 0;
       for (const { s } of ranked) {
-        const cands = R.rng.shuffle(R.homes.filter((H) => H.street === s && rec.homes(H) && !eventHouse(H, t0 - 5, t1 + 5) && !R.busyHouse(H, t0 - 10, t1 + 10)));
+        const cands = R.rng.shuffle((rec.by.get(s) || []).filter((H) => !eventHouse(H, t0 - 5, t1 + 5) && !R.busyHouse(H, t0 - 10, t1 + 10)));
         for (const H of cands.slice(0, 4)) {
-          if (tries++ > 10) break;
+          if (tries++ > 7) break;
           let res = null;
+          R.focus = null;
           try { res = rec.fn(R, H, t0, t1); } catch (e) { if (!R._warned) { R._warned = true; console.error('residential recipe failed', rec.key, e); } }
-          if (res && res.people && res.people.length) { R.scene(res.title, H, t0, t1, res.people); rec.left -= 1; done = true; break; }
+          if (res && res.people && res.people.length) { const f = res.at || R.focus; R.scene(res.title, H, t0, t1, res.people, f ? { x: f.x, z: f.z, street: H.street } : null); rec.left -= 1; rec.wleft[wi] -= 1; done = true; break; }
         }
-        if (done || tries > 10) break;
+        if (done || tries > 7) break;
       }
-      if (!done) rec.left -= 0.35;
-      if (R.dbg) R.dbg.push(`${hhmm(t)} tgt ${target.toFixed(0)} have ${R.totalAt(t + 5).toFixed(0)} ${rec.key} ${done ? 'OK' : 'fail'}`);
+      if (!done) { rec.left -= 0.5; rec.wleft[wi] -= 0.5; }
+      if (R.dbg) R.dbg.push(`${hhmm(t)} tgt ${target.toFixed(0)} have ${R.totalAt(t + 7).toFixed(0)} ${rec.key} ${done ? 'OK' : 'fail'}`);
     }
   }
   // per-frame animation for smoke and jump ropes
@@ -2494,8 +2597,8 @@ function animate(R, rt) {
     if (Math.abs(s.x - cam.x) > 140 || Math.abs(s.z - cam.z) > 140) continue;
     s.h.forEach((h, i) => {
       const ph = (rt.t * 0.16 + i / s.h.length) % 1;
-      h.x = s.x + ph * 1.6 + Math.sin(rt.t * 0.7 + i) * 0.25; h.z = s.z + ph * 0.7; h.y = s.y + ph * 4.2;
-      h.scale = 0.45 + ph * 1.5; h.yaw = i + ph;
+      h.x = s.x + ph * 1.3 + Math.sin(rt.t * 0.7 + i) * 0.2; h.z = s.z + ph * 0.5; h.y = s.y + 0.2 + ph * 3.4;
+      h.scale = 0.3 + ph * 0.85; h.yaw = i + ph;
     });
   }
   for (const sp of R.spinners) { if (Math.abs(sp.h.x - cam.x) < 90 && Math.abs(sp.h.z - cam.z) < 90) sp.h.pitch = rt.t * sp.rate; }

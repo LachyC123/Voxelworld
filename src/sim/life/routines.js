@@ -8,6 +8,9 @@ import { visitors } from './routines_visitors.js';
 
 export function run(L) {
   const W = new RW(L);
+  // diagnostics: how many townsfolk the earlier modules left idle, hour by hour
+  const idleBefore = {};
+  for (let h = 8; h <= 21; h++) idleBefore[h] = L.ctx.people.list.filter((p) => L.idle(p, h * 60, h * 60 + 30)).length;
   town.setupTown(W);
   // each pass gets its own random stream, so changing one doesn't reshuffle the others
   const step = (name, fn) => { const t0 = Date.now(); W.rng = L.rng.fork(name); try { fn(W); } catch (e) { console.error('routines: ' + name + ' failed', e); } W.timing = W.timing || {}; W.timing[name] = Date.now() - t0; };
@@ -27,7 +30,7 @@ export function run(L) {
   step('filler', town.filler);
   step('kidfiller', town.kidFiller);
   step('diary', diary);
-  L.ctx.life.routines = { count: W.count, timing: W.timing };
+  L.ctx.life.routines = { count: W.count, timing: W.timing, idleBefore };
 }
 
 // the Spotter's Diary: a few of the day's routines worth going out of your way to see

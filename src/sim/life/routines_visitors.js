@@ -64,15 +64,17 @@ const DAY_PARTIES = [
   { kind: 'family', town: 'Providence', arrive: 'car', at: '9:35', leave: 'car', until: '21:32', kids: 2 },
   { kind: 'family', town: 'Brockton', arrive: 'car', at: '10:05', leave: 'car', until: '18:20', kids: 2 },
   { kind: 'family', town: 'Nashua', arrive: 'car', at: '10:40', leave: 'car', until: '21:36', kids: 3 },
-  { kind: 'family', town: 'Fall River', arrive: 'car', at: '11:20', leave: 'car', until: '19:05', kids: 1 },
+  { kind: 'family', town: 'Fall River', arrive: 'car', at: '8:56', leave: 'car', until: '19:05', kids: 1 },
   { kind: 'family', town: 'Portland', arrive: 'car', at: '9:50', leave: 'car', until: '16:40', kids: 2 },
   { kind: 'couple', town: 'Providence', arrive: 'car', at: '10:15', leave: 'car', until: '21:38' },
-  { kind: 'couple', town: 'Nashua', arrive: 'car', at: '11:00', leave: 'car', until: '18:45' },
+  { kind: 'couple', town: 'Nashua', arrive: 'car', at: '8:53', leave: 'car', until: '18:45' },
   { kind: 'old', town: 'Portland', arrive: 'car', at: '10:30', leave: 'car', until: '17:30' },
   { kind: 'old', town: 'Brockton', arrive: 'car', at: '12:30', leave: 'car', until: '18:30' },
   { kind: 'college', town: 'Providence', arrive: 'car', at: '11:30', leave: 'car', until: '21:40', n: 4 },
   { kind: 'family', town: 'Lowell', arrive: 'car', at: '13:05', leave: 'car', until: '21:33', kids: 2 },
   { kind: 'couple', town: 'Boston', arrive: 'car', at: '13:40', leave: 'car', until: '21:35' },
+  // a chartered bus: the Hollis Grange outing, parked out on Grand Avenue
+  { kind: 'grange', town: 'Nashua', arrive: 'car', at: '9:38', leave: 'car', until: '16:25', bus: true },
 ];
 // the evening: carloads from the North Shore for the fireworks (some of them stuck behind a truck on 1A)
 const EVE_PARTIES = [
@@ -132,6 +134,9 @@ function makeParty(V, spec, idx) {
     for (let i = 0; i < (spec.n || 3); i++) add({ sex: girls ? 'F' : 'M', age: r.int(19, 21), bio: `${'{n}'}, ${girls ? 'a Radcliffe girl' : 'a Harvard man'}, ${came} with ${girls ? 'her' : 'his'} friends.`, lines: girls ? ['We\'re writing a paper on the American small town. Mostly we\'re eating.', 'Is it true the whole town is burying a time capsule? How divine.'] : ['Came for the Clam Shack. The Centennial\'s a bonus.', 'Our professor says towns like this are the backbone of the Republic. He\'s never been to one.'] });
   } else if (spec.kind === 'girls') {
     for (let i = 0; i < (spec.n || 3); i++) add({ sex: 'F', age: r.int(18, 24), bio: `${'{n}'}, ${town === 'Lynn' ? 'a winder at the GE River Works in Lynn' : 'a telephone operator in Boston'}, ${came} with the girls from work for the street dance and the fireworks.`, lines: pick(r, [['We heard there\'s a street dance. And sailors. Mostly the street dance.', 'Our mothers think we\'re on the 7:30. We\'re on the 10:05.'], ['I bought a Centennial pennant for my brother. He\'s in Korea. It\'ll get there by Christmas.', 'Look at the lights on the square! Lynn never did anything like it.']]) });
+  } else if (spec.kind === 'grange') {
+    add({ sex: 'M', age: r.int(55, 66), first: 'Elmer', last: 'Colburn', title: 'Mr.', bio: 'Elmer Colburn, Master of Hollis Grange No. 12, Hollis, New Hampshire — apples and dairy. Hired the Nashua bus for the day and intends to get the Grange\'s money\'s worth.', lines: ['Hollis Grange, No. 12. We\'ve got apples you wouldn\'t believe. Ask anybody.', 'Bus leaves at half past four. Anybody not on it walks to New Hampshire.'] });
+    for (let i = 0; i < 11; i++) add({ sex: i % 3 === 0 ? 'M' : 'F', age: r.int(38, 74), last: pick(r, ['Farley', 'Hardy', 'Wheeler', 'Colburn', 'Lovejoy', 'Spalding', 'Proctor', 'Worcester']), bio: `${'{n}'}, of Hollis Grange No. 12, Hollis, New Hampshire, down for the Centennial on the Grange's chartered bus.`, lines: pick(r, [['First time I\'ve seen salt water since the Grange trip of \'47.', 'Their pies are good. Our pies are better. Don\'t tell them I said so.'], ['We came down on the bus from Nashua. Two hours, and Elmer sang the whole way.', 'Look at all these people! Hollis has three hundred, if you count the cows.'], ['I want a lobster. I\'ve never had a lobster. I\'m sixty-one.', 'Such a lot of boats. Who minds them all?']]) });
   } else if (spec.kind === 'camera') {
     add({ sex: 'M', age: r.int(40, 60), last: surname, bio: `${'{n}'} ${surname}, of the Providence Camera Club, ${came}. Eleven rolls of Kodachrome and an opinion about every one of them.`, lines: ['Providence Camera Club. I\'ve shot four rolls of the lighthouse. It hasn\'t moved yet.', 'The light off the harbor at four o\'clock. You wait. You\'ll see.'] });
   }
@@ -187,13 +192,13 @@ function planParty(V, spec, people, idx) {
   const { W } = V, r = V.L.rng.fork('day' + idx);
   const kids = people.filter((p) => p.age < 13), grown = people.filter((p) => p.age >= 13);
   const old = spec.kind === 'old', big = people.length >= 6;
-  const pace = old ? 0.62 : spec.kind === 'scouts' ? 0.85 : kids.length ? 0.76 : spec.kind === 'sailors' ? 0.92 : spec.kind === 'church' ? 0.7 : 0.8;
+  const pace = old ? 0.62 : spec.kind === 'scouts' ? 0.85 : kids.length ? 0.76 : spec.kind === 'sailors' ? 0.92 : spec.kind === 'church' || spec.kind === 'grange' ? 0.7 : 0.8;
   const speed = Math.min(...people.map((p) => p.speed)) * pace;
   const trainIn = spec.arrive.startsWith('train');
   const off = trainIn ? V.platform[idx % V.platform.length] : V.edge[idx % V.edge.length];
   const tIn = trainIn ? TRAIN_IN[spec.arrive] + 1.5 + r.next() * 3 : T(spec.at);
   const byTrain = spec.leave !== 'car';
-  const deadline = byTrain ? TRAIN_OUT[spec.leave][0] + 9 : T(spec.until);
+  const deadline = byTrain ? TRAIN_OUT[spec.leave][0] + 12 : T(spec.until);
   const trip = new Trip(W, people, tIn, { from: { x: off.x, z: off.z }, speed, lag: big ? 0.022 : 0.014 });
   // before they arrive: on the train / on the road, out of sight
   const where = trainIn ? `On the train from ${spec.town}` : `Driving ${TOWNS[spec.town] ? TOWNS[spec.town].how : 'over from ' + spec.town}`;
@@ -218,7 +223,7 @@ function planParty(V, spec, people, idx) {
   // the fixed points of the day: lunch, the Mayor, supper, the dance, the fireworks
   const fixed = [];
   if (tIn < T('12:40') && deadline > T('13:10')) fixed.push({ k: 'lunch', from: T('11:40') + r.int(0, 50) });
-  if (deadline >= T('18:10') && tIn < T('17:00')) fixed.push({ k: 'speech', from: T('17:14') + r.int(0, 6) });
+  if (deadline >= T('18:10') && tIn < T('17:00')) fixed.push({ k: 'speech', from: T('17:18') + r.int(0, 8) });
   if (deadline >= T('19:40') && tIn < T('18:30')) fixed.push({ k: 'supper', from: T('18:05') });
   if (deadline >= T('21:27') && r.chance(0.6) && tIn < T('20:10')) fixed.push({ k: 'dance', from: T('19:55') + r.int(0, 20) });
   if (deadline >= T('21:27')) fixed.push({ k: 'fireworks', from: spec.late ? 0 : T('20:25') + r.int(0, 15) });
@@ -239,8 +244,9 @@ function planParty(V, spec, people, idx) {
     }
     V2.limit = Math.min(leaveAt, nf ? nf.from : leaveAt);
     if (V2.limit - t < 8) { trip.wait(Math.max(0, V2.limit - t)); continue; }
+    if (nf && V2.limit - t <= 30 && wander(V2, Math.min(V2.limit - t - 2, r.int(12, 26)), nf)) continue;
     let did = false;
-    if (n > 0 && r.chance(0.8) && V2.limit - t > 30 && wander(V2, r.int(14, 28), nf)) continue;
+    if (n > 0 && r.chance(0.88) && V2.limit - t > 30 && wander(V2, r.int(16, 30), nf)) continue;
     for (const s of order) {
       if (s === 'fair2' ? (!done.has('fair') || done.has('fair2')) : done.has(s)) continue;
       if (tryDo(s)) { did = true; break; }
@@ -252,7 +258,7 @@ function planParty(V, spec, people, idx) {
   // off home: the platform, or back out along Grand Avenue to the car
   const walkOut = walkMin(trip.pos, off, speed);
   if (byTrain) {
-    const leaveBy = TRAIN_OUT[spec.leave][0] + 9 - walkOut;
+    const leaveBy = TRAIN_OUT[spec.leave][0] + 12 - walkOut;
     if (leaveBy - trip.t > 6 && V.waitRoom.length) {
       const wr = W.pickN(V.waitRoom, people.length, leaveBy - 6, leaveBy);
       trip.to(wr, 0, { label: `Waiting for the ${TRAIN_OUT[spec.leave][1]} home`, act: () => r.pick(['wait', 'read', 'doze', 'sit']), held: heldOf });
@@ -348,6 +354,7 @@ function sightOrder(spec, r) {
     old: ['graves', 'fair', 'museum', 'exhibit', 'park', 'harbour', 'cityhall', 'matinee', 'souvenir', 'church'],
     sailors: ['harbour', 'fair', 'playland', 'beach', 'market', 'souvenir', 'fair2', 'lighthouse', 'museum'],
     church: ['fair', 'church', 'tea', 'museum', 'market', 'souvenir', 'exhibit', 'harbour', 'fair2'],
+    grange: ['fair', 'harbour', 'museum', 'market', 'fair2', 'souvenir', 'park', 'cityhall', 'beach'],
     scouts: ['museum', 'harbour', 'lighthouse', 'beach', 'fair', 'playland', 'park', 'fair2'],
     college: ['harbour', 'fair', 'museum', 'market', 'lighthouse', 'beach', 'souvenir', 'exhibit', 'fair2'],
     girls: ['fair', 'market', 'souvenir', 'beach', 'playland', 'harbour', 'fair2'],
@@ -377,6 +384,12 @@ const SIGHTS = {
     for (const k of V.kids) V.kidHeld.set(k, V.heldKid(k));
     const what = ['Seeing the Harbor Days fair', 'Looking over the pies in the Auxiliary tent', 'Watching the ring toss', 'Browsing the stalls on Founders Square', 'Trying their luck at the fair'];
     for (let j = 0; j < stops; j++) {
+      if (j > 0) {
+        const e = squareEdgeV(V);
+        trip.to(e, 0.5, { label: 'Deciding which stall is next', act: 'look', held: V.heldOf });
+        const rt = W.route(e, r.int(60, 140), { jitter: 3 });
+        if (rt) trip.stroll(rt, { label: 'Walking round the stalls on Founders Square', held: V.heldOf });
+      }
       const eta = trip.t + trip.eta(W.fair[0]);
       const kidSpots = W.pickN(W.fairKids.length ? W.fairKids : W.fair, Math.max(1, V.kids.length), eta, eta + dwells[j]);
       const adSpots = W.pickN(W.fair, V.grown.length, eta, eta + dwells[j]);
@@ -661,12 +674,14 @@ export function visitors(W) {
   for (let x = 404; x <= 512; x += 6.4) { slots.push([x, -65.3, Math.PI / 2]); slots.push([x + 3.2, -74.7, -Math.PI / 2]); }
   const used = [];
   const palette = ['#2a3a5a', '#6a2a2a', '#2a4a3a', '#d8d0b8', '#1c1c1e', '#6a8aa0', '#8a7a5a', '#3a5a7a', '#7a3a4a', '#c8b890'];
-  for (const [t0, t1, idx] of V.cars.sort((a, b) => a[0] - b[0])) {
-    const k = slots.findIndex((s, j) => !used.some(([u, a, b]) => u === j && a < t1 + 6 && b > t0 - 6));
+  for (const [t0, t1, idx, spec] of V.cars.sort((a, b) => a[0] - b[0])) {
+    const clear = (j) => j < slots.length && !used.some(([u, a, b]) => u === j && a < t1 + 6 && b > t0 - 6);
+    const k = slots.findIndex((s, j) => clear(j) && (!spec.bus || clear(j + 2)));
     if (k < 0) continue;
     used.push([k, t0 - 1, t1 + 4]);
-    const [x, z, yaw] = slots[k];
-    L.timed(['car_sedan', 'car_sedan', 'car_coupe', 'car_wagon', 'car_convertible'][idx % 5], x, z, yaw, t0 - 1.5, t1 + 4, { tint: palette[idx % palette.length], y: 0.02 });
+    if (spec.bus) used.push([k + 2, t0 - 1, t1 + 4]);
+    const [x0, z, yaw] = slots[k], x = spec.bus ? x0 + 3.2 : x0;
+    L.timed(spec.bus ? 'bus_city' : ['car_sedan', 'car_sedan', 'car_coupe', 'car_wagon', 'car_convertible'][idx % 5], x, z, yaw, t0 - 1.5, t1 + 4, { tint: spec.bus ? '#c8a040' : palette[idx % palette.length], y: 0.02 });
   }
   W.tally('Visitors', people); W.tally('Visiting parties', parties); W.tally('Visitor sights', sights);
   L.scene('Harbor Days visitors off the 9:52', 213, -222, '9:52', '10:30', 0);

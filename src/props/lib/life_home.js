@@ -149,10 +149,10 @@ defineProp('storm_window', {
 defineProp('smoke_puff', {
   size: [12, 10, 12], cat: 'exterior',
   build(m) {
-    m.sphere(6, 5, 6, 4.6, '#b4b0a8');
-    m.sphere(4, 6, 5, 3.4, '#c4c0b8');
-    m.sphere(8, 6.5, 7, 3.0, '#a8a49c');
-    m.sphere(6, 8, 6, 2.4, '#ccc8c0');
+    m.sphere(6, 5, 6, 4.6, '#8e8a84');
+    m.sphere(4, 6, 5, 3.4, '#9e9a92');
+    m.sphere(8, 6.5, 7, 3.0, '#84807a');
+    m.sphere(6, 8, 6, 2.4, '#a8a49c');
   },
 });
 // Smouldering leaf pile at the curb: charred rim, glowing embers, a few low flames

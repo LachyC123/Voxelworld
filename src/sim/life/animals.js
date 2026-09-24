@@ -285,6 +285,9 @@ class Zoo {
   tick(rt) {
     const cam = rt.cam; if (!cam) return;
     rt.dtc = Math.min(0.1, Math.max(0, rt.dt || 0));
+    // people are posed before this hook runs, so riders' spots are set for the next frame's clock
+    const dm = this._lastM === undefined ? 0 : rt.minutes - this._lastM;
+    rt.mNext = rt.minutes + (dm > 0 && dm < 2 ? dm : 0); this._lastM = rt.minutes;
     const pp = this.playerPos(rt);
     this.pp = pp;
     const vis = this.vis; vis.length = 0;
@@ -631,11 +634,14 @@ function dogSession(a) {
 }
 function dogLocate(rt, a) {
   let s = dogSession(a);
-  // a dog only joins its person once they're close (walking out of the door, or coming up the street)
-  if (s && !a.following) { const S = s.p.state; if (Math.hypot(S.x - a.x, S.z - a.z) > 22) s = null; }
+  // a child walking over from a friend's for a game in the yard: the dog waits until they're close
+  // (walks and park trips start at home, so after a clock jump the dog is simply with its person)
+  if (s && !a.following && s.kind === 'yard' && s.p.state.mode === 'walk') { const S = s.p.state; if (Math.hypot(S.x - a.x, S.z - a.z) > 22) s = null; }
   a.following = !!s; a.sess = s;
   // out of sight the dog isn't updated, so keep its position with its person for the range check
   if (s) { const S = s.p.state; if (Math.hypot(S.x - a.x, S.z - a.z) > 12) { a.x = S.x; a.z = S.z; a.y = S.y; } }
+  // …and once the outing is over, out of sight, it has gone home
+  else if (a.home && Math.hypot(a.x - a.home.x, a.z - a.home.z) > 25) { a.x = a.home.x; a.z = a.home.z; a.y = a.home.y; a.yaw = a.home.yaw; a.st = {}; }
   return true;
 }
 const nightFor = (m, a) => m < tm('6:15') + (a.id % 5) * 6 || m > tm('21:40') - (a.id % 4) * 8;
@@ -770,7 +776,6 @@ function dogHome(Z, a, rt) {
   let pose = h < (nap ? 0.55 : 0.32) ? 'lie' : h < (nap ? 0.82 : 0.68) ? 'lie_up' : h < 0.96 ? 'sit' : 'stand';
   let yaw = Hm.yaw;
   let cap;
-  const home = familyHome(a);
   // someone from the family walking up or leaving: up and wagging
   let greet = null;
   for (const p of P.members) { const S = p.state; if (S && S.mode === 'walk' && !S.room && Math.hypot(S.x - a.x, S.z - a.z) < 8) { greet = p; break; } }
@@ -794,7 +799,7 @@ function dogHome(Z, a, rt) {
   a.frame = pose;
   if (!cap) {
     if (pose === 'lie') cap = `${a.title}, asleep ${where}`;
-    else if (!home) cap = `${a.title}, waiting ${where} for ${theFamily(a.surname).slice(0, -1)} to come home`;
+    else if (!familyHome(a)) cap = `${a.title}, waiting ${where} for ${theFamily(a.surname).slice(0, -1)} to come home`;
     else if (pose === 'lie_up') cap = `${a.title}, keeping an eye on the street`;
     else if (pose === 'sit') cap = `${a.title}, sitting ${where}, waiting for something to happen`;
     else cap = `${a.title}, ${where}`;
@@ -1460,7 +1465,7 @@ function rider(Z, o) {
 
 function ragWagon(Z) {
   const L = Z.L;
-  const lane = 4.5;
+  const lane = 3.1;   // the traffic lane (the parking lane is full of parked cars)
   // in by Grand Avenue from the Boston road, round the residential streets, and out the same way
   const pts = [[468, -70 - lane], [374 - lane, -70 - lane], [374 - lane, 210 - lane], [214 + lane, 210 - lane], [214 + lane, 140 + lane], [294 + lane, 140 + lane], [294 + lane, 70 + lane], [374 + lane, 70 + lane], [374 + lane, -70 + lane], [468, -70 + lane]];
   const route = roadRoute(pts);
@@ -1505,7 +1510,7 @@ function ragWagon(Z) {
     locate: (rt, a) => { const q = tripAt(trip, rt.minutes); if (!q) return false; poseOnRoute(route0, q.s - WAGON_HITCH, pose); a.x = pose.x; a.z = pose.z; a.yaw = pose.yaw; a.y = 0; a.q = q; return true; },
     update: (rt, a) => { if (R.p.ch && !R.p.ch.pose.visible) { a.vis = false; return; } a.cap = a.title; a.bell = !a.q.moving && (rt.t % 6) < 3; },
     // the driver's seat moves with the wagon
-    always: (rt) => { const q = tripAt(trip, rt.minutes); if (!q) return; const o = poseOnRoute(route0, q.s - WAGON_HITCH, {}); const s = R.spot, c = Math.cos(o.yaw), sn = Math.sin(o.yaw); s.x = o.x + sn * 1.05 + c * 0.22; s.z = o.z + c * 1.05 - sn * 0.22; s.y = 0.9; s.yaw = o.yaw; },
+    always: (rt) => { const q = tripAt(trip, rt.mNext ?? rt.minutes); if (!q) return; const o = poseOnRoute(route0, q.s - WAGON_HITCH, {}); const s = R.spot, c = Math.cos(o.yaw), sn = Math.sin(o.yaw); s.x = o.x + sn * 1.05 + c * 0.22; s.z = o.z + c * 1.05 - sn * 0.22; s.y = 0.9; s.yaw = o.yaw; },
   });
   void wagon;
   const horse = Z.add({ kind: 'horse', model: 'horse_draft', frames: HORSE_FRAMES, name: 'Dolly', title: '<b>Dolly</b> · the ragman\'s mare, a patient bay who knows every stop', tintA: pack('#7a4a2a'), tintB: pack('#221c18'), scale: 1, capY: 1.5, capR: 1.2, range: 170,
@@ -1522,7 +1527,7 @@ function mountedPolice(Z) {
   const L = Z.L;
   const hq = L.place('Police Headquarters');
   if (!hq) return;
-  const lane = 4.5;
+  const lane = 3.1;   // the traffic lane (the parking lane is full of parked cars)
   const loop = [[134 + lane, -70 + lane], [294 - lane, -70 + lane], [294 - lane, 0 - lane], [134 + lane, 0 - lane]];
   // out from headquarters, round the square and City Hall again and again, then home
   const pts = [[54 + lane, -104], [54 + lane, -70 - lane], [134 - lane, -70 - lane]];
@@ -1556,7 +1561,7 @@ function mountedPolice(Z) {
     locate: (rt, a) => { const q = tripAt(trip, rt.minutes); if (!q) return false; poseOnRoute(route, q.s, pose); a.x = pose.x; a.z = pose.z; a.yaw = pose.yaw; a.y = 0; a.q = q; return true; },
     update: (rt, a) => { if (R.p.ch && !R.p.ch.pose.visible) { a.vis = false; return; } a.moving = a.q.moving; a.frame = a.q.moving ? (Math.floor(a.q.s / 0.55) % 2 ? 'walk_a' : 'walk_b') : 'stand'; a.cap = a.q.moving ? `${a.title}, carrying Officer Kerrigan round the fair` : `${a.title}, standing like a statue while the children stare`; },
     always: (rt) => {
-      const q = tripAt(trip, rt.minutes); if (!q) return;
+      const q = tripAt(trip, rt.mNext ?? rt.minutes); if (!q) return;
       const o = poseOnRoute(route, q.s, {}); const s = R.spot, sc = (R.p.ch && R.p.ch.scale) || 1;
       s.x = o.x + Math.sin(o.yaw) * 0.02; s.z = o.z + Math.cos(o.yaw) * 0.02; s.yaw = o.yaw;
       s.y = 1.68 - (0.4 * sc + 0.02);   // hips on the saddle (kneeling pose: the legs are inside the horse)

@@ -29,6 +29,7 @@ export function run(kit) {
     // shop-front life
     windowShoppers, toyWindow, sodaFountainTeens, hardwareBench, sidewalkSale, barberDoorway, bankLine, postOfficeLine,
     harlowsOpening, ballgameWindow, tobaccoShop, elksSteps, garageMechanic, bookCart, fishMarketLine,
+    wjbyInterviews, officeHalfDay, bankNoon, harborLanes,
     // happenings
     fenderBender, hatInTheWind, lostChild, streetPreacher, candidate, rialtoLines, newlyweds, whitcombTour, babyCigars,
     // transit stops
@@ -258,11 +259,11 @@ function visitor(o = {}) {
   return p;
 }
 // a generic visitor free from t0 to t1 (reusing the pool when their walks fit)
-function guest(t0, t1, want = {}, x = 200, z = -50) {
+function guest(t0, t1, want = {}, x = 200, z = -50, exclude = null) {
   t0 = T(t0); t1 = T(t1);
   const ok = (p) => (!want.sex || p.sex === want.sex) && (!want.age || (p.age >= want.age[0] && p.age <= want.age[1])) && (!want.outfit || p._outfit === want.outfit);
   for (const p of G.pool) {
-    if (!ok(p)) continue;
+    if (!ok(p) || (exclude && exclude.includes(p))) continue;
     const s = origin(p._from); const w = s ? Math.ceil(Math.hypot(s.x - x, s.z - z) * 1.3 / (p.speed * 60)) + 3 : 10;
     if (L.free(p, t0 - w, t1 + w)) return p;
   }
@@ -288,7 +289,7 @@ function cast(n, t0, t1, want = {}, x = 200, z = -50) {
   const [a0, a1] = want.age || [16, 80];
   const f = (p) => p.age >= a0 && p.age <= a1 && (!want.sex || p.sex === want.sex) && (!want.filter || want.filter(p));
   const out = want.town === false ? [] : recruit(n, t0 - 10, t1, f, want.prefer || null);
-  while (out.length < n && want.fill !== false) out.push(guest(t0, t1, want, x, z));
+  while (out.length < n && want.fill !== false) out.push(guest(t0, t1, want, x, z, out));
   return out;
 }
 // people at a crowd spot (spread) facing a point
@@ -945,7 +946,7 @@ function organGrinder() {
     ['13:45', '15:00', () => ({ x: -12, z: 232.4, yaw: Math.PI / 2 }), 'on the boardwalk by Playland'],
     ['15:35', '16:45', at('Bayside Savings & Loan', 1.5, 2.0, 1), 'on Market Street'],
     ['17:05', '18:20', at('Union Station', -9, 1.8, -1), 'outside Union Station'],
-    ['18:40', '19:25', at("Mayhew's Pharmacy & Soda Fountain", 6, 2.0, 1), 'outside Mayhew\'s'],
+    ['18:40', '19:25', at('The Rialto', -7, 2.0, -1), 'working the line outside the Rialto'],
   ];
   const es = [];
   let n = 0;
@@ -1340,16 +1341,15 @@ function toyWindow() {
 // teenagers loafing outside Mayhew's soda fountain
 function sodaFountainTeens() {
   const P = place("Mayhew's Pharmacy & Soda Fountain"); if (!P) return;
-  const q = frontSpot(P, [7, 8.5, 5.5, 10], 0.45, 1.0);
-  if (!q) return;
   const lines = [
     'Shirley Oakes drinks lime rickeys she doesn\'t even like. For Buddy Keene.',
     'Are you going to the hop? Everybody\'s going to the hop.', 'Mr. Bishop\'s lending every record in the store. If there\'s a polka I\'ll die.',
     'Did you see the new Ford? Two-tone. Two-tone!', 'My pop says the Braves in Milwaukee is a sin against nature.', 'Peggy\'s going with Joanie. Sure she is.',
   ];
-  let n = 0;
   for (const [a, b, k] of [['10:30', '12:00', 3], ['15:05', '17:25', 5], ['18:25', '19:20', 4]]) {
-    const teens = cast(k, a, b, { age: [13, 19], fill: false, prefer: (p) => ['Constance', 'Mary', 'Walter', 'Sophia', 'Josephine'].includes(p.first) }, q.x, q.z);
+    const q = frontSpot(P, [7, 8.5, 5.5, 10], 0.45, 1.0, a, b);
+    if (!q) continue;
+    const teens = cast(k, a, b, { age: [13, 19], fill: k > 3, prefer: (p) => ['Constance', 'Mary', 'Walter', 'Sophia', 'Josephine'].includes(p.first) }, q.x, q.z);
     if (teens.length < 2) continue;
     teens.forEach((p, i) => {
       const sd = q.side + (i - (teens.length - 1) / 2) * 1.1;
@@ -1361,7 +1361,6 @@ function sodaFountainTeens() {
     claim(q.x, q.z, 2.2, a, b);
     sound(q.x, q.z, a, b, 'radio', 18, 0.25);
     scene("Teenagers loafing outside Mayhew's soda fountain", q.x, q.z, a, b, teens.length);
-    n += teens.length;
   }
 }
 
@@ -1557,6 +1556,74 @@ function fishMarketLine() {
   const P = place('Castellano Fish Market'); if (!P) return;
   const ppl = queueAt(P, -1.3, 0.8, '8:05', '8:50', 5, { age: [25, 80], prefer: (p) => p.sex === 'F' }, 'In line at the fish market for Saturday haddock', ['The boats came in heavy. Vinnie says the haddock\'s the best since August.', 'Chowder tonight, if I get to the front before the clams go.'], -1, [3, 6], 'Buying haddock at Castellano\'s counter');
   if (ppl.length) scene('A Saturday line at Castellano Fish Market', P.door.x, P.door.z, '8:05', '8:50', ppl.length);
+}
+
+// WJBY's man on the street, with a microphone on a stand outside the Juniper Trust Building
+function wjbyInterviews() {
+  const P = place('Juniper Trust Building'); if (!P) return;
+  const bf = person('Bill', 'Ferris');
+  const q = frontSpot(P, [3.5, -3.5, 5, -5], 1.6, 1.0);
+  if (!q) return;
+  claim(q.x, q.z, 2.0, '10:25', '16:40');
+  const guestPt = P.at(q.side + 1.0, 1.9), mic = P.at(q.side + 0.5, 1.75), crowdPt = P.at(q.side + 0.5, 3.4);
+  let n = 0;
+  for (const [a, b] of [['10:30', '11:55'], ['15:00', '16:30']]) {
+    const host = bf && avail(bf, a, b) ? bf : null;
+    if (!host) continue;
+    timed('mic_stand', mic.x, mic.z, P.yawRight, a, b);
+    put(host, a, b, spot(q.x, q.z, { faceTo: [guestPt.x, guestPt.z], act: 'announce' }), { act: 'announce', label: 'Interviewing passers-by for WJBY', say: ['This is Bill Ferris for WJBY, on Lantern Avenue for Harbor Days!', 'Tell our listeners, ma\'am: what does the Centennial mean to you?', 'And where are you folks from? Worcester! Well, welcome to the Bay!'] });
+    const gs = spot(guestPt.x, guestPt.z, { faceTo: [q.x, q.z], act: 'talk' });
+    for (let t = T(a) + 3, k = 0; t < T(b) - 5; t += 7, k++) {
+      const [g] = cast(1, t, t + 6, { age: [12, 85] }, gs.x, gs.z);
+      if (g) put(g, t, t + 6, gs, { act: 'talk', label: 'Being interviewed on the radio by Bill Ferris of WJBY', lines: ['Hello, Mother! I\'m on the radio!', 'A hundred years? I remember about sixty of \'em.', 'Is this thing on? Should I talk louder?'] });
+    }
+    const fans = cast(4, a, b, { age: [8, 80] }, crowdPt.x, crowdPt.z);
+    crowd(fans, T(a) + 4, T(b) - 4, crowdPt.x, crowdPt.z, { spread: 1.3, faceTo: [mic.x, mic.z], acts: ['look', 'laugh', 'look', 'wave'], label: 'Watching the WJBY man interview people', stagger: 7 });
+    sound(q.x, q.z, a, b, 'chatter', 25, 0.35);
+    label(mic.x, 1.5, mic.z, a, b, 'WJBY 1340 on your dial — live from Lantern Avenue', 1.0);
+    scene("WJBY's man on the street outside the Juniper Trust Building", q.x, q.z, a, b, 2 + fans.length);
+    n++;
+  }
+}
+// Saturday half-day: clerks walk in to the office buildings before nine and pour out at noon
+function officeHalfDay() {
+  const blds = ['Mercantile Building', 'Beacon Building', 'Harbor Insurance Building', 'Juniper Trust Building'];
+  let n = 0;
+  blds.forEach((name, bi) => {
+    const P = place(name); if (!P) return;
+    const inside = hidden(P.at(0, -1.5).x, P.at(0, -1.5).z);
+    const knot = P.at(bi % 2 ? -3.5 : 3.5, 1.8);
+    const ks = spot(knot.x, knot.z, { spread: 1.2, act: 'talk' });
+    for (let k = 0; k < 5; k++) {
+      const p = visitor({ sex: k % 3 === 2 ? 'F' : 'M', age: L.rng.int(22, 60), formal: true, from: pick(['station', 'garage', 'station']), visitor: false,
+        bio: `Works in the ${name}. Saturdays are a half day — nine to noon — and this Saturday, everybody's watching the clock.`, lines: ['Half day Saturdays. The best three hours of the week are the last ten minutes.', 'Mr. Pemberton\'s speech is at half past five. We\'ll be there. Everybody will.'] });
+      const tin = T('8:32') + k * 4 + bi, tout = T('12:00') + k * 0.7;
+      plan(p, tin, tout + 6 + k, [{ t: tin, spot: inside, act: 'stand', held: 'briefcase', label: `At work in the ${name}` }, { t: tout, spot: ks, act: k % 2 ? 'talk' : 'laugh', held: 'briefcase', label: 'Out at noon — Saturday half day' }], { early: 0 });
+      n++;
+    }
+    scene(`Clerks leave the ${name} at noon (Saturday half day)`, knot.x, knot.z, '12:00', '12:12', 5);
+  });
+}
+// the last-minute line at the bank before it closes at noon
+function bankNoon() {
+  const P = place('First Juniper Savings Bank'); if (!P) return;
+  const ppl = queueAt(P, 1.4, 0.8, '11:40', '11:58', 4, { age: [20, 80] }, 'Hurrying to the bank before it closes at noon', ['Saturday hours, nine to noon. It\'s eleven fifty. Hurry!', 'I need cash for the fair. The pie table doesn\'t take checks.'], 1, [2, 6], 'At the teller\'s window, just under the wire');
+  if (ppl.length) scene('A last-minute line at the bank before noon', P.door.x, P.door.z, '11:40', '11:58', ppl.length);
+}
+// league bowlers arriving at Harbor Lanes with their bowling bags
+function harborLanes() {
+  const P = place('Harbor Lanes'); if (!P) return;
+  const inside = hidden(P.at(0, -1.5).x, P.at(0, -1.5).z);
+  let n = 0;
+  for (const [a, b, team] of [['12:40', '13:05', 'the Castellano Fish Co. team'], ['15:35', '16:00', 'the Harbor Canning ladies']]) {
+    const c = P.at(3, 1.8);
+    const ppl = cast(4, a, T(b) + 60, { age: [20, 65], prefer: team.includes('ladies') ? (p) => p.sex === 'F' : (p) => p.sex === 'M' }, c.x, c.z);
+    const s = spot(c.x, c.z, { spread: 1.3, act: 'talk' });
+    ppl.forEach((p, i) => plan(p, T(a) + i * 2, T(b) + 45 + i * 5, [{ t: T(a) + i * 2, spot: s, act: i % 2 ? 'laugh' : 'talk', held: 'briefcase', label: `Bowling with ${team} at Harbor Lanes` }, { t: b, spot: inside, act: 'stand', label: `Bowling a string with ${team}` }]));
+    if (ppl.length) scene(`League bowlers gather outside Harbor Lanes`, c.x, c.z, a, b, ppl.length);
+    n += ppl.length;
+  }
+  if (n) sound(P.door.x, P.door.z, '12:40', '17:00', 'hammer', 20, 0.15);
 }
 
 // ================================================================== happenings
@@ -1758,25 +1825,26 @@ function whitcombTour() {
   const aw = person('Augusta', 'Whitcomb');
   const M = place('Maritime Museum (Old Custom House)'), D = place('Harbor Light Diner');
   if (!M || !D) return;
-  const guide = aw && avail(aw, '10:20', '11:50') ? aw : null;
-  if (!guide) return;
+  const win = [0, 200, 270, 310].find((d) => aw && avail(aw, T('10:20') + d, T('11:50') + d));
+  if (win === undefined) return;
+  const guide = aw, sh = (v) => T(v) + win;
   const stops = [
     ['10:30', M.at(2, 2.6), M.at(2, 1.2), 'At the Old Custom House, 1859', ['Granite, from the Juniper Hill quarry. Built in 1859 for the collector of customs.', 'The anchor is from the JUNIPER herself. My great-grandfather\'s schooner.']],
     ['10:50', { x: 8.2, z: -14 }, { x: 6.6, z: -11.5 }, 'At the fishermen\'s memorial', ['The MARY ELLEN, lost off Gannet Ledge, 1867. All eleven hands.', 'Their widows raised this stone. Thirty-one dollars, by subscription.']],
     ['11:08', { x: 6, z: -38 }, { x: 3.8, z: -40.5 }, 'At the head of Pier 3', ['The \'38 hurricane took the old Pier 3 clean away. Three lives.', 'Giuseppe Castellano started here in 1894 with one dory.']],
     ['11:25', D.at(-2.5, 2.7), D.at(-2.5, 1.2), 'At the 1938 high-water mark', ['Six feet of water on Harbor Street. See the line? Right there.', 'The diner car came that winter. Nick\'s father called it an ark.']],
   ];
-  const es = [], grp = cast(7, '10:25', '11:45', { age: [10, 75], town: false }, 60, -40);
+  const es = [], grp = cast(7, sh('10:25'), sh('11:45'), { age: [10, 75], town: false }, 60, -40);
   let n = 0;
-  stops.forEach(([at, gq, aq, cap, say], k) => {
+  stops.forEach(([at, gq, aq, cap, say]) => {
     const gs = spot(gq.x, gq.z, { spread: 1.5, faceTo: [aq.x, aq.z], act: 'listen' });
-    es.push({ t: at, spot: spot(aq.x, aq.z, { faceTo: [gq.x, gq.z], act: 'announce' }), act: 'announce', label: 'Leading a Centennial walking tour of the waterfront', lines: say });
-    grp.forEach((p) => { (p._tour = p._tour || []).push({ t: T(at) + 0.5, spot: gs, act: pick(['listen', 'listen', 'look', 'photograph']), label: `On Miss Whitcomb's waterfront tour — ${cap.toLowerCase()}` }); });
+    es.push({ t: sh(at), spot: spot(aq.x, aq.z, { faceTo: [gq.x, gq.z], act: 'announce' }), act: 'announce', label: 'Leading a Centennial walking tour of the waterfront', lines: say });
+    grp.forEach((p) => { (p._tour = p._tour || []).push({ t: sh(at) + 0.5, spot: gs, act: pick(['listen', 'listen', 'look', 'photograph']), label: `On Miss Whitcomb's waterfront tour — ${cap.toLowerCase()}` }); });
     n++;
   });
-  plan(guide, '10:28', '11:45', es, { say: ['This way, please! Mind the rails.', 'Questions at the end. Unless they are good questions.'] });
-  grp.forEach((p) => { p._tour.forEach((e) => { if (e.act === 'photograph') e.held = 'camera'; }); plan(p, '10:28', '11:45', p._tour); delete p._tour; });
-  scene('Miss Whitcomb\'s walking tour of the waterfront', 30, -30, '10:28', '11:45', grp.length + 1);
+  plan(guide, sh('10:28'), sh('11:45'), es, { say: ['This way, please! Mind the rails.', 'Questions at the end. Unless they are good questions.'] });
+  grp.forEach((p) => { p._tour.forEach((e) => { if (e.act === 'photograph') e.held = 'camera'; }); plan(p, sh('10:28'), sh('11:45'), p._tour); delete p._tour; });
+  scene('Miss Whitcomb\'s walking tour of the waterfront', 30, -30, sh('10:28'), sh('11:45'), grp.length + 1);
 }
 
 // Stan Kaminski, a father at last, hands out cigars on the hospital steps
@@ -1804,13 +1872,13 @@ function dinerSupper() {
 }
 function babyCigars() {
   const H = place("St. Luke's Hospital"), stan = person('Stan', 'Kaminski');
-  if (!H || !stan || !avail(stan, '21:00', '21:45')) return;
+  if (!H || !stan || !avail(stan, '21:00', '21:26')) return;
   const q = H.at(-1.6, 1.4);
-  put(stan, '21:02', '21:45', spot(q.x, q.z, { yaw: H.yawOut, act: 'wave' }), { act: 'wave', held: 'pipe', label: 'A new father, handing out cigars on the hospital steps', early: 0,
+  put(stan, '21:02', '21:26', spot(q.x, q.z, { yaw: H.yawOut, act: 'wave' }), { act: 'wave', held: 'pipe', label: 'A new father, handing out cigars on the hospital steps', early: 0,
     say: ['It\'s a girl! Rose Kaminski! Seven pounds, two ounces! Have a cigar!', 'Have a cigar! Have two! I\'m a father!', 'Fireworks! For Rose! Well — for the Centennial. But also for Rose.'] });
-  const ppl = cast(3, '21:05', '21:40', { age: [18, 80] }, q.x, q.z);
-  crowd(ppl, '21:05', '21:40', H.at(-1.6, 2.9).x, H.at(-1.6, 2.9).z, { spread: 1.2, faceTo: [q.x, q.z], acts: ['talk', 'laugh', 'smoke_pipe'], label: 'Congratulating Stan Kaminski', stagger: 6 });
-  scene('Stan Kaminski hands out cigars outside St. Luke\'s', q.x, q.z, '21:02', '21:45', 1 + ppl.length);
+  const ppl = cast(3, '21:05', '21:25', { age: [18, 80] }, q.x, q.z);
+  crowd(ppl, '21:05', '21:25', H.at(-1.6, 2.9).x, H.at(-1.6, 2.9).z, { spread: 1.2, faceTo: [q.x, q.z], acts: ['talk', 'laugh', 'smoke_pipe'], label: 'Congratulating Stan Kaminski', stagger: 6 });
+  scene('Stan Kaminski hands out cigars outside St. Luke\'s', q.x, q.z, '21:02', '21:26', 1 + ppl.length);
 }
 
 // ================================================================== trolley and bus stops

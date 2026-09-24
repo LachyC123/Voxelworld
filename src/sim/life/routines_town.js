@@ -101,7 +101,7 @@ function errands(W, p, trip, end, keys, o = {}) {
     if (trip.t < S.open[0] || trip.t + 25 > S.open[1]) continue;
     const spots = W.spotsIn(S.n, ...S.tags); if (!spots.length) continue;
     // a quick Saturday purchase: 4 to 12 minutes
-    const dwell = rng.int(Math.max(4, S.d[0] - 3), Math.max(6, S.d[1] - 5));
+    const dwell = rng.int(Math.max(4, S.d[0] - 4), Math.max(6, S.d[1] - 6));
     const inner = spots.filter((s) => !s.tags.includes('customer'));
     const counter = spots.filter((s) => s.tags.includes('customer'));
     const eta = trip.t + walkMin(trip.pos, spots[0], trip.speed);
@@ -111,7 +111,7 @@ function errands(W, p, trip, end, keys, o = {}) {
     const label = rng.pick(S.L);
     const last = { label, held, arms: held === carried ? arms : null, lines: S.say };
     // between shops downtown: out onto the sidewalk and along the block, looking in the windows
-    if (lastShop && rng.chance(0.55)) windowShop(W, trip, W.place(lastShop.n), s1, { held: carried, arms });
+    if (lastShop && rng.chance(0.7)) windowShop(W, trip, W.place(lastShop.n), s1, { held: carried, arms });
     if (counter.length && inner.length && dwell > 7) {
       trip.to(s1, dwell - 2, last);
       const c = W.pickFree(counter, trip.t, trip.t + 2, rng);
@@ -361,9 +361,9 @@ export function kidFiller(W) {
   const kids = rng.shuffle(L.ctx.people.list.filter((p) => p.age >= 6 && p.age <= 12 && !p.commuter && !p.visitor && p.home));
   let n = 0;
   for (const p of kids) {
-    for (const [a, b] of W.windows(p, '8:40', '17:50', 35)) {
+    for (const [a, b] of W.windows(p, '8:15', '17:50', 35)) {
       const a0 = W.settle(p, a);
-      const entries = []; let t = a0 + rng.int(0, 15), pos = W.posAt(p, a), k = 0;
+      const entries = []; let t = a0 + rng.int(0, 6), pos = W.posAt(p, a), k = 0;
       if (t > a0) { const r = rest(W, p, a0); if (r) { entries.push({ t: a0, ...r }); t += walkMin(pos, r.spot, p.speed); pos = { x: r.spot.x, z: r.spot.z, spot: r.spot }; } }
       while (b - t >= 30 && k < 3) {
         const f = rng.chance(0.35) ? kidErrand : kidOut;
@@ -452,7 +452,7 @@ export function fillWindow(W, p, a, b) {
   let t = a0, pos = W.posAt(p, a), outings = 0;
   if (b - a0 < 25) return false;
   // the first outing doesn't always leave the minute the window opens: wait at home first
-  if (b - a0 > 60 && rng.chance(0.4)) {
+  if (b - a0 > 60 && rng.chance(a0 < T('10:00') ? 0.2 : 0.4)) {
     const r = rest(W, p, a0);
     if (r) { entries.push({ t: a0, ...r }); t = a0 + walkMin(pos, r.spot, p.speed) + rng.int(5, Math.min(25, Math.floor((b - a0) * 0.25))); pos = { x: r.spot.x, z: r.spot.z, spot: r.spot }; }
   }
@@ -494,12 +494,20 @@ export function families(W) {
   const homes = rng.shuffle(W.homes.filter((P) => P.members.some((m) => m.age < 13) && P.members.some((m) => m.age >= 18)));
   let n = 0;
   for (const P of homes) {
-    const t0 = T('13:00') + rng.int(0, 95);
     const kids = P.members.filter((m) => m.age < 13 && m.age >= 2);
     const adults = P.members.filter((m) => m.age >= 18);
-    const est = 115;
-    const goKids = kids.filter((m) => W.free(m, t0, t0 + est));
-    const goAd = adults.filter((m) => W.free(m, t0, t0 + est));
+    // the longest stretch when at least one grown-up and one child are free together
+    let best = null;
+    for (const [lo, hi] of [['12:40', '17:15'], ['9:50', '12:05']]) {
+      for (const ad of adults) for (const [a1, b1] of W.windows(ad, lo, hi, 45)) for (const kid of kids) for (const [a2, b2] of W.windows(kid, lo, hi, 45)) {
+        const a = Math.max(a1, a2), b = Math.min(b1, b2);
+        if (b - a >= 45 && (!best || b - a > best[1] - best[0])) best = [a, b];
+      }
+      if (best) break;
+    }
+    if (!best) continue;
+    const t0 = best[0] + rng.int(0, Math.min(10, best[1] - best[0] - 45)), tEnd = best[1] - 2;
+    const goKids = kids.filter((m) => W.free(m, t0, tEnd)), goAd = adults.filter((m) => W.free(m, t0, tEnd));
     if (!goKids.length || !goAd.length) continue;
     const party = [...goAd.slice(0, 3), ...goKids.slice(0, 4)];
     const speed = Math.min(...party.map((m) => m.speed)) * (party.some((m) => m.age < 5) ? 0.75 : 0.88);
@@ -511,7 +519,9 @@ export function families(W) {
     const lab = (what) => (m) => (m.age < 18 ? `${what} with ${withWhom}` : `${what} with ${kidNames}`);
     trip.to(g, 2, { label: (m) => (m.age < 18 ? 'Waiting on the front walk' : 'Rounding everybody up for the fair'), act: 'wait' });
     const eta = trip.t + trip.eta(W.fair[0] || g);
-    const dwell = rng.int(35, 60);
+    const room = tEnd - eta - walkMin(W.fair[0] || g, g, speed) - 6;
+    if (room < 15) continue;
+    const dwell = Math.min(room, rng.int(30, 45));
     const kidSpots = W.pickN(W.fairKids.length ? W.fairKids : W.fair, goKids.length, eta, eta + dwell);
     const adSpots = W.pickN(W.fair, goAd.length, eta, eta + dwell);
     const spotOf = (m) => (m.age < 18 ? kidSpots[goKids.indexOf(m) % Math.max(1, kidSpots.length)] : adSpots[goAd.indexOf(m) % Math.max(1, adSpots.length)]) || W.fair[0];
@@ -522,7 +532,7 @@ export function families(W) {
     });
     const edge = squareEdge(W, P.door.x, P.door.z);
     trip.to(edge, 1.5, { label: (m) => (m.age < 18 ? 'Waiting for the grown-ups' : 'Rounding up the children'), held: (m) => (m.age < 18 ? heldKid : null), act: 'look' });
-    const extra = rng.pick(['harbour', 'soda', 'park', 'none']);
+    const extra = tEnd - trip.t > 45 ? rng.pick(['harbour', 'soda', 'park']) : 'none';
     if (extra === 'harbour') { const q = quaySpot(W, P.door.z, 'fam'); if (q) trip.to(q, rng.int(8, 15), { label: lab('Looking at the boats'), act: 'look', held: (m) => (m.age < 18 ? heldKid : null) }); }
     else if (extra === 'soda' && W.soda.length >= party.length) {
       const sp = W.pickN(W.soda, party.length, trip.t + 3, trip.t + 20);
@@ -534,7 +544,7 @@ export function families(W) {
     }
     trip.to(g, 1, { label: lab('Walking home from the fair'), held: (m) => (m.age < 18 ? heldKid : null) });
     trip.to((m) => W.homeSpot(m) || g, 2, { label: 'Home from the fair', held: null });
-    if (!party.every((m) => W.free(m, t0, trip.t))) continue;
+    if (trip.t > tEnd || !party.every((m) => W.free(m, trip.t0, trip.t))) continue;
     trip.commit();
     n++;
   }
@@ -549,17 +559,25 @@ export function kidGangs(W) {
   const door = new Map(kids.map((k) => [k, W.home(k).door]));
   const dist = (a, b) => Math.hypot(door.get(a).x - door.get(b).x, door.get(a).z - door.get(b).z);
   let n = 0;
-  for (const [lo, hi, am] of [['8:50', '11:55', true], ['15:05', '17:35', false]]) {
-    const pool = rng.shuffle(kids.filter((k) => W.free(k, T(lo) + 20, T(hi) - 30)));
+  const inter = (w, list) => { let best = null; for (const [a, b] of list) { const x = Math.max(w[0], a), y = Math.min(w[1], b); if (y - x > (best ? best[1] - best[0] : 0)) best = [x, y]; } return best; };
+  for (const [lo, hi, am] of [['8:25', '11:55', true], ['13:10', '17:35', false]]) {
+    const need = 70;
+    const wins = new Map(kids.map((k) => [k, W.windows(k, lo, hi, need)]));
+    const pool = rng.shuffle(kids.filter((k) => wins.get(k).length));
     const used = new Set();
     for (const lead of pool) {
-      if (used.has(lead)) continue;
+      if (used.has(lead) || !wins.get(lead).length) continue;
       const LP = W.home(lead);
-      const near = pool.filter((k) => k !== lead && !used.has(k) && dist(k, lead) < 140).sort((a, b) => dist(a, lead) - dist(b, lead));
-      const gang = [lead, ...near.slice(0, rng.int(2, 4))];
-      if (gang.length < 3) continue;
-      const t0 = T(lo) + rng.int(0, 30);
-      const end = T(hi) - rng.int(0, 10);
+      let win = wins.get(lead).slice().sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]))[0];
+      const gang = [lead];
+      for (const k of pool.filter((q) => q !== lead && !used.has(q) && dist(q, lead) < 170).sort((a, b) => dist(a, lead) - dist(b, lead))) {
+        if (gang.length >= 5) break;
+        const w = inter(win, W.windows(k, lo, hi, need));
+        if (w && w[1] - w[0] >= need) { gang.push(k); win = w; }
+      }
+      if (gang.length < 2) continue;
+      const t0 = win[0] + 2 + rng.int(0, Math.min(15, Math.max(0, win[1] - win[0] - need)));
+      const end = win[1] - 3;
       if (!gang.every((k) => W.free(k, t0, end))) continue;
       const g = W.gather(LP); if (!g) continue;
       const speed = Math.min(...gang.map((k) => k.speed)) * 0.82;
@@ -603,7 +621,7 @@ export function kidGangs(W) {
       if (trip.stops < 3) continue;
       trip.to(g, 1, { label: 'Walking home', held });
       trip.to((k) => W.homeSpot(k) || g, 2, { label: 'Home for ' + (am ? 'lunch' : 'supper'), held: null });
-      if (trip.t > T(hi) + 5 || !gang.every((k) => W.free(k, t0, trip.t))) continue;
+      if (trip.t > end || !gang.every((k) => W.free(k, trip.t0, trip.t))) continue;
       trip.commit();
       gang.forEach((k) => used.add(k));
       n++;
@@ -621,10 +639,14 @@ export function teens(W) {
   const used = new Set(); let n = 0;
   for (const a of pool) {
     if (used.has(a)) continue;
-    const t0 = T('12:50') + rng.int(0, 90);
-    if (!W.free(a, t0, t0 + 110)) continue;
-    const friends = pool.filter((b) => b !== a && !used.has(b) && Math.abs(b.age - a.age) <= 2 && W.free(b, t0, t0 + 110)).slice(0, rng.int(1, 2));
-    if (!friends.length) continue;
+    const wa = W.windows(a, '10:00', '17:30', 60);
+    let t0 = 0, friends = [];
+    for (const [x, y] of wa) {
+      const c = x + rng.int(0, Math.min(15, y - x - 60));
+      friends = pool.filter((b) => b !== a && !used.has(b) && Math.abs(b.age - a.age) <= 3 && W.free(b, c, c + 60)).slice(0, rng.int(1, 2));
+      if (friends.length) { t0 = c; break; }
+    }
+    if (!t0) continue;
     const grp = [a, ...friends];
     const PA = W.home(a), g = W.gather(PA);
     const trip = new Trip(W, grp, t0, { speed: Math.min(...grp.map((q) => q.speed)) * 0.9, lag: 0.015 });
@@ -632,15 +654,15 @@ export function teens(W) {
     trip.to(g, 2, { label: (k) => (k === a ? 'Waiting for the others' : `Calling for ${a.first}`), act: 'talk' });
     if (W.soda.length >= grp.length) {
       const sp = W.pickN(W.soda, grp.length, trip.t + 5, trip.t + 35);
-      trip.to(sp, rng.int(22, 35), { label: (k) => `Ice-cream sodas at Mayhew's with ${others(k)}`, act: 'drink', lines: ['Did you see him? Don\'t look! Okay, look.', 'Two straws, one soda. That\'s economics.', 'The sock hop starts at half past seven. Not that I\'m counting.'] });
+      trip.to(sp, rng.int(15, 25), { label: (k) => `Ice-cream sodas at Mayhew's with ${others(k)}`, act: 'drink', lines: ['Did you see him? Don\'t look! Okay, look.', 'Two straws, one soda. That\'s economics.', 'The sock hop starts at half past seven. Not that I\'m counting.'] });
       trip.to(W.gather(W.place("Mayhew's Pharmacy & Soda Fountain")), 1, { label: 'Hanging around outside Mayhew\'s', act: 'talk' });
     }
     const f = W.pickN(W.fair, grp.length, trip.t + 3, trip.t + 30);
-    trip.to(f, rng.int(20, 30), { label: (k) => `At the fair with ${others(k)}`, act: (k) => rng.pick(['talk', 'laugh', 'look']), held: (k) => (rng.chance(0.4) ? 'cotton_candy' : null) });
+    if (trip.t > T('10:00') && trip.t < T('18:30')) trip.to(f, rng.int(12, 22), { label: (k) => `At the fair with ${others(k)}`, act: (k) => rng.pick(['talk', 'laugh', 'look']), held: (k) => (rng.chance(0.4) ? 'cotton_candy' : null) });
     const rec = W.spotsIn('Bishop Music Co.', 'browse', 'waiting');
-    if (rec.length) trip.to(W.pickN(rec, grp.length, trip.t + 3, trip.t + 20), rng.int(10, 18), { label: "Looking through the records at Bishop's", act: 'browse', lines: ['Have you heard “Crying in the Chapel”? Everybody\'s got it.', 'Mr. Bishop\'s lending records for the sock hop.'] });
+    if (rec.length && rng.chance(0.5)) trip.to(W.pickN(rec, grp.length, trip.t + 3, trip.t + 20), rng.int(8, 14), { label: "Looking through the records at Bishop's", act: 'browse', lines: ['Have you heard “Crying in the Chapel”? Everybody\'s got it.', 'Mr. Bishop\'s lending records for the sock hop.'] });
     trip.to((k) => W.homeSpot(k) || g, 2, { label: 'Walking home', held: null });
-    if (!grp.every((k) => W.free(k, t0, trip.t))) continue;
+    if (!grp.every((k) => W.free(k, trip.t0, trip.t))) continue;
     trip.commit(); grp.forEach((k) => used.add(k)); n++;
   }
   W.tally('Teenagers to the soda fountain', n);
@@ -654,26 +676,26 @@ export function oldMen(W) {
   if (tables.length < 2) return;
   const pool = rng.shuffle(L.ctx.people.list.filter((p) => p.sex === 'M' && p.age >= 60 && !p.commuter && W.home(p)));
   let n = 0, k = 0;
-  const used = new Set();
-  const slots = [['9:10', 70], ['10:20', 75], ['14:40', 70], ['15:50', 60]];
-  for (const [st, len] of slots) {
-    const tA = T(st) + rng.int(0, 10);
-    const grp = [];
-    for (const p of pool) { if (grp.length >= 4) break; if (!used.has(p) && W.free(p, tA - 30, tA + len + 30)) grp.push(p); }
-    if (grp.length < 2) continue;
-    const seats = W.pickN(tables, grp.length, tA, tA + len);
-    const went = [];
-    grp.forEach((p, i) => {
-      const home = W.homeSpot(p); if (!home || !seats[i]) return;
-      const speed = p.speed * (p.age >= 70 ? 0.72 : 0.82), pos = W.posAt(p, tA - 30);
-      const t0 = Math.max(W.settle(p, tA - 30), tA + i * 3 - walkMin(pos, seats[i], speed));
-      const trip = new Trip(W, [p], t0, { from: pos, speed });
-      trip.to(seats[i], len - i * 5, { label: `Playing checkers in Juniper Park with ${names(grp.filter((q) => q !== p).map(honor))}`, act: seats[i].act === 'chess' ? 'chess' : 'talk_sit', held: 'cane' });
-      trip.to(home, 2, { label: 'Walking home from the checkerboards', held: 'cane' });
-      if (!W.free(p, t0, trip.t)) return;
-      trip.commit(); n++; went.push(p); used.add(p);
-    });
-    if (went.length >= 2) L.convo(went.slice(0, 2), tA + 8, tA + len - 10, OLD_MEN[k++ % OLD_MEN.length]);
+  const at = [];
+  for (const p of pool) {
+    if (n >= 14) break;
+    const home = W.homeSpot(p); if (!home) continue;
+    const w = [...W.windows(p, '8:45', '11:55', 55), ...W.windows(p, '13:30', '17:15', 55)].sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]))[0];
+    if (!w) continue;
+    const speed = p.speed * (p.age >= 70 ? 0.7 : 0.8), pos = W.posAt(p, w[0]);
+    const t0 = W.settle(p, w[0] + rng.int(0, 10));
+    const len = Math.min(rng.int(35, 75), w[1] - t0 - 2 * walkMin(pos, tables[0], speed) - 4);
+    if (len < 25) continue;
+    const trip = new Trip(W, [p], t0, { from: pos, speed });
+    const arrive = t0 + walkMin(pos, tables[0], speed);
+    const seat = W.pickFree(tables, arrive, arrive + len, rng, null);
+    const mates = at.filter((q) => q.a < arrive + len - 10 && q.b > arrive + 10).map((q) => q.p);
+    trip.to(seat, len, { label: mates.length ? `Playing checkers in Juniper Park with ${names(mates.slice(0, 2).map(honor))}` : 'Playing checkers in Juniper Park', act: seat.act === 'chess' ? 'chess' : 'talk_sit', held: 'cane' });
+    trip.to(home, 2, { label: 'Walking home from the checkerboards', held: 'cane' });
+    if (trip.t > w[1] || !W.free(p, trip.t0, trip.t)) continue;
+    trip.commit(); n++;
+    at.push({ p, a: arrive, b: arrive + len });
+    if (mates.length) L.convo([mates[0], p], arrive + 2, Math.min(arrive + len, at.find((q) => q.p === mates[0]).b) - 2, OLD_MEN[k++ % OLD_MEN.length]);
   }
   W.tally('Old men at the checkerboards', n);
   L.scene('Old men at the checkerboards', 160, 90, '9:00', '17:00', n);
@@ -764,15 +786,20 @@ export function beautyKitchens(W) {
   let n = 0;
   for (const P of houses) {
     if (n >= 2) break;
-    const hd = P.members.find((m) => m.sex === 'F' && m.age >= 30 && m.age <= 62 && W.free(m, '9:00', '12:05') && W.atHome(m, T('9:00')));
-    if (!hd || !hd.home) continue;
+    let hd = null, hw = null;
+    for (const m of P.members) {
+      if (m.sex !== 'F' || m.age < 30 || m.age > 64 || !m.home) continue;
+      const w = W.windows(m, '8:45', '12:10', 80).find(([a]) => W.atHome(m, a + 1));
+      if (w) { hd = m; hw = w; break; }
+    }
+    if (!hd) continue;
     const chair = (hd.home.dine || [])[0]; if (!chair) continue;
     const bx = chair.x - Math.sin(chair.yaw) * 0.6, bz = chair.z - Math.cos(chair.yaw) * 0.6;
     const stand = L.spot(bx, bz, { room: chair.room, y: chair.y, yaw: chair.yaw, act: 'haircut' });
     const clients = W.nearHomes(P).filter((Q) => Q !== P).flatMap((Q) => Q.members.filter((m) => m.sex === 'F' && m.age >= 25)).filter((m) => !W.touched.has(m));
-    let t = T('9:10'); const done = [];
+    let t = hw[0] + 10; const done = [];
     for (const c of clients) {
-      if (t > T('11:20')) break;
+      if (t > hw[1] - 40) break;
       const dur = rng.int(28, 38);
       const home = W.homeSpot(c); if (!home) continue;
       const pos = W.posAt(c, t - 10);
@@ -788,11 +815,11 @@ export function beautyKitchens(W) {
     }
     if (done.length < 2) continue;
     const hs = [];
-    hs.push({ t: T('9:00'), spot: hd.home.kitchen && hd.home.kitchen[0] ? hd.home.kitchen[0] : chair, act: 'wash', label: 'Setting out the curlers and the pin tray' });
+    hs.push({ t: hw[0], spot: hd.home.kitchen && hd.home.kitchen[0] ? hd.home.kitchen[0] : chair, act: 'wash', label: 'Setting out the curlers and the pin tray' });
     for (const [c, a, b] of done) { hs.push({ t: a, spot: stand, act: 'haircut', label: `Doing ${honor(c)}'s hair in her kitchen`, lines: ['Hold still, dear, or you\'ll have one curl on the side like a question mark.', 'Fifty cents, and I won\'t hear a word about it.', 'Did you hear Carol Kaminski went in last night?'] }); L.convo([hd, c], a + 2, b - 2, rng.pick(VISIT_TALK)); }
     const lastEnd = done[done.length - 1][2];
     hs.push({ t: lastEnd, spot: W.homeSpot(hd), act: 'doze', label: 'Putting her feet up after a morning of curls' });
-    W.plan(hd, T('9:00'), Math.min(T('12:05'), lastEnd + 25), hs);
+    W.plan(hd, hw[0], Math.min(hw[1], lastEnd + 25), hs);
     W.touched.add(hd);
     L.scene('Kitchen beauty parlor', P.door.x, P.door.z, '9:00', lastEnd, done.length + 1);
     if (!W.diary.beauty) W.diary.beauty = { person: hd, t0: done[0][1], t1: lastEnd, street: P.building.lot && P.building.lot.street };
@@ -808,24 +835,33 @@ export function confession(W) {
   const pews = W.spotsIn("St. Brigid's Church", 'pew').slice().sort((a, b) => Math.hypot(a.x - box.x, a.z - box.z) - Math.hypot(b.x - box.x, b.z - box.z)).slice(0, 12);
   const ladies = rng.shuffle(L.ctx.people.list.filter((p) => p.sex === 'F' && p.age >= 35 && catholic(p) && !p.commuter && W.home(p)));
   let slot = T('15:32'), n = 0;
-  for (const p of ladies) {
-    if (slot > T('16:52')) break;
-    const home = W.homeSpot(p); if (!home) continue;
-    const wait = rng.int(8, 18), inBox = rng.int(3, 5), penance = rng.int(5, 9);
-    const pos = W.posAt(p, slot - wait - 10);
-    const t0 = Math.max(W.settle(p, slot - wait - 10), slot - wait - walkMin(pos, box, p.speed * 0.85));
-    const tEnd = slot + inBox + penance + walkMin(box, home, p.speed * 0.85) + 3;
-    if (!W.free(p, t0, tEnd)) continue;
-    const trip = new Trip(W, [p], t0, { from: pos, speed: p.speed * 0.85 });
-    const pw = W.pickFree(pews, slot - wait, slot, rng);
-    trip.to(pw, 0, { label: 'Waiting her turn for confession', act: 'pray_sit', held: 'handbag', lines: CONFESS });
-    trip.t = slot;
-    trip.to(box, inBox, { label: 'At confession', act: 'pray_sit', held: null });
-    const pn = W.pickFree(pews, trip.t, trip.t + penance, rng);
-    trip.to(pn, penance, { label: 'Saying her penance', act: 'pray_sit', held: 'handbag' });
-    trip.to(home, 2, { label: "Walking home from St. Brigid's", held: 'handbag' });
-    trip.commit();
-    slot += inBox + 1; n++;
+  const went = new Set();
+  const people = [...ladies, ...rng.shuffle(L.ctx.people.list.filter((p) => p.sex === 'M' && p.age >= 50 && catholic(p) && !p.commuter && W.home(p)))];
+  while (slot <= T('16:52')) {
+    let placed = false;
+    for (const p of people) {
+      if (went.has(p)) continue;
+      const home = W.homeSpot(p); if (!home) continue;
+      const wait = rng.int(6, 15), inBox = rng.int(3, 5), penance = rng.int(4, 8);
+      const pos = W.posAt(p, slot - wait - 10);
+      const t0 = Math.max(W.settle(p, slot - wait - 10), slot - wait - walkMin(pos, box, p.speed * 0.85));
+      const tEnd = slot + inBox + penance + walkMin(box, home, p.speed * 0.85) + 3;
+      if (!W.free(p, t0, tEnd)) continue;
+      const trip = new Trip(W, [p], t0, { from: pos, speed: p.speed * 0.85 });
+      const her = p.sex === 'F';
+      const pw = W.pickFree(pews, slot - wait, slot, rng);
+      trip.to(pw, 0, { label: `Waiting ${her ? 'her' : 'his'} turn for confession`, act: 'pray_sit', held: her ? 'handbag' : null, lines: CONFESS });
+      trip.t = Math.max(trip.t, slot);
+      trip.to(box, inBox, { label: 'At confession', act: 'pray_sit', held: null });
+      const pn = W.pickFree(pews, trip.t, trip.t + penance, rng);
+      trip.to(pn, penance, { label: `Saying ${her ? 'her' : 'his'} penance`, act: 'pray_sit', held: her ? 'handbag' : null });
+      trip.to(home, 2, { label: "Walking home from St. Brigid's", held: her ? 'handbag' : null });
+      if (trip.t > tEnd + 2) continue;
+      trip.commit();
+      went.add(p); slot += inBox + 1; n++; placed = true;
+      break;
+    }
+    if (!placed) slot += 6;
   }
   W.tally('Confessions', n);
   if (n >= 3) W.diary.confession = { x: box.x, y: box.y + 1, z: box.z };
@@ -923,10 +959,13 @@ export function couples(W) {
       if (!wife) continue;
       const old = man.age >= 62;
       const eve = !old || rng.chance(0.5);
-      const t0 = eve ? T('18:50') + rng.int(0, 80) : T('14:10') + rng.int(0, 80);
       const dur = rng.int(40, 75);
-      if (!W.free(man, t0, t0 + dur + 10) || !W.free(wife, t0, t0 + dur + 10)) continue;
-      if (!W.atHome(man, t0) || !W.atHome(wife, t0)) continue;
+      let t0 = 0;
+      for (const c of rng.shuffle(eve ? [1130, 1145, 1160, 1175, 1190, 1205] : [850, 870, 890, 910, 930])) {
+        const t = c + rng.int(0, 10);
+        if (W.free(man, t, t + dur + 10) && W.free(wife, t, t + dur + 10) && W.atHome(man, t) && W.atHome(wife, t)) { t0 = t; break; }
+      }
+      if (!t0) continue;
       if (!rng.chance(eve ? 0.95 : 0.6)) continue;
       const g = W.gather(P); if (!g) continue;
       const trip = new Trip(W, [man, wife], t0, { speed: Math.min(man.speed, wife.speed) * (old ? 0.72 : 0.8), lag: 0.008 });

@@ -9,7 +9,8 @@ export const fmt = (m) => `${Math.floor(m / 60)}:${String(Math.floor(m % 60)).pa
 
 const HARD = /^(Working|Back at work)/;
 // meals keep their first minutes; whatever is left of a long sit at the table is free time
-const MEALS = [[/^Breakfast/, 25], [/^Lunch/, 30], [/^Supper/, 40], [/^(Cooking supper|Making breakfast|Getting up)/, 1e9]];
+// (only at a sensible hour: a "Breakfast" resumed at half past ten is somebody back from a scene, not a meal)
+const MEALS = [[/^Breakfast/, 25, 0, 570], [/^Lunch/, 30, 660, 840], [/^Supper/, 40, 1000, 1200], [/^(Cooking supper|Making breakfast|Getting up)/, 1e9, 0, 1440]];
 const WALKISH = new Set(['walk', 'path']);
 const HOMEISH = new Set(['house', 'rowhouse', 'apartment']);
 
@@ -50,7 +51,7 @@ export class RW {
       let a = e.t; const b = k + 1 < s.length ? s[k + 1].t : 1440;
       if (isHard(e)) continue;
       const lab = e.label || '';
-      for (const [re, len] of MEALS) if (re.test(lab)) { a += len; break; }
+      for (const [re, len, m0, m1] of MEALS) if (re.test(lab)) { if (a >= m0 && a <= m1) a += len; break; }
       if (b > a) segs.push([a, b]);
     }
     const merged = [];
