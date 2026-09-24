@@ -2621,17 +2621,22 @@ defineProp('piano_grand', {
 
 // Orchestra music stand, 1/32 m voxels (1.25 m): black tripod, telescoping post, tilted desk with an
 // open score. Faces +z (the reader is at +z).
-defineProp('music_stand', {
+const MUSIC_STAND = {
   size: [16, 42, 12], scale: 1 / 32, collide: [0.35, 1.25, 0.3],
   build(m) {
     const bl = '#1e1e20';
     m.box(2, 0, 5, 12, 1, 1, bl); m.box(7.5, 0, 1, 1, 1, 10, bl);
     m.box(7.5, 1, 5, 1, 16, 1, bl); m.box(7.5, 17, 5, 1, 12, 1, CHROME_D); m.box(7, 16, 4.5, 2, 1, 2, bl);
-    for (let y = 29; y < 41; y++) { const z = 5 + Math.floor((y - 29) / 4); m.box(1, y, z, 14, 1, 1, bl); }
-    m.box(1, 29, 6, 14, 1, 2, bl);
-    for (let y = 31; y < 40; y++) { const z = 6 + Math.floor((y - 29) / 4); m.box(2, y, z, 5, 1, 1, '#f4f0e0'); m.box(8, y, z, 5, 1, 1, '#f4f0e0'); if (y % 2) { m.set(3, y, z, '#6a6a6a'); m.set(10, y, z, '#6a6a6a'); } }
+    // desk tilted back (top toward -z) so the score faces up toward the reader at +z
+    for (let y = 29; y < 41; y++) { const z = 7 - Math.floor((y - 29) / 4); m.box(1, y, z, 14, 1, 1, bl); }
+    m.box(1, 29, 7, 14, 1, 3, bl); m.box(1, 30, 9, 14, 1, 1, bl);                 // ledge & lip
+    for (let y = 30; y < 40; y++) { const z = 8 - Math.floor((y - 29) / 4); m.box(2, y, z, 5, 1, 1, '#f4f0e0'); m.box(8, y, z, 5, 1, 1, '#f4f0e0'); if (y % 2) { m.set(3, y, z, '#6a6a6a'); m.set(10, y, z, '#6a6a6a'); } }
   },
-});
+};
+// exterior.js may already own 'music_stand' (a bandstand one); this orchestra stand is always
+// available as 'music_stand_orchestra'.
+defineProp('music_stand', MUSIC_STAND);
+defineProp('music_stand_orchestra', MUSIC_STAND);
 
 // Nightclub two-top, 1/32 m voxels (0.6 m dia, 0.75 m): white tablecloth over a round table, red glass
 // candle-holder with a flickering flame, two cocktail glasses (a martini with an olive, a Manhattan
@@ -3613,5 +3618,101 @@ defineProp('po_boxes', {
       m.set(xi + 4, yi + 2, 2, brL);                           // dial
       if ((r + c) % 3 === 0) m.set(xi + 1, yi + 1, 2, '#f4f0e6');   // mail showing
     }
+  },
+});
+
+// =====================================================================================================
+// WORKSHOP & WALL EXTRAS (used by the building generators)
+// =====================================================================================================
+
+// Garage / woodshop workbench, 1.6 m x 0.65 m, top at 0.9 m; the worker stands at +z. Thick maple top
+// on a stout frame with a lower shelf (paint cans, a toolbox), an iron vise on the front-right corner,
+// a pegged backboard with a saw, square and chisels; on the top a claw hammer, a hand plane with
+// shavings, a coffee can of nails and an oil can.
+defineProp('workbench', {
+  size: [26, 22, 11], collide: [1.62, 0.95, 0.7],
+  build(m) {
+    const fr = '#7a5a3a', frD = '#5e4228', top = '#c09a68', topD = '#a07c4e', ir = '#3a3e42';
+    legs(m, 0, 0, 1, 26, 10, 13, fr, 2);
+    m.box(1, 3, 2, 24, 1, 8, frD); m.box(2, 11, 1, 22, 2, 1, fr); m.box(2, 11, 10, 22, 2, 1, fr);   // shelf & aprons
+    m.box(0, 13, 0, 26, 2, 11, top); m.box(0, 14, 10, 26, 1, 1, topD);
+    for (const x of [6, 13]) m.box(x, 14, 10, 1, 1, 1, topD);                         // board seams on the front edge
+    m.box(0, 15, 0, 26, 7, 1, frD);                                                    // pegged backboard
+    // on the backboard: saw, square, chisels
+    m.box(2, 17, 1, 7, 3, 1, '#b8c0c8'); m.box(9, 17, 1, 2, 3, 1, OAK); m.box(2, 17, 1, 7, 1, 1, '#8a9298');
+    m.box(13, 16, 1, 1, 5, 1, '#c8ccd0'); m.box(13, 20, 1, 4, 1, 1, '#c8ccd0');
+    for (const x of [19, 21, 23]) { m.box(x, 16, 1, 1, 2, 1, '#9aa0a6'); m.box(x, 18, 1, 1, 2, 1, x === 21 ? '#c8302a' : WOOD_L); }
+    // vise at the front right
+    m.box(19, 11, 10, 5, 2, 1, ir); m.box(19, 13, 10, 5, 3, 1, ir); m.box(20, 15, 9, 3, 1, 1, ir);
+    m.box(21, 12, 11 - 1, 1, 1, 1, CHROME_D); m.box(19, 12, 10, 1, 1, 1, CHROME_D);
+    // tools on the top
+    m.box(3, 15, 6, 5, 1, 1, WOOD_L); m.box(7, 15, 5, 1, 2, 3, '#5a5e62');              // claw hammer
+    m.box(10, 15, 4, 4, 2, 2, '#3a4a6a'); m.box(11, 17, 4, 2, 1, 2, '#6a4a2a');          // hand plane
+    for (const [x, z] of [[14, 6], [15, 4], [9, 7]]) m.set(x, 15, z, '#e8d0a0');       // shavings
+    m.box(15, 15, 7, 2, 2, 2, '#c8302a'); m.set(15, 17, 7, '#8a9096'); m.set(16, 17, 8, '#8a9096');   // can of nails
+    m.box(4, 15, 2, 2, 2, 2, '#b8a038'); m.set(5, 17, 2, '#b8a038'); m.set(6, 17, 2, '#8a8a8a');     // oil can
+    // lower shelf: paint cans & a red toolbox
+    m.box(2, 4, 3, 2, 3, 2, '#e8e0cc'); m.box(2, 5, 4, 2, 1, 1, '#2a5ab0'); m.box(5, 4, 3, 2, 3, 2, '#e8e0cc'); m.box(5, 5, 4, 2, 1, 1, '#3a8a4a');
+    m.box(14, 4, 3, 7, 3, 5, '#b8202a'); m.box(14, 7, 5, 7, 1, 1, '#8a1818'); m.box(16, 8, 5, 3, 1, 1, CHROME_D);
+  },
+});
+
+// 1953 promotional wall calendar, back at z=0, 1/32 m voxels (0.56 x 0.95 m) hung from a nail: a harbour
+// painting (sunset sky, lighthouse, schooner), the "JUNIPER BAY" fuel-merchant's strip, "SEPT" and the
+// month grid with Saturday the 26th ringed in red. Origin = bottom-centre of the back.
+defineProp('calendar_wall', {
+  size: [18, 31, 2], scale: 1 / 32, origin: [9, 0, 0],
+  build(m) {
+    const pap = '#f4efe2';
+    m.box(0, 0, 0, 18, 29, 1, pap);
+    // painting
+    const sky = ['#f0c078', '#f0b070', '#e8a070', '#c890a0', '#8aa0c8', '#7a98c8'];
+    for (let y = 22; y < 28; y++) m.box(1, y, 1, 16, 1, 1, sky[y - 22]);
+    m.box(1, 18, 1, 16, 4, 1, '#2a4a7a'); m.box(1, 21, 1, 16, 1, 1, '#4a6a9a');
+    m.box(12, 23, 1, 2, 2, 1, '#f8e090');                                             // sun
+    m.box(3, 21, 1, 3, 1, 1, '#5a6a5a'); m.box(3, 22, 1, 2, 5, 1, '#f4f0e6'); m.set(3, 23, 1, '#c8202a'); m.set(4, 25, 1, '#c8202a'); m.set(3, 27, 1, { c: '#fff4c0', emit: 0.4 });   // lighthouse
+    m.box(9, 20, 1, 5, 1, 1, '#3a2a1a'); m.box(10, 21, 1, 1, 5, 1, '#f4f0e6'); m.box(11, 22, 1, 1, 3, 1, '#f4f0e6'); m.box(12, 21, 1, 1, 3, 1, '#e8e4d8');   // schooner
+    // merchant's strip & month
+    m.box(0, 16, 1, 18, 2, 1, '#b8202a');
+    for (let x = 2; x < 16; x += 2) m.set(x, 16, 1, '#f4f0e6');
+    m.text('SEPT', 9, 10, 1, '#1a2a4a', { font: 'small', align: 'center' });
+    // month grid: Sept 1953 starts on a Tuesday; Saturday column last
+    let day = 1;
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 7; c++) {
+      if ((r === 0 && c < 2) || day > 30) continue;
+      const x = 2 + c * 2, y = 8 - r * 2;
+      m.set(x, y, 1, c === 0 ? '#b8202a' : '#4a4a4a');
+      if (day === 26) { m.set(x - 1, y, 1, '#d82020'); m.set(x + 1, y, 1, '#d82020'); m.set(x, y + 1, 1, '#d82020'); m.set(x, y - 1, 1, '#d82020'); }
+      day++;
+    }
+    m.box(8, 29, 0, 2, 1, 1, '#f4f0e6'); m.set(8.5, 30, 0, '#5a5a5a');                 // hanging loop & nail
+  },
+});
+
+// Brass ship's-style wall barometer on a mahogany backplate, back at z=0, 1/32 m voxels (0.45 x 0.7 m):
+// round brass case with a silvered dial, arc of scale ticks, weather sectors (blue RAIN / gold FAIR),
+// a black pointer and a brass set hand, with a matching brass thermometer below.
+defineProp('barometer', {
+  size: [14, 22, 4], scale: 1 / 32, origin: [7, 0, 0],
+  build(m) {
+    const mah = MAHOG, mahD = MAHOG_D;
+    // shield-shaped backplate
+    for (let y = 0; y < 22; y++) { const w = y > 18 ? 12 - (y - 18) * 2 : y < 3 ? 8 + y * 2 : 14; m.box(7 - w / 2, y, 0, w, 1, 1, y % 7 === 0 ? mahD : mah); }
+    // barometer case, centre (7, 14)
+    for (let y = 7; y < 22; y++) for (let x = 0; x < 14; x++) {
+      const d = Math.hypot(x + 0.5 - 7, y + 0.5 - 14.5);
+      if (d > 6.2) continue;
+      if (d > 5.2) { m.box(x, y, 1, 1, 1, 2, BRASS); m.set(x, y, 3, d > 5.8 ? BRASS_D : BRASS_L); }
+      else m.set(x, y, 2, '#eeeae0');
+    }
+    for (let a = 0; a <= 12; a++) {                            // scale arc & sectors
+      const t = Math.PI * (1.15 - a * 0.1917), x = Math.floor(7 + Math.cos(t) * 4.3), y = Math.floor(14.5 + Math.sin(t) * 4.3);
+      m.set(x, y, 3, a < 4 ? '#3a5aa0' : a > 8 ? '#c8a030' : '#2a2a2a');
+    }
+    m.set(7, 14, 3, BRASS_D); m.set(8, 15, 3, '#1a1a1a'); m.set(9, 16, 3, '#1a1a1a'); m.set(10, 17, 3, '#1a1a1a');   // pointer toward FAIR
+    m.set(6, 15, 3, BRASS); m.set(5, 16, 3, BRASS);                                  // set hand
+    // thermometer below
+    m.box(5, 2, 1, 4, 5, 1, BRASS); m.box(6, 2, 2, 2, 5, 1, '#eeeae0'); m.box(6.5, 3, 3, 1, 3, 1, '#c8202a'); m.set(6.5, 2, 3, '#c8202a');
+    m.box(6, 21, 1, 2, 1, 1, BRASS_D);                                                // hanging ring
   },
 });

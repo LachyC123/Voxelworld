@@ -460,6 +460,7 @@ function chairAt(R, pl, dd, chair, act, tags, o = {}) {
 const ART = ['#8ab0d0', '#c8a870', '#6a8a5a', '#b06a4a', '#5a7aa0', '#a0a878', '#7a5a8a'];
 function art(R, sides, dy = 6.5) {
   const rng = R.rng;
+  if (R.H.lite && rng.chance(0.55)) return null;
   const t = rng.weighted([['painting', 5], ['portrait', 2], ['photo_frames', 3], ['mirror_wall', 1], ['clock_wall', 1]]);
   return R.hangAny(t, sides, t === 'mirror_wall' ? 4.5 : dy, { w: t === 'painting' ? 4 : 3, po: { tint: rng.pick(ART) } }, [rng.float(0.3, 0.7), 0.5, 0.25, 0.75]);
 }
@@ -479,7 +480,8 @@ function modelPlane(R, u, v, c1 = MAT.sign_red, c2 = MAT.sign_yellow) {
 // a rug (prop) centred in the room or at (u,v)
 function rug(R, type = 'rug_rect', u = null, v = null, tint = null, rot = 0) { R.prop(type, u ?? R.U / 2, v ?? R.V / 2, rot, { tint: tint ?? R.rng.pick(RUGS) }); }
 // radiator under a window or against a wall
-function radiator(R) { R.wall('radiator', ['left', 'right', 'front', 'back'], [0.5, 0.3, 0.7], { tall: false }); }
+function radiator(R) {
+  if (R.H.lite) return; R.wall('radiator', ['left', 'right', 'front', 'back'], [0.5, 0.3, 0.7], { tall: false }); }
 
 // ---------------------------------------------------------------- living room / parlour
 function fLiving(H, R, o = {}) {
@@ -513,7 +515,7 @@ function fLiving(H, R, o = {}) {
   }
   if (media && !tv && rng.chance(0.5)) onTop(R, media, 'photo_frames_standing', TOP.radio_console);
   // extras
-  const extras = rng.shuffle(['bookshelf', 'piano_upright', 'fern_stand', 'clock_grandfather', 'cabinet_china', 'rubber_plant', 'magazine_rack', 'bookshelf_low']).slice(0, rng.int(2, 4));
+  const extras = rng.shuffle(['bookshelf', 'piano_upright', 'fern_stand', 'clock_grandfather', 'cabinet_china', 'rubber_plant', 'magazine_rack', 'bookshelf_low']).slice(0, R.H.lite ? rng.int(1, 2) : rng.int(2, 4));
   if (o.piano) extras.unshift('piano_upright');
   for (const e of extras) {
     const pl = R.wall(e, ['left', 'right', 'front', 'back'], [0.12, 0.88, 0.2, 0.8, 0.5]);
@@ -547,23 +549,22 @@ function fDining(H, R, o = {}) {
     R.prop(o.table ?? 'table_dining', u, v, trot, { tint: o.cloth ?? '#e8e0d0' });
   }
   R.claim(alongU ? [cu - L / 2 - 0.2, cv - 1.9, cu + L / 2 + 0.2, cv + 1.9] : [cu - 1.9, cv - L / 2 - 0.2, cu + 1.9, cv + L / 2 + 0.2]);
-  const side = Math.max(1, Math.floor((n - (n > 3 ? 2 : 0)) / 2));
-  const ends = n - side * 2;
   const chair = o.chair ?? rng.pick(['chair_wood', 'chair_upholstered_dining', 'chair_wood']);
   const place = (u, v, rot) => {
-    if (!o.force && !R.fit(u, v, 2, 2, rot, false)) return;
-    if (o.force) R.claim(R._rect(u, v, 2, 2, rot));
+    if (seats.length >= n) return;
+    if (!R.fit(u, v, 2, 2, rot, false)) { if (!o.force) return; R.claim(R._rect(u, v, 2, 2, rot)); }
     R.prop(chair, u, v, rot, { tint: o.chairTint });
     seats.push(sit(R, u, v, rot, o.act ?? 'eat', o.tags ?? ['dine'], 0.45));
     const q = RV[rot];
     if (o.settings !== false) R.prop('table_setting', u + q[0] * 2.3, v + q[1] * 2.3, mod4(rot + 2), {}, TOP.table_dining);
   };
-  const sp = Math.min(3.1, (L - 1) / Math.max(1, side));
-  for (let i = 0; i < side; i++) {
-    const off = (i - (side - 1) / 2) * sp;
-    if (alongU) { place(cu + off, cv - 3.0, 0); place(cu + off, cv + 3.0, 2); } else { place(cu - 3.0, cv + off, 1); place(cu + 3.0, cv + off, 3); }
-  }
-  if (ends > 0) { if (alongU) { place(cu - L / 2 - 1.3, cv, 1); if (ends > 1) place(cu + L / 2 + 1.3, cv, 3); } else { place(cu, cv - L / 2 - 1.3, 0); if (ends > 1) place(cu, cv + L / 2 + 1.3, 2); } }
+  // long sides first (they are rarely blocked), then the ends, then staggered backups
+  const perSide = Math.max(1, Math.min(Math.floor(n / 2), Math.floor((L + 0.6) / 2.9)));
+  const sp = Math.min(3.1, L / perSide);
+  const sideAt = (off) => { if (alongU) { place(cu + off, cv - 3.0, 0); place(cu + off, cv + 3.0, 2); } else { place(cu - 3.0, cv + off, 1); place(cu + 3.0, cv + off, 3); } };
+  for (let i = 0; i < perSide; i++) sideAt((i - (perSide - 1) / 2) * sp);
+  if (alongU) { place(cu - L / 2 - 1.3, cv, 1); place(cu + L / 2 + 1.3, cv, 3); } else { place(cu, cv - L / 2 - 1.3, 0); place(cu, cv + L / 2 + 1.3, 2); }
+  for (let i = 0; i < perSide + 1; i++) sideAt((i - perSide / 2) * sp);
   if (o.centerpiece !== false) R.prop(o.centerpiece ?? rng.pick(['vase_flowers', 'candles_pair', 'fruit_bowl']), cu, cv, 0, { tint: rng.pick(['#d85a6a', '#e0c040', '#c8a0d8']) }, TOP.table_dining);
   if (!o.bare) {
     const sb = R.wall(rng.chance(0.6) ? 'sideboard' : 'cabinet_china', ['back', 'front', 'left', 'right'], [0.5, 0.3, 0.7]);
@@ -828,8 +829,8 @@ function design(H) {
   else if (big) { H.hw = Math.min(W - 16, style === 'federal' ? 50 : rng.int(46, 50)); H.hd = style === 'federal' ? 44 : rng.int(44, 48); H.hz = 30; }
   else {
     const maxW = W - 15;
-    if (style === 'colonial') { H.hw = Math.min(maxW, rng.int(42, 46)); H.hd = 38; }
-    else if (style === 'foursquare') { H.hw = Math.min(maxW, rng.int(40, 44)); H.hd = 40; }
+    if (style === 'colonial') { H.hw = Math.min(maxW, rng.int(43, 46)); H.hd = 38; }
+    else if (style === 'foursquare') { H.hw = Math.min(maxW, rng.int(42, 45)); H.hd = 40; }
     else if (style === 'cape') { H.hw = Math.min(maxW, rng.int(40, 44)); H.hd = 44; }
     else if (style === 'bungalow') { H.hw = Math.min(maxW, rng.int(38, 42)); H.hd = 48; }
     else { H.hw = Math.min(maxW, rng.int(40, 44)); H.hd = 42; }
@@ -1098,11 +1099,12 @@ function doorsHouse(H) {
     connect(H, R.hall, R.dining, dinSideEdge, R.dining.z0 + 4, 'z', { leaf: false, w: 6 });
     connect(H, R.hall, R.kitchen, dinSideEdge, midZ(R.kitchen), 'z');
     connect(H, R.hall, R.bath, dinSideEdge, midZ(R.bath), 'z');
-    connect(H, R.dining, R.kitchen, R.dining.x0 + Math.round(R.dining.w / 2), R.kitchen.z0 - 1, 'x', { leaf: false });
+    connect(H, R.dining, R.kitchen, extSide(H, R.dining) === '-x' ? R.dining.x0 + 3 : R.dining.x0 + R.dining.w - 3, R.kitchen.z0 - 1, 'x', { leaf: false });
   } else {
     connect(H, R.hall, R.back, livSideEdge, midZ(R.back), 'z');
     connect(H, R.hall, R.dining, dinSideEdge, hz + 2 + Math.floor(H.vest / 2), 'z', { w: 4, leaf: false });
-    connect(H, R.dining, R.kitchen, R.dining.x0 + Math.round(R.dining.w / 2), R.kitchen.z0 - 1, 'x');
+    const dk = extSide(H, R.dining) === '-x' ? R.dining.x0 + 3 : R.dining.x0 + R.dining.w - 3;
+    connect(H, R.dining, R.kitchen, dk, R.kitchen.z0 - 1, 'x');
     const behind = (R.hall.z0 + R.hall.d) - H.top;
     const pc = (H.passX[0] + H.passX[1]) / 2;
     if (behind >= 4 && R.kitchen.z0 < H.top) { const bk = H.b.navPoint(R.hall.id, pc, 1, H.top + 2); connect(H, R.hall, R.kitchen, dinSideEdge, H.top + 2, 'z', { viaA: bk }); }
@@ -1436,8 +1438,9 @@ function frontDoor(H) {
 // A readable plaque by the door / on the facade
 function housePlaque(H, text, lines) {
   const { f, b, hz } = H;
-  const x = H.doorX - 5.2 - (H.style === 'federal' || H.style === 'colonial' || H.style === 'mansard' ? 1.4 : 0);
-  const ty = textSignType(lines, { bg: '#5a4a2a', fg: '#e8d8a0', border: '#8a6a3a', scale: 1 / 26 });
+  const wv = (lines.length * 4 + 5) / 30 * 4;                      // label width in voxels
+  const x = H.doorX - 3.5 - wv / 2 - (H.style === 'federal' || H.style === 'colonial' || H.style === 'mansard' ? 2 : 0);
+  const ty = textSignType(lines, { bg: '#4a3a1e', fg: '#e8d8a0', border: '#9a7a3a', scale: 1 / 30 });
   f.prop(ty, x, 6.2, hz - 0.12, 0, {});
   b.readable(x, 6.5, hz - 0.6, text, { prompt: `Read the plaque`, r: 1.8 });
 }
@@ -1801,12 +1804,12 @@ function presents(R, u, v, n = 6) {
 }
 function streamers(H, R, mats) {
   // crepe-paper swags just under the ceiling along all four walls, plus two across the room
-  const y = R.h - 2;
+  const y = R.h - 1;
   const f = H.f;
   const along = (x0, z0, dx, dz, len) => { for (let i = 0; i < len; i++) { const k = i % 6; const dy = k === 2 || k === 3 ? -1 : 0; f.box(x0 + dx * i, R.y + y + dy, z0 + dz * i, 1, 1, 1, mats[Math.floor(i / 2) % mats.length]); } };
   along(R.x0, R.z0, 1, 0, R.w); along(R.x0, R.z0 + R.d - 1, 1, 0, R.w);
   along(R.x0, R.z0, 0, 1, R.d); along(R.x0 + R.w - 1, R.z0, 0, 1, R.d);
-  for (let i = 0; i < R.w; i++) { const t = i / R.w, dy = Math.round(-2 * Math.sin(t * Math.PI)); f.box(R.x0 + i, R.y + y + 1 + dy, R.z0 + Math.floor(R.d / 2), 1, 1, 1, mats[i % mats.length]); }
+  for (let i = 0; i < R.w; i++) f.box(R.x0 + i, R.y + y, R.z0 + Math.floor(R.d / 2), 1, 1, 1, mats[i % mats.length]);
 }
 const PARTY = () => [MAT.sign_red, MAT.sign_yellow, MAT.sign_blue, MAT.flag_white, MAT.sign_green, MAT.neon_pink];
 
@@ -1830,10 +1833,10 @@ function halloranLiving(H, R) {
   const tv = R.wall('tv_console', 'front', [0.5, 0.4, 0.6]);
   // the sofa faces the set; grandma's rocker and Pat's armchair either side, angled in
   const sofa = R.wall('sofa', 'back', [0.5, 0.45, 0.55], { po: { tint: '#5a6a4a' } });
-  const rocker = R.wall('rocking_chair', 'left', [0.62, 0.5, 0.7]);
-  const arm = R.wall('armchair', 'right', [0.62, 0.5, 0.7], { po: { tint: '#8a4a3a' } });
-  if (rocker) lounge.push(sit(R, rocker.u, rocker.v, 0.55, 'watch', ['lounge', 'tv'], 0.44, { label: 'Grandma Bridget\'s rocker' }));
-  if (arm) lounge.push(sit(R, arm.u, arm.v, 3.45, 'watch', ['lounge', 'tv'], 0.42, { label: 'Pat\'s chair' }));
+  const rocker = R.wall('rocking_chair', ['left', 'right'], [0.62, 0.5, 0.72, 0.4, 0.8, 0.3]);
+  const arm = R.wall('armchair', ['right', 'left'], [0.62, 0.5, 0.72, 0.4, 0.8, 0.3], { po: { tint: '#8a4a3a' } });
+  if (rocker) lounge.push(sit(R, rocker.u, rocker.v, rocker.side === 'left' ? 0.55 : 3.45, 'watch', ['lounge', 'tv'], 0.44, { label: 'Grandma Bridget\'s rocker' }));
+  if (arm) lounge.push(sit(R, arm.u, arm.v, arm.side === 'left' ? 0.55 : 3.45, 'watch', ['lounge', 'tv'], 0.42, { label: 'Pat\'s chair' }));
   if (sofa) lounge.push(...seatsOn(R, sofa, [-2.5, 0, 2.5], 0.2, 'watch', ['lounge', 'tv'], 0.43));
   // TV trays in front of each chair, supper on them
   for (const pl of [rocker, arm]) {
@@ -1850,7 +1853,6 @@ function halloranLiving(H, R) {
     readAt(R, ct.u, ct.v, 3, docList('TV Guide — Boston Edition', 'Week of Sept. 26 – Oct. 2, 1953 · 15¢ · "Lucy\'s $50,000,000 Baby" inside', ['SATURDAY', '6:00  (4) News & Weather', '6:15  (7) Industry on Parade', '6:30  (4) Beat the Clock', '7:00  (7) The Lone Ranger — "Hi-yo, Silver!"', '7:30  (4) Jackie Gleason Show', '8:30  (4) Two for the Money', '9:00  (4) Your Show of Shows', '', 'Pencilled on the cover in Irene\'s hand: "NO television during grace. — Mother H."']), 'Read the TV Guide');
   }
   if (tv) {
-    R.prop('lamp_table', tv.u + 1.5, tv.v, tv.rot, {}, 5.6);
     readAt(R, tv.u, tv.v, 4, docLetter('Admiral Television — Owner\'s Card', 'ADMIRAL 21-INCH CONSOLE, Model 221DX15, "Super Cascode" chassis. Purchased July 11, 1953 from Bay Radio & Television, Main Street — $249.95 on the installment plan (paid in full, Pat insists).\n\n"For best results, adjust the antenna while a second person watches the picture."\n\n(Tucked inside: a note in Pat\'s hand — "TOMMY. DO NOT touch the vertical hold.")'), 'Read the card on the television');
   }
   // the carton the set came in, still in the corner (Tommy's fort)
@@ -1896,7 +1898,7 @@ function moreauLiving(H, R) {
   presents(R, R.U - 3, R.V - 3, 7);
   if (sofa) { const ty = textSignType('HAPPY BIRTHDAY SUSIE', { bg: '#f4e8c8', fg: '#c8302a', border: '#e0a0b8', scale: 1 / 20 }); R.hang(ty, 'back', sofa.t, 7.4, { w: 17 }); }
   streamers(H, R, PARTY());
-  for (const [u, v] of [[1.5, 1.5], [R.U - 1.5, 1.5]]) R.prop('balloon_bunch', u, v, 0, { tint: rng.pick(['#e05a8a', '#5a8ae0', '#e0c040']) });
+  for (const [u, v] of [[1.5, 1.5], [R.U - 1.5, 1.5]]) R.prop('balloon_bunch', u, v, 0, { tint: rng.pick(['#e05a8a', '#5a8ae0', '#e0c040']), scale: 0.8 });
   R.hangAny('photo_frames', ['left', 'right'], 6.5, { w: 3 });
   readHung(R, 'painting', ['left', 'right', 'front'], 6, docLetter('A Crayon Drawing, Framed', 'Taped into a dime-store frame: four stick people in front of a yellow house with a smoking chimney, a sun with a face, and a very large dog the family does not own.\n\nAcross the top, in careful capitals: "MY FAMILY BY SUSIE MOREAU AGE 6 AND ¾." Across the bottom, in Henri\'s hand: "First prize, Maple Street School art show, May 1953."'), { po: { tint: '#f0e8a0' } });
   R.prop('ceiling_lamp', R.U / 2, R.V / 2, 0, {}, R.h - 2);
@@ -1912,7 +1914,7 @@ function moreauDining(H, R) {
   void cake;
   streamers(H, R, PARTY());
   R.wall('sideboard', ['back', 'front', 'left', 'right'], [0.5, 0.3, 0.7]);
-  R.prop('balloon_bunch', 1.5, R.V - 1.5, 0, { tint: '#e05a8a' });
+  R.prop('balloon_bunch', 1.5, R.V - 1.5, 0, { tint: '#e05a8a', scale: 0.8 });
   R.prop('chandelier', R.U / 2, R.V / 2, 0, {}, R.h - 3.8);
   for (const s of H.extra.party || []) d.seats.push(s);
   H.extra.partyDine = d.seats.filter((s) => s.tags.includes('party'));
@@ -2066,7 +2068,7 @@ function specialsAfter(H) {
       linkToSidewalk(ctx, sp.node); sp.pendingLink = false;
     }
     H.home.yard.push(under);
-    housePlaque(H, docLetter('Brass Plaque', 'BUILT 1884\nFOR\nCAPT. SILAS HATCH\nMASTER OF THE BARK MORNING STAR\n\n“Fair winds and a following sea”'), 'BUILT 1884 · CAPT. SILAS HATCH');
+    housePlaque(H, docLetter('Brass Plaque', 'BUILT 1884\nFOR\nCAPT. SILAS HATCH\nMASTER OF THE BARK MORNING STAR\n\n“Fair winds and a following sea”'), 'BUILT 1884');
   }
   // --- Moreau: balloons, banner and the party in the back yard
   if (s === 'birthday') {
@@ -2074,7 +2076,7 @@ function specialsAfter(H) {
     const ty = textSignType('SUSIE IS 7!', { bg: '#f4e8c8', fg: '#c8302a', border: '#5a8ae0', scale: 1 / 14 });
     f.prop(ty, H.doorX, (pr ? pr.roofY : 10) - 2.4, H.hz - (pr ? pr.pd : 1) + 0.2, 0, {});
     for (const x of [H.doorX - 4, H.doorX + 4]) f.prop('balloon_bunch', x, 1, H.hz - (pr ? pr.pd : 1) + 0.6, 0, { tint: rng.pick(['#e05a8a', '#5a8ae0', '#e0c040']) });
-    f.prop('balloon_bunch', H.doorX + 2.5, 0, 1.2, 0, { tint: '#e05a8a' });
+    f.prop('balloon_bunch', H.doorX + 3.5, 0, 2.2, 0, { tint: '#e05a8a', scale: 0.85 });
     if (pr && pr.type !== 'portico' && pr.type !== 'stoop') bunting(f, pr.px0, pr.roofY - 2, H.hz - pr.pd, pr.pw, PARTY());
     // yard: party games
     const back = H.hz + H.hd, D = H.D;
@@ -2132,10 +2134,10 @@ function specialsAfter(H) {
   // --- Hillcrest captains' houses: a plaque by the door
   if (spec.victorian && s !== 'historian') {
     const cap = CAPTAINS[(H.lot.number >> 1) % CAPTAINS.length], ship = SHIPS[(H.lot.number >> 2) % SHIPS.length];
-    housePlaque(H, docLetter('Juniper Bay Historical Society', `THE ${cap.toUpperCase()} HOUSE\nBuilt ${H.age}\n\nMaster of the ${ship}. One of the "captains' row" houses built on Hillcrest Avenue with the fortunes of the coasting trade and the cannery.\n\nPlaque placed by the Historical Society, 1938.`), `${cap.toUpperCase()} HOUSE ${H.age}`);
+    housePlaque(H, docLetter('Juniper Bay Historical Society', `THE ${cap.toUpperCase()} HOUSE\nBuilt ${H.age}\n\nMaster of the ${ship}. One of the "captains' row" houses built on Hillcrest Avenue with the fortunes of the coasting trade and the cannery.\n\nPlaque placed by the Historical Society, 1938.`), `BUILT ${H.age}`);
   }
   if (s === 'historian') {
-    housePlaque(H, docLetter('Whitcomb House', 'WHITCOMB HOUSE\nBuilt 1857 by Capt. Elias Whitcomb (1809–1889)\nmaster of the schooner JUNIPER, founder of Juniper Bay\n\nHOME OF THE JUNIPER BAY HISTORICAL SOCIETY\nFounded 1903 · Open Saturdays, 10 to 4\nRing the ship\'s bell and Miss Whitcomb will let you in.'), 'WHITCOMB HOUSE 1857');
+    housePlaque(H, docLetter('Whitcomb House', 'WHITCOMB HOUSE\nBuilt 1857 by Capt. Elias Whitcomb (1809–1889)\nmaster of the schooner JUNIPER, founder of Juniper Bay\n\nHOME OF THE JUNIPER BAY HISTORICAL SOCIETY\nFounded 1903 · Open Saturdays, 10 to 4\nRing the ship\'s bell and Miss Whitcomb will let you in.'), 'WHITCOMB 1857');
     const ty = textSignType('HISTORICAL SOCIETY', { bg: '#1f3a2a', fg: '#e8d8a0', border: '#c9a24a', scale: 1 / 12 });
     f.prop(ty, H.doorX + 11, 0, 2, 0, {});
     f.box(H.doorX + 11, 0, 2, 1, 4, 1, MAT.wood_dark);
@@ -2143,7 +2145,7 @@ function specialsAfter(H) {
     f.prop('anchor_display', H.doorX - 9, 0, H.hz - 12, 0, {});
     b.readable(H.doorX - 9, 1, H.hz - 13.5, docLetter('The Anchor', 'Anchor of the schooner JUNIPER, raised from Whitcomb\'s wharf when the old pilings were pulled in 1931. It held her through the gale of October 1851 "in six fathoms, good holding in mud." The Society asks that children not climb on it. The children of Juniper Bay have climbed on it since 1931.'), { prompt: 'Read the card on the anchor' });
   }
-  if (spec.name === 'The Parsonage') housePlaque(H, docLetter('The Parsonage', 'THE PARSONAGE\nFirst Congregational Church\nBuilt 1872, the year after the new Meeting House was raised\n\nHome of the settled ministers of the church:\nRev. Obadiah Mayhew · Rev. Josiah Pike · Rev. Charles Lathrop · Rev. Theodore Ashby'), 'THE PARSONAGE 1872');
+  if (spec.name === 'The Parsonage') housePlaque(H, docLetter('The Parsonage', 'THE PARSONAGE\nFirst Congregational Church\nBuilt 1872, the year after the new Meeting House was raised\n\nHome of the settled ministers of the church:\nRev. Obadiah Mayhew · Rev. Josiah Pike · Rev. Charles Lathrop · Rev. Theodore Ashby'), 'PARSONAGE 1872');
   if (spec.family === 'Pemberton') {
     f.prop('flag_pole', H.doorX - 12, 0, 6, 0, { cat: 'far' });
     const ty = textSignType('RE-ELECT PEMBERTON', { bg: '#1d2c5a', fg: '#f0e8d8', border: '#c83a2a', scale: 1 / 18 });
@@ -2206,7 +2208,7 @@ function porchLife(H) {
     if (rng.chance(0.25)) P.at('dog', P.U * rng.float(0.3, 0.7), P.V * 0.4, rng.int(0, 3), { fp: [2.5, 4] });
     // Harbor Days bunting & a flag on a post
     if (H.bunting) for (let x = pr.px0 + 2; x < pr.px0 + pr.pw - 2; x += 8) if (Math.abs(x - H.doorX) > 4) f.prop('bunting_fan', x, pr.roofY - 2.5, hz - pr.pd + 0.3, 0, {});
-    if (H.flag) voxFlag(f, pr.px0 + 1, pr.roofY - 4, hz - pr.pd, false);
+    if (H.flag) voxFlag(f, H.doorX + 4, 7, hz, false);
   } else {
     if (pr.type === 'portico' && rng.chance(0.5)) { const pl = P.wall('chair_wood', 'back', [0.12, 0.88]); if (pl) out.push(sit(P, pl.u, pl.v, pl.rot, 'read', ['porch', 'lounge'], 0.45)); }
     if (H.flag) voxFlag(f, H.doorX + 4, 9, hz, false);
@@ -2253,7 +2255,7 @@ export function buildHouse(ctx, lot, spec) {
   if (H.style === 'cape') dormersCape(H);
   doorsHouse(H);
   const lx = extSide(H, H.R.living);
-  if (lx && (H.style === 'colonial' || H.style === 'cape' || H.style === 'federal' || (H.style === 'bungalow' && rng.chance(0.6)) || (H.style === 'foursquare' && rng.chance(0.5)))) fireplace(H, H.R.living, lx);
+  if (lx && spec.special !== 'tv_dinner' && (H.style === 'colonial' || H.style === 'cape' || H.style === 'federal' || (H.style === 'bungalow' && rng.chance(0.6)) || (H.style === 'foursquare' && rng.chance(0.5)))) fireplace(H, H.R.living, lx);
   if (H.style === 'queenanne' || H.style === 'italianate' || H.style === 'mansard' || (H.style === 'foursquare' && rng.chance(0.4))) { const ds = extSide(H, H.R.dining); if (ds) bayWindow(H, H.R.dining, ds); }
   windowsHouse(H);
   frontDoor(H);
@@ -2269,7 +2271,7 @@ export function buildHouse(ctx, lot, spec) {
   // plaques on the older houses of Church Street / elsewhere
   if (!spec.victorian && !spec.special && !spec.name && H.age < 1900 && rng.chance(0.7)) {
     const cap = CAPTAINS[(lot.number >> 1) % CAPTAINS.length];
-    housePlaque(H, docLetter('House Marker', `${cap.toUpperCase()} HOUSE\nc. ${H.age}\n\nJuniper Bay Historical Society`), `${cap.toUpperCase()} ${H.age}`);
+    housePlaque(H, docLetter('House Marker', `${cap.toUpperCase()} HOUSE\nc. ${H.age}\n\nJuniper Bay Historical Society`), `C. ${H.age}`);
   }
   // link the front to the street
   for (const e of b.entrances) linkToSidewalk(ctx, e.node);
@@ -2303,7 +2305,7 @@ function rowNeighbours(b, lot) {
 function stairThin(H, x, y, z, dir, rise, o = {}) {
   return stairFlight(H, x, y, z, dir, rise, { ...o, thin: true });
 }
-const GHOSTS = ['UNEEDA BISCUIT', 'HALLORAN\'S BREAD 5¢', 'CASTORIA', 'MAIL POUCH', 'MOXIE', 'ARM & HAMMER', 'COCA-COLA 5¢', 'BULL DURHAM', 'SAPOLIO', 'LYDIA PINKHAM\'S'];
+const GHOSTS = ['UNEEDA BISCUIT', 'HALLORAN\'S BREAD', 'CASTORIA', 'MAIL POUCH', 'MOXIE', 'ARM & HAMMER', 'COCA-COLA', 'BULL DURHAM', 'SAPOLIO', 'LYDIA PINKHAM\'S'];
 
 export function buildRowhouse(ctx, lot, spec) {
   const rng = ctx.rng.fork('row' + lot.x + ',' + lot.z);
@@ -2671,6 +2673,7 @@ export function buildApartment(ctx, lot, spec) {
   let fi = 0;
   const flats = [];
   const letters = 'ABCD';
+  H.lite = true;
   for (let k = 0; k < floors; k++) {
     const sides = [['L', x0 + 1, hA], ['R', hB, x1 - 1]];
     const bands = [['front', iz0, midZ], ['back', midZ, iz1]];
@@ -2682,6 +2685,7 @@ export function buildApartment(ctx, lot, spec) {
       flats.push(buildFlat(H, { k, side, band, cx0, cx1, cz0, cz1, y: A(k), FH, label, fam, superFlat, hall: halls[k], nav: navP[k], passX: side === 'L' ? passL : passR, hallEdge: side === 'L' ? hA : hB }));
     }
   }
+  H.lite = false;
   // ---- lobby: mailboxes, directory, bench, palm, notices
   const L = halls[0];
   L.setBack('+z');

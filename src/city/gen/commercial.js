@@ -519,6 +519,9 @@ function roofline(S) {
   if (st.gable) {
     f.gable(0, H + 1, 0, W, bd, st.roofMat, { axis: 'z', overhang: 1, gableMat: st.outer });
     f.box(-1, H, -1, W + 2, 1, 1, st.trim);
+    const gt = S.est ? 'EST. ' + S.est : String(S.built);
+    if (f.textWidth(gt, 1, 'small') < W - 20) f.text(gt, Math.round(W / 2), H + 4, 0, MAT.trim_white, { align: 'center', font: 'small' });
+    f.box(Math.round(W / 2) - 3, H + 11, 0, 6, 4, 1, MAT.trim_white); f.box(Math.round(W / 2) - 2, H + 12, 0, 4, 2, 1, MAT.glass_dark);
   } else {
     // cornice with brackets, parapet with a name/date panel
     f.box(0, H - 1, -1, W, 1, 1, st.trim);
@@ -527,7 +530,9 @@ function roofline(S) {
     f.box(0, H - 3, -1, W, 1, 1, st.trim);
     f.walls(0, H + 1, 0, W, 2, bd, st.outer, 1);
     f.box(0, H + 3, -1, W, 1, 2, st.trim);
-    const txt = S.T.panel ? S.T.panel(S) : String(S.built);
+    const BLOCKS = ['PHOENIX BLOCK', 'A.D. ' + S.built, 'CROWELL BLOCK', 'MERCHANTS BLOCK', 'UNION BLOCK', 'KELLEY BLOCK', 'ODD FELLOWS', 'NYE BLOCK'];
+    let txt = S.T.panel ? S.T.panel(S) : (rng.chance(0.35) ? rng.pick(BLOCKS) : String(S.built));
+    if (f.textWidth(txt, 1, 'small') > W - 8) txt = String(S.built);
     const tw = f.textWidth(txt, 1, 'small');
     const pw = Math.min(W - 6, tw + 6), px = Math.round(W / 2 - pw / 2);
     if (tw <= W - 8) {
@@ -592,26 +597,27 @@ function sideWall(S, side) {
   }
   // ghost sign region
   const yLo = Math.max(nh + 2, full ? 16 : 0), yHi = H - 2;
-  const z0 = 4, z1 = full ? Math.round(bd * 0.58) : bd - 4;
+  const z0 = 4, z1 = full && side === 'right' ? Math.round(bd * 0.58) : bd - 4;
   const wAvail = z1 - z0 - 2, hAvail = yHi - yLo;
   if (hAvail < 6 || wAvail < 20) return;
   const pool = [...(S.T.ghost || []), ...GHOST_ADS];
-  const ad = rng.chance(0.6) && S.T.ghost ? rng.pick(S.T.ghost) : rng.pick(pool);
-  const fit = (font, lh, per) => {
+  const ad = rng.chance(0.75) && S.T.ghost ? rng.pick(S.T.ghost) : rng.pick(pool);
+  const fit = (font, sc, lh, per) => {
     const lines = [];
     for (const src of ad) {
       const words = src.split(' ');
       let cur = '';
-      for (const w of words) { const t = cur ? cur + ' ' + w : w; if (Fr.textWidth(t, 1, font) <= wAvail) cur = t; else { if (cur) lines.push(cur); cur = w; } }
+      for (const w of words) { const t = cur ? cur + ' ' + w : w; if (Fr.textWidth(t, sc, font) <= wAvail) cur = t; else { if (cur) lines.push(cur); cur = w; } }
       if (cur) lines.push(cur);
     }
-    if (lines.some((l) => Fr.textWidth(l, 1, font) > wAvail)) return null;
+    if (lines.some((l) => Fr.textWidth(l, sc, font) > wAvail)) return null;
     if (lines.length * lh - (lh - per) > hAvail) return null;
     return lines;
   };
-  let font = 'big', lh = 9, per = 7;
-  let lines = fit('big', 9, 7);
-  if (!lines) { font = 'small'; lh = 7; per = 5; lines = fit('small', 7, 5); }
+  let font = 'big', lh = 16, per = 14, sc = 2;
+  let lines = fit('big', 2, 16, 14);
+  if (!lines || lines.length > 2) { sc = 1; lh = 9; per = 7; lines = fit('big', 1, 9, 7); }
+  if (!lines) { font = 'small'; lh = 7; per = 5; lines = fit('small', 1, 7, 5); }
   if (!lines) return;
   const blockH = lines.length * lh - (lh - per);
   const yTop = Math.min(yHi, yLo + Math.round((hAvail + blockH) / 2));
@@ -619,7 +625,7 @@ function sideWall(S, side) {
   const panel = rng.pick([null, MAT.brick_paint_red, MAT.brick_dark, MAT.sign_navy, null]);
   const letter = panel === MAT.sign_navy ? MAT.plaster_cream : rng.pick([MAT.sign_cream, MAT.plaster_cream, MAT.trim_cream, MAT.plaster_white]);
   if (panel) Fr.box(Math.round(cx - wAvail / 2 - 1), yTop - blockH - 1, 0, wAvail + 2, blockH + 2, 1, panel);
-  lines.forEach((l, i) => Fr.text(l, Math.round(cx), yTop - per - i * lh, 0, i === 0 ? letter : (rng.chance(0.5) ? letter : MAT.sign_yellow), { align: 'center', font }));
+  lines.forEach((l, i) => Fr.text(l, Math.round(cx), yTop - per - i * lh, 0, i === 0 ? letter : (rng.chance(0.5) ? letter : MAT.sign_yellow), { align: 'center', font, scale: sc }));
   // 1938 high-water line on flood-plain buildings
   if (full && floodLot(lot)) highWaterSide(S, Fr, X);
 }
@@ -2398,13 +2404,14 @@ function buildDiner(ctx, lot, spec, T, rng) {
   f.carve(CX0 + 3, 16, CZ0 + 4, CX1 - CX0 - 6, 2, CZ1 - CZ0 - 8); f.box(CX0 + 3, 16, CZ0 + 4, CX1 - CX0 - 6, 1, 1, MAT.chrome); f.box(CX0 + 3, 16, CZ1 - 5, CX1 - CX0 - 6, 1, 1, MAT.chrome);
   // the roof sign
   const sx = Math.round(W / 2);
-  f.box(sx - 9, 21, CZ0 + 10, 1, 4, 1, MAT.steel); f.box(sx + 8, 21, CZ0 + 10, 1, 4, 1, MAT.steel);
-  f.box(sx - 15, 25, CZ0 + 10, 31, 11, 1, MAT.sign_navy); f.walls(sx - 16, 24, CZ0 + 10, 33, 13, 1, MAT.chrome, 1);
-  f.box(sx - 16, 24, CZ0 + 10, 33, 1, 1, MAT.chrome); f.box(sx - 16, 36, CZ0 + 10, 33, 1, 1, MAT.chrome); f.box(sx - 16, 24, CZ0 + 10, 1, 13, 1, MAT.chrome); f.box(sx + 16, 24, CZ0 + 10, 1, 13, 1, MAT.chrome);
-  f.text('DINER', sx, 27, CZ0 + 9, MAT.neon_red, { align: 'center', font: 'big' });
-  f.text('HARBOR LIGHT', sx, 21, CZ0 + 9, MAT.neon_blue, { align: 'center', font: 'small' });
-  f.box(sx - 16, 21, CZ0 + 10, 33, 4, 1, MAT.sign_navy);
-  b.light(sx, 29, CZ0 + 7, { color: [1, 0.35, 0.25], radius: 12, mode: 'night' });
+  const sz = CZ0 + 11;
+  for (const px of [sx - 18, sx + 17]) { f.box(px, 21, sz, 1, 4, 1, MAT.steel); f.box(px, 21, sz + 1, 1, 1, 3, MAT.steel); }
+  f.box(sx - 26, 25, sz, 53, 17, 1, MAT.sign_navy);
+  f.box(sx - 27, 24, sz, 55, 1, 1, MAT.chrome); f.box(sx - 27, 42, sz, 55, 1, 1, MAT.chrome); f.box(sx - 27, 24, sz, 1, 19, 1, MAT.chrome); f.box(sx + 27, 24, sz, 1, 19, 1, MAT.chrome);
+  f.text('DINER', sx, 33, sz - 1, MAT.neon_red, { align: 'center', font: 'big' });
+  f.text('HARBOR LIGHT', sx, 27, sz - 1, MAT.neon_blue, { align: 'center', font: 'small' });
+  f.box(sx - 24, 32, sz - 1, 1, 1, 1, MAT.neon_yellow); f.box(sx + 23, 32, sz - 1, 1, 1, 1, MAT.neon_yellow);
+  b.light(sx, 33, CZ0 + 7, { color: [1, 0.35, 0.25], radius: 12, mode: 'night' });
   // ---- vestibule
   f.box(vx, -1, 3, 8, 2, 8, MAT.stone_foundation);
   f.walls(vx, 1, 3, 8, 12, 8, MAT.stainless, 1);
@@ -2412,7 +2419,7 @@ function buildDiner(ctx, lot, spec, T, rng) {
   f.carve(vx + 2, 2, 3, 4, 9, 1); f.carve(vx + 2, 2, CZ0, 4, 9, 2);
   f.box(vx, 5, 4, 1, 6, 5, MAT.glass); f.box(vx + 7, 5, 4, 1, 6, 5, MAT.glass);
   f.box(vx - 1, 13, 2, 10, 1, 9, MAT.steel_white);
-  f.text('EAT', vx + 4, 14, 3, MAT.neon_red, { align: 'center', font: 'big' });
+  f.text('EAT', vx + 4, 14, 3, MAT.neon_red, { align: 'center', font: 'small' });
   f.box(vx + 1, 0, 1, 6, 1, 2, MAT.granite);
   b.light(vx + 4, 12, 1.5, { mode: 'night', radius: 6, color: [1, 0.85, 0.6] });
   const vest = b.room('Vestibule', vx + 1, 2, 4, 6, 10, 6, { lightMode: 'always', kind: 'shop' });
@@ -2656,11 +2663,11 @@ function buildGasStation(ctx, lot, spec) {
   // air pump, tire display, the tall ESSO sign at the corner
   f.box(W - 8, 0, 8, 1, 5, 1, MAT.sign_red); f.box(W - 9, 5, 8, 3, 2, 1, MAT.sign_red);
   for (let i = 0; i < 3; i++) f.cylinder(W - 10, 1 + i * 2, 30, 1.6, 2, MAT.rubber_mat);
-  f.box(4, 0, 4, 1, 24, 1, MAT.steel_white);
-  f.box(0, 23, 4, 11, 9, 1, MAT.sign_red); f.box(1, 24, 3, 9, 7, 1, MAT.enamel_white);
-  f.text('ESSO', 5, 25, 2, MAT.sign_blue, { align: 'center', font: 'small' });
-  S.b.prop(glassType('ESSO', { color: '#1f3a8a', font: 'big', px: 1 / 9 }), 5, 25.4, 5.08, 2, {});
-  b.light(5, 22, 2, { mode: 'night', radius: 8, color: [1, 0.95, 0.9] });
+  f.box(9, 0, 4, 1, 24, 1, MAT.steel_white);
+  f.box(1, 23, 4, 18, 9, 1, MAT.sign_red); f.box(2, 24, 3, 16, 7, 1, MAT.enamel_white);
+  f.text('ESSO', 10, 25, 2, MAT.sign_blue, { align: 'center', font: 'small' });
+  S.b.prop(glassType('ESSO', { color: '#1f3a8a', font: 'big', px: 1 / 9 }), 10, 25.4, 5.08, 2, {});
+  b.light(10, 22, 2, { mode: 'night', radius: 8, color: [1, 0.95, 0.9] });
   // ---- jobs
   job(S, 'attendant', [att1, att2], ['7:00', '21:00'], { outfit: 'mechanic', title: 'gas station attendant', age: [17, 30] });
   job(S, 'mechanic', [mech, wash, mech], ['8:00', '17:00'], { outfit: 'mechanic', title: 'mechanic' });
@@ -3022,7 +3029,6 @@ function buildLodge(ctx, lot, spec) {
   f.box(x0 - 1, FH, Z - 2, x1 - x0 + 2, 1, 2, MAT.limestone);
   f.box(x0 - 1, H - 1, Z - 2, x1 - x0 + 2, 2, 2, MAT.limestone); f.walls(x0, H + 1, z0, x1 - x0, 3, z1 - z0, MAT.brick_red, 1); f.box(x0 - 1, H + 4, Z - 2, x1 - x0 + 2, 1, 2, MAT.limestone);
   const cx = Math.round(W / 2);
-  f.text('B.P.O.E.   JUNIPER BAY LODGE No. 812', cx, H - 6, Z - 1, MAT.trim_cream, { align: 'center', font: 'small' });
   f.box(cx - 30, H - 7, Z - 1, 60, 7, 1, MAT.limestone); f.text('B.P.O.E. LODGE No. 812', cx, H - 6, Z - 2, MAT.trim_dark, { align: 'center', font: 'small' });
   // windows
   for (const x of [x0 + 6, x0 + 18, x1 - 22, x1 - 10]) { win(f, x, 4, Z, 4, 8, { frame: MAT.trim_white, t: 2, lintelMat: MAT.limestone, sillMat: MAT.limestone }); win(f, x, FH + 4, Z, 4, 10, { frame: MAT.trim_white, t: 2, style: 'arch', sillMat: MAT.limestone }); }
@@ -3043,7 +3049,8 @@ function buildLodge(ctx, lot, spec) {
   }
   // clock at the parapet showing eleven o'clock
   f.box(cx - 5, H + 3, Z - 1, 11, 11, 2, MAT.limestone); f.box(cx - 4, H + 4, Z - 2, 9, 9, 1, MAT.clock_face);
-  f.box(cx, H + 8, Z - 3, 1, 4, 1, MAT.trim_black); f.box(cx - 2, H + 9, Z - 3, 2, 1, 1, MAT.trim_black); f.box(cx - 2, H + 10, Z - 3, 1, 1, 1, MAT.trim_black);
+  f.box(cx, H + 8, Z - 3, 1, 4, 1, MAT.trim_black); f.box(cx - 1, H + 9, Z - 3, 1, 1, 1, MAT.trim_black); f.box(cx - 2, H + 10, Z - 3, 1, 1, 1, MAT.trim_black);
+  for (const [ddx, ddy] of [[0, 4], [4, 0], [0, -4], [-4, 0]]) f.box(cx + ddx, H + 8 + ddy, Z - 3, 1, 1, 1, MAT.trim_black);
   P(S, 'flag_pole', cx - 14, 0, 4, 0, { cat: 'far' });
   for (const x of [x0 + 2, x1 - 3]) P(S, 'bush_round', x, 0, Z - 2, 0);
   // ---- ground floor: lobby with the grand stair, bar & grill (left), card room (right), kitchen & office behind

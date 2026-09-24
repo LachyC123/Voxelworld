@@ -5,7 +5,7 @@
 // use the usual lot Frame. See docs/BUILDINGS.md.
 import { Building } from '../building.js';
 import { Frame } from '../../world/frame.js';
-import { MAT, shell, slab, win, doorway, stairs, partitionX, partitionZ, flatRoof, smallSign, officeDesk, counterRun, shelves, bedroom, kitchenRun, R4dir } from './common.js';
+import { MAT, shell, slab, win, doorway, stairs, partitionX, partitionZ, flatRoof, smallSign, officeDesk, counterRun, awning, R4dir } from './common.js';
 import { linkToSidewalk } from '../streets.js';
 import { PIERS, PLAN } from '../layout.js';
 import { textSignType } from '../../props/lib/special.js';
@@ -563,7 +563,8 @@ function pierExtras(K, piers, pierNodes, rng) {
     worldText(K.ctx, 'FERRY', 'S', V(bz1) + 1, V((bx0 + bx1) / 2), 10, MAT.sign_white, { font: 'small' });
     const r = K.room('Ferry Ticket Office', bx0 + 0.25, 1, bz0 + 0.25, bx1 - 0.25, 12, bz1 - 0.25, { public: true, lightMode: 'auto' });
     K.door(r, null, bx1 - 0.1, 1, bz0 + 1.5, { leaf: 'door_wood' });
-    const dn = K.node(bx1 + 1, bz0 + 1.5); K.link(dn, K.b.roomNode.get(r)); K.link(dn, K.nearest(bx1 + 1, bz0 + 3, 8));
+    const near = K.nearest(bx1 + 1, bz0 + 4, 10);
+    const dn = K.node(bx1 + 1, bz0 + 1.5); K.link(dn, K.b.roomNode.get(r)); K.link(dn, near);
     K.P('stool_tall', (bx0 + bx1) / 2, WALK_Y, bz1 - 1.3, 'S');
     const ag = K.spot('stand', (bx0 + bx1) / 2, WALK_Y, bz1 - 0.9, 'S', { room: r, act: 'counter', tags: ['work'] });
     K.b.job('ticket agent', ag, { shift: ['7:00', '17:30'], outfit: 'clerk', title: 'ferry ticket agent' });
@@ -643,14 +644,16 @@ function pierExtras(K, piers, pierNodes, rng) {
     K.B(-40, -5, 99.25, -8, -4, 101.75, MAT.dock_wood); K.B(-40, -6, 99.25, -8, -5, 101.75, MAT.wood_dark);
     K.B(-40, -4, 101.5, -8, -3, 101.75, MAT.wood_dark);
     for (const x of [-14, -21, -29, -37]) K.P('dock_cleat', x, -1.0, 101.4, 'S');
+    const pn5 = K.nearest(-11.5, 94, 8);
     const f1 = K.node(-11.5, 98, WALK_Y), f2 = K.node(-11.5, 100.8, -1.0), f3 = K.node(-30, 100.6, -1.0);
-    K.link(f1, K.nearest(-11.5, 94, 6)); K.link(f1, f2); K.link(f2, f3);
+    K.link(f1, pn5); K.link(f1, f2); K.link(f2, f3);
     // hire shack at the pier head
     K.B(-6, 1, 89.5, -3, 11, 92.5, MAT.shingle_wall); K.B(-5.75, 1, 89.75, -3.25, 11, 92.25, 0);
     K.B(-6.25, 11, 89.25, -2.75, 12, 92.75, MAT.roof_shingle_gray); K.B(-5.5, 5, 92.25, -3.5, 8, 92.5, 0); K.B(-5.5, 4, 92.5, -3.5, 5, 92.75, MAT.wood_mid);
     K.B(-3.25, 1, 90.25, -3, 9, 91.25, 0);
     const hr = K.room('Boat Hire Shack', -5.75, 1, 89.75, -3.25, 11, 92.25, { public: true });
-    K.door(hr, null, -3.1, 1, 90.75); K.link(K.b.roomNode.get(hr), K.nearest(-1.5, 94, 6));
+    const pnh = K.nearest(-1.5, 94, 8);
+    const hd = K.door(hr, null, -3.1, 1, 90.75); K.link(hd, pnh);
     K.P(textSignType('SKIFFS FOR HIRE 25 CENTS AN HOUR', { bg: '#f0ece2', fg: '#1f2f4f', border: '#1f2f4f' }), -4.5, 2.8, 92.8, 'S');
     const hs = K.spot('stand', -4.5, WALK_Y, 91.6, 'S', { room: hr, act: 'counter', tags: ['work'] });
     K.b.job('boat hire', hs, { shift: ['8:00', '17:00'], outfit: 'fisherman', title: 'hiring out skiffs' });
@@ -817,14 +820,16 @@ function buildShip(ctx) {
   W.box(-184, 33, -535, -183, 37, -533, MAT.trim_gold); W.box(-185, 37, -536, -182, 38, -532, MAT.glass);   // binnacle
   W.box(-189, 33, -530, -188, 37, -529, MAT.steel); W.box(-190, 37, -531, -187, 39, -528, MAT.trim_gold);   // engine telegraph
   K.read(-43.2, 9.2, -135.2, { title: 'Log Book — S.S. Gray Lady', body: 'Sept. 25, 1953. 0610 made fast Pier 2, Juniper Bay, port side to. Wind SW light, sea calm.\n0800 commenced discharging No. 3 hatch. Newsprint in good order.\n1700 knocked off. 214 rolls discharged.\n\nSept. 26. 0600 resumed discharging. Town full of flags — a centennial.\nMaster ashore at the Harbor Master\'s. Crew liberty from 1800, back aboard by 2330\nor I\'ll know why. — R. Eldridge, Chief Mate' }, { r: 2 });
+  const pierNode = K.nearest(-38.9, -118, 10);
   const gB = K.node(-38.9, -125.4, WALK_Y), gT = K.node(-30.6, -127.9, 3.0);
-  K.link(gB, gT); K.link(gB, K.nearest(-38.9, -118, 10));
+  K.link(gB, gT); K.link(gB, pierNode);
   const aft = K.path([[-30.6, -127.9, 3.0], [-24, -128.0, 3.0], [-19.5, -128.0, 3.0]], { step: 6 });
   const fwd = K.path([[-30.6, -127.9, 3.0], [-40, -128.0, 3.0], [-50, -128.0, 3.0], [-58, -128.0, 3.0], [-63.8, -128.0, 3.0]], { step: 6 });
   const poop = K.path([[-19.5, -128.0, 3.0], [-14.6, -129.2, 5.0], [-12, -133.5, 5.0]]); K.link(poop[0], aft[aft.length - 1]);
   const fcsl = K.path([[-63.8, -128.0, 3.0], [-68.4, -129.2, 5.0], [-75, -133.5, 5.0], [-82, -133.5, 5.0]]); K.link(fcsl[0], fwd[fwd.length - 1]);
   const sB = K.node(-31.8, -128.0, 3.0), sT = K.node(-42.3, -128.0, 8.25), wing = K.node(-43.5, -128.4, 8.25);
   K.link(sB, aft[0]); K.link(sB, sT); K.link(sT, wing);
+  K.link(gT, aft[0]); K.link(gT, fwd[0]); K.link(aft[0], fwd[0]);
   K.link(K.door(wh, null, -43.5, 33, -130.1, { wall: 'x' }), wing);
   const watch = K.spot('stand', -30.2, 3.0, -128.6, 'S', { act: 'smoke_pipe', tags: ['work'], label: 'Standing gangway watch', link: gT, lines: ['Pass, please. Mate\'s orders.', 'Newsprint for the Courier. Two hundred tons of it.', 'Liberty at six. First beer in Juniper Bay is on me.'] });
   b.job('watchman', watch, { shift: ['6:00', '14:00'], outfit: 'sailor', title: 'gangway watch' });
@@ -900,9 +905,6 @@ function buildCrane(ctx) {
   ctx.props.add(textSignType('SAFE WORKING LOAD 10 TONS', { bg: '#1c1c1c', fg: '#e0b030', border: '#1c1c1c' }), -25, 12.9, -121.3, Math.PI, {});
 }
 
-// __STUBS__
-function buildBeach(ctx) { void ctx; }
-function buildLighthouse(ctx) { void ctx; }
 
 // ============================================================ WATERFRONT SHEDS (lots x 20..44 m, facing E onto Harbor St)
 const SHED_CFG = {
@@ -1374,3 +1376,428 @@ function buildYachtClub(ctx, lot, spec) {
   for (const e of b.entrances) linkToSidewalk(ctx, e.node);
   return b;
 }
+
+// ============================================================ JUNIPER BEACH, the boardwalk, the bath house and Playland pier
+// the shoreline of the beach (x where the sand meets the water) as a function of z
+function shoreline(z) { return -15 - 4 * Math.sin((z - 206) / 22) - (z > 305 ? (z - 305) * 0.25 : 0); }
+// top voxel layer of the sand at (x, z)
+const SAND_STEPS = [[-99, -8], [0, -6], [4, -5], [9, -4], [15, -3], [22, -2], [30, -1]];
+function sandLayer(x, z) { const d = x - shoreline(z); let l = -8; for (const [t, y] of SAND_STEPS) if (d >= t) l = y; return l; }
+
+function buildBeach(ctx) {
+  defineHarborProps();
+  const bb = siteBuilding(ctx, 'Juniper Beach', 'beach', { x0: -25, z0: 236, x1: 140, z1: 330 }, { labelOnly: true, street: 'Juniper Beach', hours: [9 * 60, 22 * 60] });
+  const K = new Kit(ctx, bb), W = ctx.world;
+  const rng = ctx.rng.fork('beach');
+  // ---- the sand: carve the town ground and lay terraces down to the water
+  W.box(V(-46), -16, V(205), V(44), 6, V(330), 0);
+  for (let z = 205; z < 330; z += 3) {
+    const xs = shoreline(z + 1.5);
+    for (let i = 0; i < SAND_STEPS.length; i++) {
+      const xa = Math.max(-46, i === 0 ? -46 : xs + SAND_STEPS[i][0]), xb = Math.min(44, i + 1 < SAND_STEPS.length ? xs + SAND_STEPS[i + 1][0] : 44);
+      if (xb <= xa) continue;
+      const top = SAND_STEPS[i][1];
+      K.B(Math.round(xa * 4) / 4, -16, z, Math.round(xb * 4) / 4, top + 1, Math.min(330, z + 3), top <= -5 && top >= -6 ? MAT.ball_field : MAT.sand);
+    }
+  }
+  K.B(0, -8, 205, 44, 1, 205.25, MAT.quay_stone);                       // retaining face at the end of the quay
+  // the granite groin that shelters the beach from the harbour
+  K.B(-26, -14, 203, 0, 0, 207, MAT.quay_stone); K.B(-26, 0, 203, 0, 1, 207, MAT.granite);
+  for (let x = -25; x < -1; x += 3) { K.B(x, -10, 202.25, x + 1.5, -rng.int(3, 6), 203, MAT.rock); K.B(x + 1, -10, 207, x + 2.5, -rng.int(3, 6), 207.75, MAT.rock); }
+  K.B(-25.5, 1, 204.75, -25.25, 12, 205.25, MAT.iron); K.B(-25.75, 12, 204.5, -25, 13, 205.5, MAT.traffic_red);
+  K.light(-25.4, 3.3, 205, { color: [1, 0.25, 0.2], radius: 7, mode: 'night' });
+  const quayEnd = K.nearest(6, 202, 10);
+  const groin = K.path([[1.5, 205], [-23.5, 205]]); K.link(groin[0], quayEnd);
+  // rocky point at the south end of the beach
+  for (let k = 0; k < 9; k++) { const x = -32 + k * 4 + rng.float(-1, 1), z = 322 + rng.float(-2, 4); K.B(x, -10, z, x + rng.float(2, 4), sandLayer(x, z) + rng.int(2, 5), Math.min(330, z + rng.float(2, 4)), MAT.rock); }
+  for (let k = 0; k < 6; k++) K.P('rock_big', -30 + k * 5, 0.25 * (sandLayer(-30 + k * 5, 327) + 1), 327, rng.float(0, 6), { scale: rng.float(0.8, 1.4) });
+  // ---- dunes, picnic grove, playground and parking east of Harbor Street
+  K.B(64, -1, 236, 140, 0, 330, MAT.sand); K.B(64, 0, 236, 140, 1, 330, 0);
+  for (let k = 0; k < 16; k++) { const x = rng.float(86, 136), z = rng.float(242, 326), w = rng.float(3, 9), d = rng.float(3, 8); K.B(x, -1, z, x + w, 0, z + d, MAT.grass_dry); if (k % 3 === 0) K.B(x + 1, 0, z + 1, x + w - 1, 1, z + d - 1, MAT.sand); }
+  K.B(66, -1, 238, 84, 0, 300, MAT.asphalt_old);
+  for (let z = 240; z < 298; z += 3) K.B(74.8, -1, z, 75.2, 0, z + 0.2, MAT.road_white);
+  const cars = [['car_sedan', '#2a3a5a'], ['car_wagon', '#8a6a3a'], ['car_coupe', '#6a2a24'], ['truck_pickup', '#3a5a3a'], ['car_convertible', '#c8b890'], ['car_sedan', '#d8d0b8']];
+  cars.forEach(([t, c], i) => K.P(t, i % 2 ? 80 : 70, 0, 243 + i * 6.5, i % 2 ? 'W' : 'E', { tint: c, tint2: '#e8e4d8', cat: 'far' }));
+  for (const [x, z] of [[92, 262], [98, 270], [90, 284], [104, 292], [96, 300], [110, 280], [118, 300], [126, 288], [132, 270], [124, 258]]) K.P('tree_pine', x, 0, z, rng.float(0, 6), { cat: 'far', scale: rng.float(0.8, 1.1) });
+  const picnic = [];
+  for (const [x, z] of [[96, 276], [104, 284], [114, 292], [122, 276]]) { K.P('picnic_table', x, 0, z, 'S'); picnic.push([x, z]); }
+  // playground
+  K.B(106, -1, 248, 128, 0, 266, MAT.sand);
+  K.P('swing_set', 110, 0, 252, 'S'); K.P('slide', 118, 0, 252, 'S'); K.P('seesaw', 124, 0, 258, 'E'); K.P('sandbox', 112, 0, 262, 'S'); K.P('merry_go_round', 120, 0, 262, 'S');
+  // ---- the boardwalk (z 229..235), west part over the sand and the east part through the dunes
+  const bw0 = 229, bw1 = 235;
+  const stairX = [-8, 6, 44, 80, 108, 128];
+  for (const [xa, xb] of [[-24, 44], [64, 140]]) {
+    K.B(xa, 0, bw0, xb, 1, bw1, MAT.dock_wood);
+    K.B(xa, -1, bw1 - 0.25, xb, 0, bw1, MAT.wood_dark);
+    for (let x = xa + 1; x < xb; x += 2) K.B(x, -14, bw1 - 0.5, x + 0.25, 0, bw1 - 0.25, MAT.wood_post);
+    let segs = [[xa, xb]];
+    for (const sx of stairX) segs = subtract(segs, sx - 1.5, sx + 1.5);
+    for (const [s, e] of segs) { if (e - s < 1) continue; K.B(s, 4, bw1 - 0.25, e, 5, bw1, MAT.trim_white); K.B(s, 2, bw1 - 0.25, e, 3, bw1, MAT.trim_white); for (let x = s; x < e; x += 2) K.B(x, 1, bw1 - 0.25, x + 0.25, 4, bw1, MAT.trim_white); }
+    for (const sx of stairX) if (sx > xa && sx < xb) { const tl = sandLayer(sx, bw1 + 1); for (let y = -1, k = 0; y > tl; y--, k++) K.B(sx - 1.5, y, bw1 + k * 0.5, sx + 1.5, y + 1, bw1 + (k + 1) * 0.5, MAT.dock_wood); }
+    for (let x = xa + 6; x < xb - 2; x += 16) K.P('street_lamp', x, WALK_Y, bw1 - 0.6, 'N');
+  }
+  // crosswalk over Harbor Street
+  for (let z = bw0 + 0.25; z < bw1 - 0.25; z += 1) K.B(48.5, -1, z, 59.5, 0, z + 0.5, MAT.road_white);
+  const walkW = K.path([[-23, 232], [-8, 232], [6, 232], [26, 232], [43.5, 232]]);
+  const walkE = K.path([[64.5, 232], [80, 232], [96, 232], [108, 232], [128, 232], [139, 232]]);
+  K.link(walkW[walkW.length - 1], walkE[0]);
+  for (const [n, x] of [[walkW[walkW.length - 1], 46], [walkE[0], 62]]) { const w = K.nearestWalk(x, 232, 6); if (w >= 0) K.link(n, w); }
+  { const w = K.nearestWalk(139.5, 219, 8); if (w >= 0) K.link(walkE[walkE.length - 1], w); }
+  // benches along the landward edge, facing the beach
+  for (const x of [-18, -4, 2, 48 - 6, 70, 86, 100, 116, 134]) {
+    if (x > 10 && x < 42) continue;
+    K.P('bench_park', x, WALK_Y, bw0 + 0.7, 'S');
+    for (const dx of [-0.6, 0.6]) { K.spot('sit', x + dx, WALK_Y, bw0 + 1.0, 'S', { act: rng.pick(['sit', 'read', 'feed_birds', 'sit']), tags: ['bench'], seat: 0.45 }); K.seat(x + dx, WALK_Y, bw0 + 1.0, 'S'); }
+  }
+  // ---- nav on the sand: along the tide line and along the dry sand, down from the boardwalk stairs
+  const tideN = [], dryN = [];
+  for (let z = 240; z <= 318; z += 7) { tideN.push(K.node(shoreline(z) + 6, z, 0.25 * (sandLayer(shoreline(z) + 6, z) + 1))); dryN.push(K.node(20, z, 0.25 * (sandLayer(20, z) + 1))); }
+  ctx.nav.chain(tideN); ctx.nav.chain(dryN);
+  for (let i = 0; i < tideN.length; i += 3) K.link(tideN[i], dryN[i]);
+  for (const sx of [-8, 6]) { const n = K.node(sx, bw1 + 3, 0.25 * (sandLayer(sx, bw1 + 3) + 1)); K.link(n, K.nearest(sx, 232, 6)); K.link(n, tideN[0]); K.link(n, dryN[0]); }
+  const eastSand = K.path([[80, 238, 0.0], [96, 262, 0.0], [110, 276, 0.0], [120, 256, 0.0]]); K.link(eastSand[0], walkE[1]);
+  // beach life: sand castles, a beach umbrella, the closed lifeguard chair, kids at play, the fireworks crowd
+  for (const [x, z] of [[-2, 262], [4, 288], [-6, 306]]) {
+    const y = sandLayer(x, z) + 1;
+    K.B(x, y, z, x + 1, y + 2, z + 1, MAT.sand); K.B(x + 1.25, y, z, x + 1.75, y + 1, z + 0.5, MAT.sand); K.B(x - 0.5, y, z + 1, x, y + 1, z + 1.5, MAT.sand); K.B(x - 1, y, z - 1, x + 2.25, y + 1, z - 0.75, MAT.ball_field);
+    for (let k = 0; k < 2; k++) K.spot('stand', x + 1 + k * 1.5, 0.25 * y, z + 2, 'N', { act: 'play', tags: ['play'], label: 'Playing on the beach' });
+  }
+  { const x = 12, z = 272, y = sandLayer(x, z) + 1; K.B(x, y, z, x + 0.25, y + 8, z + 0.25, MAT.wood_light); wcyl(W, V(x) + 0.5, V(z) + 0.5, 7, y + 8, y + 9, MAT.awning_red); wcyl(W, V(x) + 0.5, V(z) + 0.5, 4, y + 9, y + 10, MAT.awning_yellow);
+    K.P('rug_rect', x + 1.5, 0.25 * y, z + 1.5, 'S', { tint: '#c85a4a' }); K.P('laundry_basket', x - 1, 0.25 * y, z + 2, 'S');
+    K.spot('sit', x + 2, 0.25 * y, z + 1, 'W', { act: 'read', tags: ['bench'], seat: 0.05, label: 'Enjoying the last warm Saturday' }); }
+  { const x = 2, z = 276, y = sandLayer(x, z) + 1;
+    for (const [dx, dz] of [[0, 0], [1.5, 0], [0, 1.5], [1.5, 1.5]]) K.B(x + dx, y, z + dz, x + dx + 0.25, y + 9, z + dz + 0.25, MAT.trim_white);
+    K.B(x, y + 9, z, x + 1.75, y + 10, z + 1.75, MAT.wood_pale); K.B(x, y + 10, z + 1.5, x + 1.75, y + 14, z + 1.75, MAT.trim_white);
+    for (let k = 0; k < 9; k += 2) K.B(x + 0.25, y + k, z - 0.25, x + 1.5, y + k + 1, z, MAT.trim_white);
+    K.P(textSignType('NO LIFEGUARD ON DUTY', { bg: '#b3302a', fg: '#f0ece2', border: '#f0ece2' }), x + 0.9, 0.25 * (y + 5), z - 0.3, 'W');
+    K.read(x - 0.5, 0.25 * y + 1.2, z + 0.9, { title: 'Beach Notice', body: 'JUNIPER BEACH — TOWN OF JUNIPER BAY PARKS DEPT.\n\nBATHING SEASON CLOSED AFTER LABOR DAY.\nNO LIFEGUARD ON DUTY. Bathe at your own risk.\nWater temperature this morning: 58°.\n\nNo dogs on the sand May–September. (It is September. The dogs know.)' }, { r: 2.2 }); }
+  let fw = 0;
+  for (let z = 240; z < 320; z += 5.5) { const x = shoreline(z) + 7 + (fw % 2) * 3, y = 0.25 * (sandLayer(x, z) + 1); K.spot('stand', x, y, z, 'W', { act: 'look', tags: ['fireworks'], spread: 2, faceTo: FW, label: 'Waiting for the fireworks' }); fw++; }
+  for (let x = -20; x < -3; x += 4.5) { K.spot('stand', x, WALK_Y, 205, 'W', { act: 'look', tags: ['fireworks'], spread: 1, faceTo: FW, link: K.nearest(x, 205, 4) }); }
+  for (const [x, z] of picnic) { const s = K.spot('sit', x, 0.0, z - 1.1, 'S', { act: 'eat', tags: ['bench'], seat: 0.45, label: 'Picnicking in the pines' }); void s; }
+  for (let k = 0; k < 6; k++) K.spot('stand', 108 + k * 3, 0.0, 256 + (k % 2) * 6, k % 2 ? 'N' : 'S', { act: 'play', tags: ['play'], label: 'At the beach playground' });
+  K.spot('sit', 110, 0.0, 252.4, 'S', { act: 'swing', tags: ['play'], seat: 0.4 });
+  // ---- the bath house and Playland
+  buildBathHouse(ctx);
+  buildPlayland(ctx, walkW[0]);
+  ctx.landmarks.push({ name: 'Juniper Beach', kind: 'beach', x: 10, z: 290, rect: { x0: 10, z0: 290, x1: 10, z1: 290 }, building: bb });
+  finishSite(bb);
+  // the causeway to Whitcomb Point starts from the beach at z 300
+  ctx.beachNodes = { tide: tideN, dry: dryN };
+}
+
+function buildBathHouse(ctx) {
+  const lot = { x: V(14), z: V(209), w: 96, d: 80, facing: 'S', y: 1, m: { x0: 14, z0: 209, x1: 38, z1: 229 }, street: 'the Boardwalk', number: 1 };
+  const b = new Building(ctx, { name: 'Juniper Beach Bath House', kind: 'bathhouse', lot, address: 'The Boardwalk', established: 1926, lore: 'Built by the Town in 1926. Lockers 10 cents, towels 5.', hours: [10 * 60, 18 * 60] });
+  const f = b.f;
+  const W = lot.w, D = lot.d, bx = 4, bw = 88, bz = 2, bd = 40, H = 16;
+  const X0 = bx + 2, Z0 = bz + 2, IW = bw - 4, ID = bd - 4;
+  f.box(0, -2, 0, W, 2, D, MAT.sand); f.box(bx, -2, bz, bw, 2, bd, MAT.stone_foundation);
+  shell(f, bx, 0, bz, bw, H, bd, MAT.shingle_wall, MAT.plaster_white, 2);
+  slab(f, X0, 0, Z0, IW, ID, MAT.dock_wood);
+  f.hip(bx, H, bz, bw, bd, MAT.roof_shingle_green, { overhang: 2 });
+  f.box(bx, H - 1, bz - 1, bw, 1, 1, MAT.trim_white);
+  // false front with the sign, striped awning over the door
+  f.box(16, 10, bz - 1, 64, 18, 1, MAT.trim_white); f.box(15, 27, bz - 2, 66, 1, 2, MAT.sign_blue); f.box(15, 10, bz - 2, 66, 1, 2, MAT.sign_blue);
+  f.text('JUNIPER BEACH', W / 2, 21, bz - 2, MAT.sign_red, { align: 'center', font: 'small' });
+  f.text('BATH HOUSE', W / 2, 12, bz - 2, MAT.sign_blue, { align: 'center' });
+  awning(f, W / 2 - 8, 10, 16, { depth: 4, z: bz, matA: MAT.awning_solid_navy, matB: MAT.canvas_white });
+  // rooms: lobby with the ticket window, men's and women's changing rooms
+  const lx0 = 36, lx1 = 57;
+  partitionZ(f, Z0, Z0 + ID, 1, lx0 - 1, H - 1, MAT.plaster_white, [{ at: Z0 + 16, w: 4 }]);
+  partitionZ(f, Z0, Z0 + ID, 1, lx1, H - 1, MAT.plaster_white, [{ at: Z0 + 16, w: 4 }]);
+  const lobby = b.room('Lobby', lx0, 1, Z0, lx1 - lx0, H - 1, ID, { lightMode: 'always', public: true });
+  const men = b.room('Men\'s Changing Room', X0, 1, Z0, lx0 - 1 - X0, H - 1, ID, { lightMode: 'auto', public: true });
+  const women = b.room('Women\'s Changing Room', lx1 + 1, 1, Z0, X0 + IW - lx1 - 1, H - 1, ID, { lightMode: 'auto', public: true });
+  doorway(f, W / 2 - 2, 1, bz, 4, 9, { frame: MAT.trim_white, t: 2, step: false });
+  b.entrance(lobby, W / 2, 1, bz, { outZ: -4, leaf: 'door_wood', tint: '#1f2f4f', main: true });
+  b.door(lobby, men, lx0 - 1, 1, Z0 + 18, { axis: 'z' }); b.door(lobby, women, lx1, 1, Z0 + 18, { axis: 'z' });
+  for (const x of [X0 + 4, X0 + 16, lx1 + 6, lx1 + 20]) win(f, x, 8, bz, 6, 3, { frame: MAT.trim_white, t: 2 });
+  f.prop(textSignType('MEN', { bg: '#1f2f4f', fg: '#f0ece2' }), X0 + 16, 5, bz - 0.15, 0); f.prop(textSignType('WOMEN', { bg: '#1f2f4f', fg: '#f0ece2' }), lx1 + 16, 5, bz - 0.15, 0);
+  const c = counterRun(b, lobby, lx0 + 2, lx1 - 2, 1, Z0 + 14, { rot: 0, register: true });
+  b.job('attendant', c.clerk, { shift: ['10:00', '18:00'], title: 'bath house attendant' });
+  b.customerSpots = [c.customer];
+  f.prop('lockers', lx0 + 3, 1, Z0 + ID - 1.2, 0, {}); f.prop('lockers', lx1 - 3, 1, Z0 + ID - 1.2, 0, {});
+  for (const [x0, x1] of [[X0, lx0 - 1], [lx1 + 1, X0 + IW]]) {
+    for (let x = x0 + 1; x < x1 - 4; x += 6) { f.box(x, 1, Z0 + ID - 10, 1, 9, 10, MAT.wood_pale); f.box(x + 1, 3, Z0 + ID - 10, 3, 7, 1, MAT.canvas_white); f.box(x, 10, Z0 + ID - 10, 6, 1, 1, MAT.iron); }
+    f.box(x0 + 3, 1, Z0 + 12, x1 - x0 - 6, 2, 2, MAT.wood_mid);
+    for (let x = x0 + 3; x < x1 - 3; x += 4) f.prop('lockers', x, 1, Z0 + 1.2, 2, {});
+  }
+  f.box(X0, 1, Z0 + 4, 1, 10, 8, MAT.tile_mint); f.box(X0 + IW - 1, 1, Z0 + 4, 1, 10, 8, MAT.tile_mint);
+  f.box(X0 + 1, 9, Z0 + 6, 1, 1, 1, MAT.chrome); f.box(X0 + IW - 2, 9, Z0 + 6, 1, 1, 1, MAT.chrome);
+  b.readable(W / 2, 4, Z0 + 13, { title: 'Bath House Prices', body: 'JUNIPER BEACH BATH HOUSE — Town of Juniper Bay, 1926\n\nCheck room & locker ... 10¢\nTowel ... 5¢\nBathing suit for hire (wool, washed daily) ... 15¢\n\nOPEN TODAY FOR THE CENTENNIAL, 10 A.M. to 6 P.M.\nThe bathing season is closed. The attendant will say so twice.' }, { r: 2.2 });
+  b.light(W / 2, 9, bz - 2, { mode: 'night', radius: 7 });
+  for (const e of b.entrances) linkToSidewalk(ctx, e.node);
+  return b;
+}
+
+// Playland pier: the carousel under its striped tent, the Ferris wheel, a hot dog stand
+function buildPlayland(ctx, boardwalkNode) {
+  const pl = siteBuilding(ctx, 'Playland Pier', 'amusement', { x0: -95, z0: 222, x1: -22, z1: 246 }, { hours: [10 * 60, 22 * 60 + 30], lore: 'Carousel 1912, Ferris wheel 1925. Five cents a ride, six for a quarter.', street: 'the Boardwalk', est: 1912 });
+  const K = new Kit(ctx, pl), W = ctx.world;
+  const x0 = -95, x1 = -22, z0 = 222, z1 = 246;
+  K.B(x0, 0, z0, x1, 1, z1, MAT.dock_wood_z);
+  K.B(x0, -1, z0, x1, 0, z0 + 0.25, MAT.wood_dark); K.B(x0, -1, z1 - 0.25, x1, 0, z1, MAT.wood_dark); K.B(x0, -1, z0, x0 + 0.25, 0, z1, MAT.wood_dark);
+  for (let x = x0 + 0.25; x < x1 - 0.5; x += 3) { K.B(x, -1, z0, x + 0.5, 0, z1, MAT.wood_dark); for (let z = z0 + 0.25; z < z1; z += 3) K.B(x, -14, z, x + 0.5, -1, z + 0.5, MAT.wood_post); }
+  const rail = (a, b, zz, alongX = true) => {
+    if (alongX) { K.B(a, 4, zz, b, 5, zz + 0.25, MAT.trim_white); K.B(a, 2, zz, b, 3, zz + 0.25, MAT.trim_white); for (let x = a; x < b; x += 2) K.B(x, 1, zz, x + 0.25, 4, zz + 0.25, MAT.trim_white); }
+    else { K.B(zz, 4, a, zz + 0.25, 5, b, MAT.trim_white); K.B(zz, 2, a, zz + 0.25, 3, b, MAT.trim_white); for (let z = a; z < b; z += 2) K.B(zz, 1, z, zz + 0.25, 4, z + 0.25, MAT.trim_white); }
+  };
+  rail(x0, -24, z0); rail(x0, -24, z1 - 0.25); rail(z0, z1, x0, false);
+  // entrance arch with PLAYLAND in lights
+  K.B(-26.5, 1, 223.5, -25.75, 22, 224.25, MAT.trim_red); K.B(-26.5, 1, 243.75, -25.75, 22, 244.5, MAT.trim_red);
+  K.B(-26.5, 19, 223.5, -25.75, 28, 244.5, MAT.sign_red);
+  K.B(-26.75, 18, 223.25, -25.5, 19, 244.75, MAT.marquee_bulbs); K.B(-26.75, 28, 223.25, -25.5, 29, 244.75, MAT.marquee_bulbs);
+  worldText(ctx, 'PLAYLAND', 'E', V(-25.75), V(234), 20, MAT.marquee_bulbs, { font: 'big' });
+  worldText(ctx, 'PLAYLAND', 'W', V(-26.5) - 1, V(234), 20, MAT.marquee_bulbs, { font: 'big' });
+  // ---- the carousel
+  const ccx = V(-44), ccz = V(234);
+  wcyl(W, ccx, ccz, 20, 1, 2, MAT.stage_wood); wcyl(W, ccx, ccz, 20.5, 1, 2, MAT.marquee_bulbs, 1);
+  wcyl(W, ccx, ccz, 4, 2, 22, MAT.mirror); for (const y of [6, 12, 18]) wcyl(W, ccx, ccz, 4.5, y, y + 1, MAT.marquee_bulbs);
+  const horses = [];
+  for (const [r, n, off] of [[16, 10, 0], [11, 8, 0.4]]) for (let k = 0; k < n; k++) {
+    const a = off + k * 2 * Math.PI / n, px = ccx + r * Math.cos(a), pz = ccz + r * Math.sin(a);
+    W.box(Math.floor(px), 2, Math.floor(pz), Math.floor(px) + 1, 22, Math.floor(pz) + 1, MAT.trim_gold);
+    horses.push([px / 4, pz / 4, a]);
+  }
+  const tints = ['#f0ece2', '#2a2a2e', '#8a5a3a', '#d8c8a0', '#b0b0b0'];
+  horses.forEach(([hx, hz, a], i) => K.P('horse', hx, 0.25 + (i % 2 ? 0.35 : 0.6), hz, Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2)) - Math.PI / 2 + Math.PI / 2, { scale: 0.52, tint: tints[i % tints.length] }));
+  wcyl(W, ccx, ccz, 22, 20, 22, MAT.awning_red, 1); wcyl(W, ccx, ccz, 22.5, 20, 21, MAT.marquee_bulbs, 1);
+  for (let k = 0; k < 9; k++) wcyl(W, ccx, ccz, 22 - k * 2.4, 22 + k, 23 + k, k % 2 ? MAT.awning_red : MAT.awning_yellow);
+  W.box(ccx - 1, 31, ccz - 1, ccx + 1, 35, ccz + 1, MAT.trim_gold); W.box(ccx, 33, ccz, ccx + 1, 34, ccz + 4, MAT.sign_red);
+  K.light(-44, 4.5, 234, { color: [1, 0.85, 0.6], radius: 14, mode: 'night' });
+  // ---- the Ferris wheel (axle along x, the wheel faces the boardwalk)
+  const fx = V(-73), fz = V(234), fy = 46, R = 36;
+  const rimPts = (r, vx) => { const pts = []; for (let i = 0; i < 360; i++) { const a = i * Math.PI / 180; pts.push([vx, Math.floor(fy + r * Math.sin(a)), Math.floor(fz + r * Math.cos(a))]); } return pts; };
+  for (const vx of [fx - 3, fx + 3]) { const pts = rimPts(R, vx); drawVox(W, pts.filter((p) => Math.abs(p[1] - fy) > R * 0.7), MAT.steel_red, 2); drawVox(W, pts.filter((p) => Math.abs(p[1] - fy) <= R * 0.7), MAT.steel_red, 1); }
+  { const pts = rimPts(R + 1, fx - 4); drawVox(W, pts.filter((p) => Math.abs(p[1] - fy) > R * 0.7), MAT.marquee_bulbs, 2); drawVox(W, pts.filter((p) => Math.abs(p[1] - fy) <= R * 0.7), MAT.marquee_bulbs, 1); }
+  for (let k = 0; k < 12; k++) {
+    const a = k * Math.PI / 6, ty = fy + (R - 0.5) * Math.sin(a), tz = fz + (R - 0.5) * Math.cos(a);
+    wline(W, [fx - 3, fy, fz], [fx - 3, ty, tz], k % 2 ? MAT.marquee_bulbs : MAT.steel_white);
+    wline(W, [fx + 3, fy, fz], [fx + 3, ty, tz], MAT.steel_white);
+  }
+  W.box(fx - 5, fy - 2, fz - 2, fx + 5, fy + 2, fz + 2, MAT.steel); W.box(fx - 7, fy - 1, fz - 1, fx + 7, fy + 1, fz + 1, MAT.iron);
+  for (const vx of [fx - 7, fx + 6]) { wline(W, [vx, 1, fz - 22], [vx, fy, fz - 1], MAT.steel_white); wline(W, [vx, 1, fz + 22], [vx, fy, fz + 1], MAT.steel_white); W.box(vx, 20, fz - 13, vx + 1, 21, fz + 13, MAT.steel_white); }
+  const gcol = [MAT.sign_red, MAT.sign_yellow, MAT.sign_blue, MAT.sign_green, MAT.sign_orange, MAT.sign_teal];
+  for (let k = 0; k < 12; k++) {
+    const a = k * Math.PI / 6 + Math.PI / 12, py = Math.round(fy + R * Math.sin(a)), pz = Math.round(fz + R * Math.cos(a));
+    W.box(fx - 1, py - 2, pz, fx + 1, py + 1, pz + 1, MAT.iron);
+    W.box(fx - 2, py - 7, pz - 3, fx + 3, py - 6, pz + 3, gcol[k % 6]); W.box(fx - 2, py - 6, pz - 3, fx + 3, py - 4, pz - 2, gcol[k % 6]); W.box(fx - 2, py - 6, pz + 2, fx + 3, py - 4, pz + 3, gcol[k % 6]);
+    W.box(fx - 2, py - 3, pz - 3, fx + 3, py - 2, pz + 3, gcol[(k + 2) % 6]);
+  }
+  W.box(fx - 6, 1, fz - 6, fx + 6, 2, fz + 6, MAT.wood_mid);
+  K.light(-73, 11.5, 234, { color: [1, 0.75, 0.55], radius: 24, mode: 'night' });
+  // ---- hot dog stand, games, carts, benches
+  const stand = [];
+  { const hx0 = -38, hx1 = -32, hz0 = 243, hz1 = 245.75;
+    K.B(hx0, 1, hz0, hx1, 12, hz1, MAT.trim_white); K.B(hx0 + 0.25, 1, hz0 + 0.25, hx1 - 0.25, 12, hz1 - 0.25, 0);
+    K.B(hx0 + 0.5, 4, hz0, hx1 - 0.5, 9, hz0 + 0.25, 0); K.B(hx0 + 0.5, 4, hz0 - 0.25, hx1 - 0.5, 5, hz0, MAT.counter_red);
+    K.B(hx0 - 0.25, 12, hz0 - 0.5, hx1 + 0.25, 13, hz1 + 0.25, MAT.roof_tar); K.B(hx0, 9, hz0 - 1, hx1, 11, hz0, MAT.awning_red);
+    K.B(hx0, 13, hz0, hx1, 16, hz0 + 0.25, MAT.sign_yellow);
+    worldText(ctx, 'HOT DOGS', 'N', V(hz0) - 1, V((hx0 + hx1) / 2), 13, MAT.sign_red);
+    K.B(hx1 - 0.25, 1, hz0 + 0.75, hx1, 9, hz0 + 1.75, 0);
+    const r = K.room('Hot Dog Stand', hx0 + 0.25, 1, hz0 + 0.25, hx1 - 0.25, 12, hz1 - 0.25, { public: true });
+    const dn = K.door(r, null, hx1 - 0.1, 1, hz0 + 1.25); const on = K.node(hx1 + 1, hz0 + 1.25); K.link(dn, on); stand.push(on);
+    K.P('hot_dog_cart', hx0 + 1.5, WALK_Y, hz0 + 1.3, 'N'); K.P('coffee_urn', hx1 - 1.2, 1.0, hz0 + 1.8, 'N');
+    const v = K.spot('stand', (hx0 + hx1) / 2 + 0.6, WALK_Y, hz0 + 1.0, 'N', { room: r, act: 'counter', tags: ['work'], lines: ['Hot dogs! Fifteen cents! Mustard, relish, onions!', 'Get \'em before the fireworks, folks!'] });
+    pl.job('vendor', v, { shift: ['11:00', '22:30'], outfit: 'cook', title: 'hot dog man' });
+    for (const dx of [-1, 1]) K.spot('stand', (hx0 + hx1) / 2 + dx * 1.2, WALK_Y, hz0 - 1.2, 'S', { act: 'talk', tags: ['customer', 'shop'] });
+    K.P(textSignType('HOT DOGS 15 CENTS - SODA POP - CORN', { bg: '#f0ece2', fg: '#b3302a', border: '#b3302a' }), (hx0 + hx1) / 2, 2.7, hz0 - 0.05, 'N');
+    K.read((hx0 + hx1) / 2, 1.3, hz0 - 0.6, { title: 'Hot Dog Stand', body: 'FRANKFURTS 15¢ · WITH KRAUT 20¢\nFRIED CLAMS 35¢ · CORN ON THE COB 10¢\nBIRCH BEER · ORANGE CRUSH · MOXIE 5¢\n\n"Serving Playland since 1931 — ask for the Centennial Special (it\'s two hot dogs)."' }, { r: 2.2 });
+  }
+  K.P('ring_toss', -56, WALK_Y, 243.5, 'N'); K.P('cotton_candy_cart', -60, WALK_Y, 224.8, 'S'); K.P('popcorn_cart', -33, WALK_Y, 224.8, 'S'); K.P('balloon_bunch', -52, WALK_Y, 225, 'S'); K.P('ice_cream_cart', -86, WALK_Y, 243.5, 'N');
+  for (const x of [-64, -82, -90]) { K.P('bench_park', x, WALK_Y, 245.2, 'N'); K.spot('sit', x, WALK_Y, 244.9, 'N', { act: 'sit', tags: ['bench'], seat: 0.45 }); K.seat(x, WALK_Y, 244.9, 'N'); }
+  for (let x = -30; x > x0 + 4; x -= 16) { K.P('street_lamp', x, WALK_Y, z0 + 0.7, 'S'); K.P('street_lamp', x - 8, WALK_Y, z1 - 0.7, 'N'); }
+  // strings of bulbs from the arch to the carousel and the wheel
+  const bulbs = (a, b) => { lineVox(a, b).forEach((p, i) => W.box(p[0], p[1], p[2], p[0] + 1, p[1] + 1, p[2] + 1, i % 4 ? MAT.iron : MAT.bulb_warm)); };
+  bulbs([V(-26), 27, V(224)], [ccx + 8, 30, ccz - 20]); bulbs([V(-26), 27, V(244)], [ccx + 8, 30, ccz + 20]);
+  bulbs([ccx - 8, 30, ccz - 20], [fx, fy + 8, fz - 28]); bulbs([ccx - 8, 30, ccz + 20], [fx, fy + 8, fz + 28]);
+  // ---- nav and spots
+  const loop = K.path([[-23, 232], [-30, 227], [-40, 226.5], [-52, 226.5], [-64, 226], [-80, 225.5], [-91, 229], [-91, 239], [-80, 243], [-66, 242.5], [-52, 242], [-40, 241.5], [-30, 240], [-23, 236]], { step: 6 });
+  K.link(loop[loop.length - 1], loop[0]); K.link(loop[0], boardwalkNode);
+  for (const n of stand) { let best = -1, bd = 1e9; for (const q of loop) { const d = Math.hypot(ctx.nav.x[q] - ctx.nav.x[n], ctx.nav.z[q] - ctx.nav.z[n]); if (d < bd) { bd = d; best = q; } } K.link(n, best); }
+  const cop = K.spot('stand', -44, WALK_Y, 227.6, 'N', { act: 'counter', tags: ['work'], lines: ['Round and round, five cents a ride!', 'Hold the pole, sweetheart. Both hands.'] });
+  pl.job('carousel operator', cop, { shift: ['10:00', '22:30'], title: 'runs the carousel' });
+  const fop = K.spot('stand', -69.5, WALK_Y, 230, 'W', { act: 'counter', tags: ['work'], lines: ['Keep your hands inside the car!', 'Best view of the fireworks in town — from the top!'] });
+  pl.job('wheel operator', fop, { shift: ['10:00', '22:30'], title: 'runs the Ferris wheel' });
+  const rt = K.spot('stand', -56, WALK_Y, 242.2, 'N', { act: 'wave', tags: ['work'], lines: ['Three rings a dime! Everybody wins something!', 'Ring the bottle, win a kewpie!'] });
+  pl.job('barker', rt, { shift: ['12:00', '22:00'], title: 'ring toss barker' });
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; K.spot('stand', -44 + 6.6 * Math.cos(a), WALK_Y, 234 + 6.6 * Math.sin(a), 'N', { act: k % 2 ? 'play' : 'cheer', tags: ['play'], label: 'At the carousel', yaw: a + Math.PI / 2 }); }
+  for (const x of [-70, -76]) K.spot('stand', x, WALK_Y, 228.2, 'S', { act: 'wait', tags: ['browse'], label: 'In line for the Ferris wheel' });
+  for (let x = -34; x > -92; x -= 7) K.spot('stand', x, WALK_Y, 223.4, 'N', { act: 'look', tags: ['fireworks'], spread: 1.5, faceTo: FW, label: 'Watching the fireworks from Playland' });
+  K.read(-27.2, 1.4, 226, { title: 'Playland', body: 'PLAYLAND PIER — JUNIPER BEACH\n\nThe Carousel (Philadelphia Toboggan Co., 1912) — 5¢\nThe Big Wheel (Eli Bridge Co., 1925) — 10¢\nSix rides for a quarter.\n\nCENTENNIAL HOURS: 10 A.M. until the fireworks are over.\nLost children will be kept at the hot dog stand and fed.' }, { r: 2.4 });
+  finishSite(pl);
+}
+
+// ============================================================ WHITCOMB POINT LIGHT (x -150, z 300), the keeper's cottage and the causeway
+function buildLighthouse(ctx) {
+  defineHarborProps();
+  const b = siteBuilding(ctx, 'Whitcomb Point Light', 'lighthouse', { x0: -162, z0: 288, x1: -136, z1: 312 }, { est: 1868, street: 'Whitcomb Point', address: 'Whitcomb Point', lore: 'Fixed white light, visible 14 miles. First lit 1868, paid for by public subscription. Kept by Amos Fisk since 1921.' });
+  const K = new Kit(ctx, b), W = ctx.world, rng = ctx.rng.fork('light');
+  // ---- the islet: rough granite, a grassy top at 0.75 m
+  const levels = [[-16, -9, 17], [-9, -6, 15.5], [-6, -3, 14], [-3, 0, 12.8], [0, 2, 12]];
+  for (const [y0, y1, r] of levels) for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4 + rng.float(-0.3, 0.3), cx = -149 + Math.cos(a) * r * 0.35, cz = 300 + Math.sin(a) * r * 0.35;
+    const hx = r * rng.float(0.55, 0.8), hz = r * rng.float(0.55, 0.8);
+    K.B(cx - hx, y0, cz - hz, cx + hx, y1 + (y1 === 2 ? 0 : rng.int(0, 1)), cz + hz, MAT.rock);
+  }
+  K.B(-161, 2, 290, -136, 3, 310, MAT.grass_dry);
+  for (let k = 0; k < 14; k++) { const a = rng.float(0, 6.28), r = rng.float(11, 15); K.P('rock_big', -149 + Math.cos(a) * r, rng.float(-0.4, 0.4), 300 + Math.sin(a) * r, rng.float(0, 6), { scale: rng.float(0.8, 1.6), cat: 'far' }); }
+  K.B(-140, 2, 299, -136, 3, 301, MAT.gravel); K.B(-150, 2, 299.25, -140, 3, 300.75, MAT.gravel);
+  // ---- the causeway from the beach: granite core, paved top, armour stone both sides
+  const xs = shoreline(300), cx0 = -137, cx1 = xs + 10;
+  K.B(cx0 - 1, -14, 298.5, cx1, 0, 301.5, MAT.quay_stone); K.B(cx0 - 1, 0, 298.5, cx1, 1, 301.5, MAT.granite);
+  K.B(cx0 - 1, 0, 298.5, cx1, 1, 298.75, MAT.quay_stone); K.B(cx0 - 1, 0, 301.25, cx1, 1, 301.5, MAT.quay_stone);
+  for (let x = cx0; x < cx1 - 1; x += 2) {
+    K.B(x, -12, 296 - rng.float(0, 1.5), x + rng.float(1.5, 2.5), -rng.int(0, 3), 298.5, MAT.rock);
+    K.B(x + 0.5, -12, 301.5, x + rng.float(1.5, 2.5), -rng.int(0, 3), 304 + rng.float(0, 1.5), MAT.rock);
+  }
+  K.B(-138, 1, 298.5, -136, 2, 301.5, MAT.granite);
+  { const tl = sandLayer(cx1, 300); for (let y = -1, k = 0; y > tl; y--, k++) K.B(cx1 + k * 0.75, y, 298.5, cx1 + (k + 1) * 0.75, y + 1, 301.5, MAT.granite); }
+  for (let x = cx0 + 6; x < cx1 - 4; x += 20) K.P('street_lamp', x, WALK_Y, 301.1, 'N');
+  const cw = K.path([[cx1 + 4, 300, 0.25 * (sandLayer(cx1 + 4, 300) + 1)], [cx1 - 1, 300], [cx0 + 1, 300], [-138.4, 300, 0.75]], { step: 8 });
+  if (ctx.beachNodes) { const t = ctx.beachNodes.tide; let best = t[0], bd = 1e9; for (const n of t) { const d = Math.abs(ctx.nav.z[n] - 300); if (d < bd) { bd = d; best = n; } } K.link(cw[0], best); }
+  const islet = cw[cw.length - 1];
+  // ---- the tower: white conical brick, spiral stair, gallery and black lantern
+  const TX = -620, TZ = 1200;
+  wcyl(W, TX, TZ, 15, 2, 4, MAT.granite);
+  for (let y = 4; y < 62; y += 4) { const r = 13 - 3 * (y - 4) / 58; wcyl(W, TX, TZ, r, y, Math.min(62, y + 4), MAT.stucco_white, 2); }
+  wcyl(W, TX, TZ, 11.5, 58, 62, MAT.stucco_white, 2.5);
+  W.box(-611, 4, 1198, -605, 13, 1202, 0); W.box(-608, 13, 1197, -605, 14, 1203, MAT.trim_black);
+  for (const [y, dx, dz] of [[20, 0, 1], [34, -1, 0], [48, 0, -1], [27, 1, 0]]) {
+    const r = 13 - 3 * (y - 4) / 58, vx = Math.floor(TX + dx * (r - 0.5)), vz = Math.floor(TZ + dz * (r - 0.5));
+    if (dx) { W.box(vx - 2 * dx, y, TZ, vx + 1, y + 3, TZ + 1, 0); W.box(vx, y, TZ, vx + 1, y + 3, TZ + 1, MAT.glass); }
+    else { W.box(TX, y, vz - 2 * dz, TX + 1, y + 3, vz + 1, 0); W.box(TX, y, vz, TX + 1, y + 3, vz + 1, MAT.glass); }
+  }
+  // spiral stair: 58 treads round a newel, 16 to the turn, starting on the south side
+  const a0 = Math.PI / 2, sect = 2 * Math.PI / 16;
+  const rows = new Map();
+  for (let vz = TZ - 8; vz < TZ + 8; vz++) for (let vx = TX - 8; vx < TX + 8; vx++) {
+    const dx = vx + 0.5 - TX, dz = vz + 0.5 - TZ, r = Math.hypot(dx, dz);
+    if (r < 2.3 || r > 7.6) continue;
+    const rel = ((Math.atan2(dz, dx) - a0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    const k = Math.floor(rel / sect);
+    for (let t = 0; t < 4; t++) { const i = 16 * t + k; if (i >= 58) continue; const key = (4 + i) + ',' + vz; let a = rows.get(key); if (!a) rows.set(key, a = []); a.push(vx); }
+  }
+  for (const [key, xs2] of rows) { const [y, vz] = key.split(',').map(Number); drawVox(W, xs2.map((x) => [x, y, vz]), MAT.iron, 0); }
+  wcyl(W, TX, TZ, 2.2, 4, 62, MAT.iron);
+  // lantern floor & gallery at layer 62, with the stairwell left open over the last ten treads
+  const fl = [];
+  for (let vz = TZ - 14; vz < TZ + 14; vz++) for (let vx = TX - 14; vx < TX + 14; vx++) {
+    const dx = vx + 0.5 - TX, dz = vz + 0.5 - TZ, r = Math.hypot(dx, dz);
+    if (r > 14) continue;
+    const rel = ((Math.atan2(dz, dx) - a0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    if (r >= 2.3 && r <= 8.2 && rel < 10 * sect) continue;
+    fl.push([vx, 62, vz]);
+  }
+  drawVox(W, fl, MAT.iron, 0);
+  wcyl(W, TX, TZ, 14, 64, 65, MAT.iron, 1); wcyl(W, TX, TZ, 14, 66, 67, MAT.iron, 1);
+  for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; W.box(Math.floor(TX + 13.5 * Math.cos(a)), 63, Math.floor(TZ + 13.5 * Math.sin(a)), Math.floor(TX + 13.5 * Math.cos(a)) + 1, 66, Math.floor(TZ + 13.5 * Math.sin(a)) + 1, MAT.iron); }
+  wcyl(W, TX, TZ, 7, 63, 65, MAT.trim_black, 1); wcyl(W, TX, TZ, 7, 65, 73, MAT.glass, 1); wcyl(W, TX, TZ, 7.5, 73, 74, MAT.trim_black);
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + Math.PI / 8; const vx = Math.floor(TX + 6.6 * Math.cos(a)), vz = Math.floor(TZ + 6.6 * Math.sin(a)); W.box(vx, 65, vz, vx + 1, 73, vz + 1, MAT.trim_black); }
+  for (let k = 0; k < 6; k++) wcyl(W, TX, TZ, 8 - k * 1.35, 74 + k, 75 + k, MAT.trim_black);
+  W.box(TX - 1, 80, TZ - 1, TX + 1, 82, TZ + 1, MAT.trim_black); W.box(TX, 82, TZ, TX + 1, 88, TZ + 1, MAT.iron);
+  W.box(TX + 5, 63, TZ - 1, TX + 8, 72, TZ + 1, 0);                                   // door out to the gallery (east)
+  wcyl(W, TX, TZ, 1.5, 63, 65, MAT.trim_gold); wcyl(W, TX, TZ, 2.3, 65, 71, MAT.lighthouse_lamp); wcyl(W, TX, TZ, 1.6, 71, 72, MAT.trim_gold);
+  K.light(-155, 16.9, 300, { color: [1, 0.96, 0.82], radius: 48, mode: 'night' });
+  K.light(-155, 17.2, 300, { color: [1, 0.92, 0.75], radius: 9, mode: 'night' });
+  // plaque by the tower door
+  K.P('hb_plaque', -151.6, 1.9, 301.3, 'E');
+  K.read(-151.2, 1.9, 301.3, { title: 'Whitcomb Point Light', body: 'WHITCOMB POINT LIGHT\nFirst lit October 1868\n\nERECTED BY PUBLIC SUBSCRIPTION OF THE CITIZENS OF JUNIPER BAY\nin memory of the eleven of the schooner MARY ELLEN\n"That none be lost again upon Gannet Ledge."\n\nFixed white light · 64 ft. above high water · visible 14 miles\nFourth-order Fresnel lens, Henry-Lepaute, Paris, 1867' }, { r: 2.2 });
+  // ---- the covered passage and the keeper's cottage (Cape, facing the causeway)
+  K.B(-152.5, 3, 298.75, -150, 4, 301.25, MAT.stone_foundation);
+  K.B(-152.5, 4, 298.5, -150, 13, 298.75, MAT.siding_white); K.B(-152.5, 4, 301.25, -150, 13, 301.5, MAT.siding_white);
+  K.B(-152.75, 13, 298.25, -150, 14, 301.75, MAT.roof_shingle_red); K.B(-151.75, 7, 298.5, -151, 10, 298.75, MAT.glass);
+  const cf = new Frame(ctx, V(-150), 3, V(294), 'E', 48, 40, { building: b });
+  const trim = MAT.trim_green, sid = MAT.siding_white, pl = MAT.plaster_cream;
+  cf.box(-2, -3, -2, 52, 3, 44, MAT.stone_foundation);
+  shell(cf, 0, 0, 0, 48, 12, 40, sid, pl, 2);
+  cf.box(2, 0, 2, 44, 1, 36, MAT.floor_pine);
+  lowGable(cf, 0, 12, 0, 48, 40, MAT.roof_shingle_red, sid, 2, 2);
+  win(cf, 22, 14, 0, 4, 4, { frame: MAT.trim_white, t: 2, style: 'cross' }); cf.box(-2, 11, -1, 52, 1, 1, MAT.trim_white);
+  cf.box(40, 0, 26, 4, 34, 4, MAT.brick_red); cf.box(39, 34, 25, 6, 1, 6, MAT.stone_foundation); cf.carve(41, 33, 27, 2, 2, 2);
+  for (const x of [0, 47]) cf.box(x, 0, -1, 1, 12, 1, MAT.trim_white);
+  // interior walls: a hall straight through from the front door to the tower passage
+  partitionZ(cf, 2, 38, 1, 19, 11, pl, [{ at: 6, w: 4 }, { at: 28, w: 4 }]);
+  partitionZ(cf, 2, 38, 1, 28, 11, pl, [{ at: 6, w: 4 }, { at: 28, w: 4 }]);
+  partitionX(cf, 2, 19, 1, 18, 11, pl, []); partitionX(cf, 29, 46, 1, 16, 11, pl, []);
+  doorway(cf, 22, 1, 0, 4, 9, { frame: MAT.trim_white, t: 2, step: false, transom: true });
+  cf.carve(22, 1, 38, 4, 9, 2);
+  const wo = { frame: MAT.trim_white, t: 2, shutters: trim };
+  win(cf, 7, 4, 0, 4, 6, wo); win(cf, 13, 4, 0, 4, 6, wo); win(cf, 33, 4, 0, 4, 6, wo); win(cf, 40, 4, 0, 4, 6, wo);
+  const Lf = cf.faceFrame('left'), Rf = cf.faceFrame('right'), Bf = cf.faceFrame('back');
+  win(Lf, 40 - 12, 4, 0, 4, 6, wo); win(Lf, 40 - 32, 4, 0, 4, 6, wo); win(Rf, 8, 4, 0, 4, 6, wo); win(Rf, 30, 4, 0, 4, 6, wo);
+  win(Bf, 48 - 12, 4, 0, 4, 6, wo); win(Bf, 48 - 40, 4, 0, 4, 6, wo);
+  // rooms (world bounds from the frame)
+  const RM = (name, x, z, sx, sz, o = {}) => { const bb2 = cf.wbox(x, 1, z, sx, 11, sz); return K.vroom(name, bb2[0], bb2[1], bb2[2], bb2[3], bb2[4], bb2[5], { lightMode: 'auto', public: false, ...o }); };
+  const parlour = RM('Parlor', 2, 2, 17, 16), bedroomR = RM('Bedroom', 2, 19, 17, 19), office = RM('Keeper\'s Office', 29, 2, 17, 14), kitchen = RM('Kitchen', 29, 17, 17, 21), hall = RM('Front Hall', 20, 2, 8, 36);
+  const tower = K.vroom('Tower Stair', TX - 10, 4, TZ - 10, TX + 10, 62, TZ + 10, { lightMode: 'auto', public: true, lightColor: [1, 0.9, 0.75], nav: [TZ, TX + 8] });
+  const lantern = K.vroom('Lantern Room', TX - 7, 63, TZ - 7, TX + 7, 73, TZ + 7, { lightMode: 'never', public: true, nav: [TZ, TX + 4.5] });
+  const M = (x, z, y = 1) => cf.m(x, y, z);
+  const Dr = (ra, rb, x, z, wall) => { const p = M(x, z); return K.door(ra, rb, p[0], 4, p[2], { wall, leaf: 'door_wood' }); };
+  Dr(hall, parlour, 19, 8, 'x'); Dr(hall, bedroomR, 19, 30, 'x'); Dr(hall, office, 28, 8, 'x'); Dr(hall, kitchen, 28, 30, 'x');
+  const td = K.door(hall, tower, -151.9, 4, 300, { wall: 'z', leaf: 'door_wood', tint: '#2a4a3a' });
+  void td;
+  const tl = K.b.roomNode.get(tower), ll = K.b.roomNode.get(lantern);
+  K.link(tl, ll);
+  const gallery = K.node(-151.9, 300, 15.75); K.link(gallery, ll);
+  // the front door onto the islet
+  const fd = K.door(hall, null, -140.2, 4, 300, { wall: 'z', leaf: 'door_wood', tint: '#2a4a3a' });
+  const out = K.node(-138.8, 300, 0.75); K.link(fd, out); K.link(out, islet);
+  b.entrances.push({ node: out, door: fd, pos: [-138.8, 0.75, 300], main: true }); b.mainEntrance = out;
+  K.light(-139.6, 3.3, 301.3, { mode: 'night', radius: 6 });
+  // ---- furnishing (cf local rot: 0 = east/front, 1 = north, 2 = west/back, 3 = south)
+  const SP = (pose, x, z, rot, o) => { const p = M(x, z); return K.spot(pose, p[0], p[1], p[2], 0, { ...o, yaw: cf.yaw(rot) }); };
+  // parlour: Opal's rocker and her knitting, Amos's chair, the radio
+  cf.prop('rug_oval', 10, 1, 10, 0, { tint: '#6a3a2e' });
+  cf.prop('rocking_chair', 6, 1, 12, 1, {}); cf.prop('armchair', 14.5, 1, 12, 3, { tint: '#5a4a3a' });
+  cf.prop('radio_console', 10.5, 1, 16.6, 0, {}); cf.prop('table_side', 10.5, 1, 4, 0, {}); cf.prop('lamp_table', 10.5, 3.4, 4, 0, {});
+  cf.prop('laundry_basket', 4.5, 1, 14, 0, { tint: '#d8c040' }); cf.prop('photo_frames', 2.6, 6, 9, 1, {}); cf.prop('clock_wall', 10.5, 8, 17.4, 0, {}); cf.prop('ship_model_case', 3.5, 1, 4, 1, {});
+  const knit = SP('sit', 6, 12, 1, { room: parlour, act: 'knit', tags: ['lounge'], seat: 0.45, label: 'Knitting for the Kaminski baby' });
+  const read = SP('sit', 14.5, 12, 3, { room: parlour, act: 'read', tags: ['lounge'], seat: 0.42 });
+  const kp = M(5, 14); K.read(kp[0], 1.6, kp[2], { title: 'Opal\'s Knitting Basket', body: 'A basket of yarn by the rocker. On top, a half-finished baby sweater in yellow — for the Kaminskis. (She has already done one in pink and one in blue, to be safe.)\n\nUnderneath is a school composition book. Since 1921 Opal Fisk has written in it the name of every baby in Juniper Bay she has knitted for, and what she made. The first entry: "No. 1 — Doane, Ernest Jr. — bonnet & booties." The last: "No. 1,114 — Kaminski — ?"' }, { r: 2 });
+  // office: the log, the barometer, the spare lamp
+  cf.prop('writing_desk', 37, 1, 3.6, 2, {}); cf.prop('chair_wood', 37, 1, 6.4, 0, {}); cf.prop('bookshelf', 45, 1, 9, 3, {}); cf.prop('barometer', 30, 6, 9, 1, {}); cf.prop('lamp_desk', 35.5, 3.6, 3.6, 2, {});
+  const desk = SP('sit', 37, 6.4, 0, { room: office, act: 'write', tags: ['work', 'desk'], seat: 0.45 });
+  const lp = M(37, 3.6); K.read(lp[0], 1.9, lp[2], { title: 'The Keeper\'s Log', body: 'WHITCOMB POINT LIGHT — JOURNAL OF THE KEEPER\n\nSept. 25, 1953. Wind SW light, fair. Lit 5:40 P.M., extinguished 5:43 A.M. Polished lens. Painted gallery rail (2nd coat). 3 schooners and the GRAY LADY passed in.\n\nSept. 26. Wind SW, fair and warm. Fleet in at 6. Opal to town for the Centennial — says she will bring back a pie and all the news. Barge for the fireworks anchored off the inner harbor at 2. Must mind the light — the smoke will lie on the water tonight.\n\nThirty-two years, and I have not missed a night. — A. Fisk' }, { r: 2 });
+  // kitchen: range, icebox, sink, the table for two
+  cf.prop('stove', 45, 1, 34, 3, {}); cf.prop('icebox', 45, 1, 21, 3, {}); cf.prop('kitchen_sink', 38, 1, 37, 2, {}); cf.prop('kitchen_counter', 34, 1, 37, 2, {}); cf.prop('cabinet_upper', 36, 7, 37.4, 2, {});
+  cf.prop('table_kitchen', 36, 1, 26, 0, { tint: '#e8e0d0' }); cf.prop('chair_kitchen', 36, 1, 23.4, 2, { tint: '#3a6a5a' }); cf.prop('chair_kitchen', 36, 1, 28.6, 0, { tint: '#3a6a5a' });
+  cf.prop('teapot_set', 36, 3.2, 26, 0, {}); cf.prop('food_pie', 34.5, 3.2, 26.5, 0, {}); cf.prop('clock_wall', 29.6, 7, 26, 1, {});
+  const d1 = SP('sit', 36, 23.4, 2, { room: kitchen, act: 'eat', tags: ['dine'], seat: 0.45 }), d2 = SP('sit', 36, 28.6, 0, { room: kitchen, act: 'eat', tags: ['dine'], seat: 0.45 });
+  const cook = SP('stand', 42.4, 34, 1, { room: kitchen, act: 'cook', tags: ['cook'] }), wash = SP('stand', 38, 34.4, 2, { room: kitchen, act: 'wash', tags: ['wash'] });
+  // bedroom: the double bed under the quilt Opal made in 1922
+  cf.prop('bed_double', 10.5, 1, 37.4 - 4.2, 0, { tint: '#c86a6a' }); cf.prop('nightstand', 5.5, 1, 36.2, 0, {}); cf.prop('lamp_table', 5.5, 3.4, 36.2, 0, {});
+  cf.prop('dresser', 16.5, 1, 22, 3, {}); cf.prop('wardrobe', 3.2, 1, 22, 1, {}); cf.prop('rug_rect', 10.5, 1, 26, 0, { tint: '#3a4a6a' });
+  const s1 = SP('sleep', 9.2, 29.8, 0, { room: bedroomR, act: 'sleep', tags: ['sleep'], seat: 0.55 }), s2 = SP('sleep', 11.8, 29.8, 0, { room: bedroomR, act: 'sleep', tags: ['sleep'], seat: 0.55 });
+  // hall: oilskins, the list of keepers
+  cf.prop('coat_rack', 21.5, 1, 4, 0, { tint: '#e0c030' }); cf.prop('umbrella_stand', 26.5, 1, 4, 0, {}); cf.prop('hat_rack_wall', 27.4, 6, 12, 3, {});
+  const hp = M(20.6, 16); K.read(hp[0], 1.8, hp[2], { title: 'Keepers of Whitcomb Point Light', body: 'KEEPERS OF WHITCOMB POINT LIGHT\n(lettered by hand on a board by the door)\n\nJonas Crowell, 1868–1891\nEben Crowell, his son, 1891–1907\nSilas Hallett, 1907–1921\nAmos Fisk, 1921 —\n\nBelow, in pencil: "Sept. 21, 1938 — lamp lit through the whole of it. Boathouse gone, dory found at Pembroke. Opal and I are well. — A.F."' }, { r: 2 });
+  // ---- outdoors: fog bell, oil house, the boathouse ruin, washing, a bench facing the sea
+  K.B(-158, 3, 307.5, -157.75, 12, 307.75, MAT.wood_dark); K.B(-155.75, 3, 307.5, -155.5, 12, 307.75, MAT.wood_dark); K.B(-158, 12, 307.5, -155.5, 13, 307.75, MAT.wood_dark);
+  K.P('bell_brass', -156.75, 2.2, 307.6, 'S', { scale: 1.3 });
+  K.B(-146, 3, 306.75, -143.5, 11, 309, MAT.brick_red); K.B(-146.25, 11, 306.5, -143.25, 12, 309.25, MAT.roof_slate); K.B(-145.25, 3, 306.5, -144.25, 9, 306.75, MAT.trim_dark);
+  worldText(ctx, '1890', 'N', V(306.75) - 1, V(-144.75), 9, MAT.trim_white);
+  K.B(-161, 2, 303, -156.5, 5, 303.25, MAT.stone_foundation); K.B(-161, 2, 303, -160.75, 4, 309, MAT.stone_foundation); K.B(-161, 2, 308.75, -157, 3, 309, MAT.stone_foundation); K.B(-157, 2, 303, -156.75, 3, 306, MAT.stone_foundation);
+  K.read(-158.5, 1.2, 304, { title: 'The Old Boathouse', body: 'Granite footings are all that is left of the keeper\'s boathouse, carried off whole in the hurricane of September 21, 1938.\n\nThe station dory turned up three days later on the beach at Pembroke, upside down and without a scratch. Amos rowed her home.' }, { r: 2.4 });
+  K.P('dory', -159.5, 0.75, 296, 0.5, { tint: '#d8cfa8' }); K.P('rope_coil', -157.5, 0.75, 294.5, 'S');
+  K.P('laundry_line', -145, 0.75, 291.4, 'S', { tint: '#e8e0d0', tint2: '#6a8ac8' }); K.P('flag_pole', -137.6, 0.75, 296.5, 'S');
+  K.B(-141, 2, 303.5, -137.5, 3, 306.5, MAT.dirt); for (const [x, z] of [[-140, 304.2], [-138.6, 305.6], [-139.4, 305]]) K.P('pumpkin', x, 0.75, z, rng.float(0, 6));
+  K.P('garden_bench', -147, 0.75, 309.2, 'S');
+  const bench = K.spot('sit', -147, 0.75, 309, 'S', { act: 'sit', tags: ['bench'], seat: 0.45, link: islet });
+  K.seat(-147, 0.75, 309, 'S');
+  const yard1 = K.spot('stand', -145, 0.75, 292.4, 'N', { act: 'laundry', tags: ['yard'], link: islet });
+  const yard2 = K.spot('kneel', -139.2, 0.75, 303.2, 'S', { act: 'garden', tags: ['yard', 'garden'], link: islet });
+  // ---- the keeper at work
+  const lens = K.spot('stand', -154.2, 15.75, 300.6, 'W', { room: lantern, act: 'wash', tags: ['work'], label: 'Polishing the lens', lines: ['Light goes on at sundown. Thirty-two years and I\'ve not missed one.', 'Every speck of salt on this glass is a mile of light lost.'] });
+  const gal = K.spot('stand', -151.6, 15.75, 299.4, 'E', { act: 'look', tags: ['work'], label: 'Watching the weather from the gallery', link: gallery });
+  const bellS = K.spot('stand', -156.8, 0.75, 306.8, 'S', { act: 'wrench', tags: ['work'], link: islet });
+  const boat = K.spot('kneel', -158.2, 0.75, 296.4, 'W', { act: 'hammer_kneel', tags: ['work'], link: islet });
+  b.job('keeper', [lens, desk, gal, bellS, boat], { shift: ['5:30', '22:30'], outfit: 'fisherman', title: 'keeper of the light' });
+  b.home({ family: 'Fisk', size: 2, beds: [s1, s2], dine: [d1, d2], lounge: [knit, read, bench], kitchen: [cook, wash], bath: [], yard: [yard1, yard2], porch: [bench], desk: [desk], special: null });
+  finishSite(b);
+}
+
+// shared with nature.js
+export { Kit, siteBuilding, finishSite, worldText, wcyl, wline, YAW };

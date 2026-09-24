@@ -1836,8 +1836,1002 @@ function buildHotel(ctx, lot, spec) {
   return b;
 }
 
-function buildDepartment(ctx, lot, spec) { return null; }
-function buildTheater(ctx, lot, spec) { return null; }
-function buildNewspaper(ctx, lot, spec) { return null; }
-function buildStation(ctx, lot, spec) { return null; }
-function buildCannery(ctx, lot, spec) { return null; }
+
+// =====================================================================================================
+// HARLOW'S (est. 1878) — five floors on Market Street, display windows, the 1949 escalator, a tea room
+// =====================================================================================================
+const HARLOWS_FLOORS = [
+  { name: 'Main Floor — Cosmetics, Gloves & Millinery', kind: 'cosmetics' },
+  { name: 'Second Floor — Ladies\' Apparel', kind: 'ladies' },
+  { name: 'Third Floor — Men\'s & Boys\' Wear', kind: 'mens' },
+  { name: 'Fourth Floor — Toys & Housewares', kind: 'toys' },
+  { name: 'Fifth Floor — Furniture', kind: 'furniture' },
+];
+function buildDepartment(ctx, lot, spec) {
+  const rng = ctx.rng.fork('dept' + lot.x + ',' + lot.z);
+  const name = spec.name || 'Harlow\'s';
+  const b = new Building(ctx, { name, kind: 'department', lot, address: lot.address, established: spec.est || 1878, hours: [T(9, 30), T(17, 30)],
+    lore: 'Harlow\'s opened in 1878 as a one-room dry-goods shop. Burned out in the Great Fire of 1902, it came back in 1904 as five floors of glass and terracotta — with, since 1949, the only escalator in the county.' });
+  const f = b.f, W = lot.w, D = lot.d, FH = 18, NF = Math.max(3, Math.min(5, spec.floors || 5));
+  const BD = D - 6, H = NF * FH, cx = Math.round(W / 2);
+  const sides = streetSides(lot);
+  const TC = MAT.limestone, SP = MAT.brick_white, IN = MAT.plaster_cream;
+  f.box(0, -1, 0, W, 1, D, MAT.sidewalk);
+  f.box(0, -1, BD, W, 1, D - BD, MAT.concrete);
+  shell(f, 0, 0, 0, W, H, BD, TC, IN);
+  const floorMat = [MAT.floor_terrazzo, MAT.carpet_rose, MAT.floor_oak, MAT.floor_linoleum_green, MAT.carpet_beige];
+  for (let i = 0; i < NF; i++) slab(f, 1, i * FH, 1, W - 2, BD - 2, floorMat[i] || MAT.floor_oak);
+  f.box(0, H, 0, W, 1, BD, MAT.roof_tar);
+  f.walls(0, H + 1, 0, W, 5, BD, TC, 1);
+  const fc = facesOf(f, 0, 0, W, BD);
+  // Chicago windows: wide plate glass between terracotta piers, white brick spandrels
+  for (const side of ['front', 'left', 'right', 'back']) {
+    if ((side === 'left' || side === 'right') && !sides[side]) continue;
+    const face = fc[side];
+    const cols = colsIn(face.a, face.b, 14, 18, 4);
+    gridFacade(face, cols, 14, rowsFor(1, NF, FH, 4, 11), { wall: TC, spandrel: SP, inner: IN, sashMat: MAT.trim_dark, sill: MAT.trim_green, proud: 1, proudMat: TC });
+    cornice(face.F, face.a, H - 1, face.b - face.a, MAT.roof_copper, { z: face.zf, brackets: 6 });
+    face.F.box(face.a, FH - 1, face.zf - 1, face.b - face.a, 2, 1, MAT.roof_copper);
+    if (side !== 'front' && side !== 'back') for (const x of colsIn(face.a + 4, face.b - 4, 12, 18, 2)) { face.F.carve(x, 2, face.zf, 12, 11, 2); face.F.box(x, 2, face.zf, 12, 1, 1, MAT.granite); face.F.box(x, 3, face.zf, 12, 10, 1, MAT.glass_shop); }
+  }
+  // the ground floor: continuous display windows with mannequins, the revolving door, a bronze canopy
+  f.carve(4, 1, 0, W - 8, 14, 2);
+  f.box(4, 1, 0, W - 8, 2, 1, MAT.granite);
+  f.box(4, 3, 0, W - 8, 10, 1, MAT.glass_shop);
+  f.box(4, 13, 0, W - 8, 2, 1, MAT.glass_stained_gold);
+  for (let x = 4; x < W - 4; x += 16) f.box(x, 1, 0, 2, 14, 1, MAT.art_deco_gold);
+  f.carve(cx - 8, 1, 0, 16, 12, 2);
+  f.box(cx - 8, 1, 1, 16, 12, 1, MAT.glass); f.carve(cx - 7, 1, 1, 4, 9, 1); f.carve(cx + 3, 1, 1, 4, 9, 1);
+  f.cylinder(cx, 1, -1, 3.2, 9, MAT.art_deco_gold, 1); f.box(cx, 1, -3, 1, 9, 5, MAT.glass); f.box(cx - 2, 1, -1, 5, 9, 1, MAT.glass); f.box(cx - 3, 10, -4, 7, 1, 7, MAT.art_deco_gold);
+  f.box(4, 15, -6, W - 8, 1, 6, MAT.art_deco_gold); f.box(4, 16, -6, W - 8, 1, 1, MAT.trim_dark);
+  for (let x = 8; x < W - 8; x += 6) f.box(x, 14, -5, 1, 1, 4, MAT.bulb_warm);
+  // display boxes behind the glass: mannequins in fall coats, hats, a Centennial sale card in each
+  const displays = [];
+  for (let x = 10; x < W - 10; x += 16) {
+    if (Math.abs(x + 6 - cx) < 12) continue;
+    f.box(x - 2, 1, 2, 14, 2, 8, MAT.carpet_red); f.box(x - 2, 1, 10, 14, 13, 1, MAT.velvet_red);
+    displays.push(x);
+    f.prop('mannequin', x + 2, 3, 6, 0, { tint: rng.pick(['#8a2a2a', '#2a3a5a', '#6a5a3a', '#3a5a3a', '#c8b090']) });
+    f.prop('mannequin', x + 7, 3, 7, 0, { tint: rng.pick(['#5a3a5a', '#c86a3a', '#2a2a2e', '#8a8a90']) });
+    f.prop(rng.pick(['hat_display', 'shoe_display', 'jewelry_case']), x + 10, 3, 5, 0, {});
+  }
+  // name signs: a big roof sign and a blade at the corner
+  {
+    const sc = 3, ty = H + 8;
+    const tw = f.textWidth('HARLOW\'S', sc, 'big');
+    f.box(cx - tw / 2 - 3, H + 1, 6, 1, 30, 1, MAT.iron); f.box(cx + tw / 2 + 2, H + 1, 6, 1, 30, 1, MAT.iron);
+    for (let x = Math.round(cx - tw / 2); x < cx + tw / 2; x += 14) { f.box(x, H + 1, 6, 1, 8, 1, MAT.iron); f.box(x, H + 1, 7, 1, 2, 8, MAT.iron); }
+    f.box(cx - tw / 2 - 3, ty - 1, 6, tw + 6, 1, 1, MAT.iron);
+    f.text('HARLOW\'S', cx, ty, 5, MAT.neon_red, { align: 'center', scale: sc, font: 'big' });
+    f.text('SINCE 1878', cx, H - 6, -1, MAT.art_deco_gold, { align: 'center', font: 'small', scale: 1 });
+    b.light(cx, ty + 10, 2, { color: [1, 0.3, 0.25], radius: 12, mode: 'night' });
+    // corner blade
+    const bladeX = sides.left ? 1 : W - 3;
+    f.box(bladeX, 22, -12, 2, 44, 11, MAT.sign_cream);
+    f.box(bladeX, 21, -12, 2, 1, 11, MAT.marquee_bulbs); f.box(bladeX, 66, -12, 2, 1, 11, MAT.marquee_bulbs);
+    const L = f.faceFrame('left'), R = f.faceFrame('right');
+    vtext(L, 'HARLOWS', LZ(f, -6.5), 65, LX(f, bladeX) - 1, MAT.neon_red, { gap: -1 });
+    vtext(R, 'HARLOWS', RZ(f, -6.5), 65, RX(f, bladeX + 1) - 1, MAT.neon_red, { gap: -1 });
+  }
+  // Centennial Sale: a banner across the front and bunting drops
+  f.box(12, FH + 2, -1, W - 24, 7, 1, MAT.canvas_white);
+  f.box(12, FH + 2, -1, W - 24, 1, 1, MAT.flag_red); f.box(12, FH + 8, -1, W - 24, 1, 1, MAT.flag_blue);
+  f.text('CENTENNIAL SALE - HARLOWS 1878-1953 - EVERY FLOOR', cx, FH + 3, -2, MAT.flag_red, { align: 'center', font: 'small' });
+  for (const x of colsIn(8, W - 8, 4, 36, 2)) {
+    f.box(x, 2 * FH + 2, -1, 4, 26, 1, MAT.flag_red); f.box(x + 1, 2 * FH + 2, -1, 2, 26, 1, MAT.flag_white); f.box(x, 2 * FH + 26, -1, 4, 2, 1, MAT.flag_blue);
+  }
+  read(b, cx + 12, 3, -1, 'Window Card', 'HARLOW\'S CENTENNIAL SALE\nSeventy-five years on Market Street!\n\nLadies\' fall coats from $19.95 · Men\'s worsted suits $39.50\nThe new Admiral 21-inch television, $199.95 — easy terms\nToys for Christmas: lay-away now!\n\nThe tea room on Five serves the Centennial Tea, 3 to 5 o\'clock.');
+  cornerStone(b, f, 6, 1, 0, 1904, 'HARLOW\'S\nFounded 1878 by Silas Harlow in a room twelve feet square.\nBurned June 11, 1902. Rebuilt 1904.\n\n"We Sold Through the Smoke" — the store opened for business in a tent on Founders Square two days after the fire, and sold out.');
+
+  // ---- core at the back: stair (left), two elevators (centre), stock rooms
+  const stX = 14, stZ = BD - 2 - (FH + 8);
+  const cars = [cx - 4, cx + 4];
+  const floorRooms = [];
+  for (let i = 0; i < NF; i++) {
+    const y = i * FH + 1, inf = HARLOWS_FLOORS[i] || HARLOWS_FLOORS[HARLOWS_FLOORS.length - 1];
+    const r = b.room(inf.name, 2, y, 2, W - 4, FH - 1, stZ - 3, { lightMode: 'always', lightColor: [1, 0.9, 0.72], lightPower: 1.15, nav: [cx, 20] });
+    floorRooms.push(r);
+    // back of house: stock room behind a partition
+    partitionX(f, 2, W - 2, y, stZ - 1, FH - 1, IN, [{ at: W - 30, w: 4 }]);
+    const stock = b.room(i === NF - 1 ? 'Executive Offices' : 'Stock Room', cx + 12, y, stZ, W - cx - 14, FH - 1, BD - 2 - stZ, { lightMode: 'auto' });
+    b.door(r, stock, W - 28, y, stZ - 1, { leaf: 'door_wood', tint: '#5a4a3a' });
+    f.box(stX + 10, y, stZ, cx - 8 - stX - 10, FH - 1, BD - 2 - stZ, IN);
+    if (i < NF - 1) { f.prop('crate_stack', W - 12, y, BD - 6, 0, {}); f.prop('sack_pile', W - 22, y, BD - 6, 0, {}); f.prop('dress_rack', W - 34, y, BD - 8, 0, { tint: '#6a6a70' }); }
+    // columns
+    for (let x = 36; x < W - 20; x += 40) for (let z = 18; z < stZ - 6; z += 30) if (i === 0) f.box(x, 1, z, 3, H - 1, 3, TC);
+    f.prop('chandelier', cx - 60, y + FH - 7, 26, 0, {}); f.prop('chandelier', cx + 60, y + FH - 7, 26, 0, {});
+  }
+  const core = stairCore(b, stX, stZ, FH, 0, NF, { mat: MAT.terrazzo || MAT.concrete, wall: IN, doorX: 0 });
+  for (let i = 0; i < NF; i++) b.door(floorRooms[i], core.rooms[i], stX + 2, i * FH + 1, stZ - 1, { leaf: 'door_wood', tint: '#5a4a3a' });
+  elevatorBank(b, cars, stZ - 1, FH, NF, (k) => (k === 0 ? Array.from({ length: NF }, (_, i) => i) : [0, NF - 1]).map((i) => ({ i, label: HARLOWS_FLOORS[i] ? HARLOWS_FLOORS[i].name.split(' — ')[0] + ' — ' + HARLOWS_FLOORS[i].name.split(' — ')[1].split(',')[0] : `${i + 1}` })), (i) => floorRooms[i], { frame: MAT.marble });
+  const op = b.spot('stand', cars[0] - 6, 1, stZ - 4, 0, { room: floorRooms[0], act: 'stand', tags: ['work'], lines: ['Going up! Second floor, ladies\' coats and dresses...', 'Fifth floor: furniture and the tea room. Watch your step, madam.'] });
+  b.job('elevator operator', op, { shift: ['9:15', '17:45'], title: 'elevator girl', outfit: 'bellhop', sex: 'F' });
+
+  // ---- the 1949 escalator: two stepped flights (up & down) between Main and Second
+  const eX = cx - 5, eZ = stZ - 12 - 2 * FH;
+  for (const ex of [eX, eX + 6]) {
+    stairs(f, ex, 1, eZ, '+z', FH, { w: 4, run: 2, mat: MAT.rubber_mat, rail: false });
+    for (let k = 0; k < FH; k++) f.box(ex, k + 1, eZ + 2 * k, 4, 1, 1, MAT.chrome);
+  }
+  for (const bx of [eX - 1, eX + 4, eX + 5, eX + 10]) for (let k = 0; k < FH; k += 2) f.box(bx, k + 1, eZ + 2 * k, 1, 4, 4, bx === eX + 4 || bx === eX + 5 ? MAT.chrome : MAT.stainless);
+  f.box(eX - 2, FH + 1, eZ + 2 * FH - 4, 1, 4, 4, MAT.chrome); f.box(eX + 11, FH + 1, eZ + 2 * FH - 4, 1, 4, 4, MAT.chrome);
+  f.walls(eX - 2, FH + 1, eZ + 10, 14, 4, 2 * FH - 12, MAT.chrome, 1);
+  f.carve(eX, FH + 1, eZ + 2 * FH - 3, 10, 4, 1);
+  b.stairs(floorRooms[0], [eX + 2, 1, eZ - 2], floorRooms[1], [eX + 2, FH + 1, eZ + 2 * FH + 2]);
+  b.stairs(floorRooms[0], [eX + 8, 1, eZ - 2], floorRooms[1], [eX + 8, FH + 1, eZ + 2 * FH + 2]);
+  read(b, eX - 2, 5, eZ - 1, 'Escalator Plaque', 'OTIS ELEVATOR COMPANY · MOVING STAIRWAY\nInstalled by Harlow\'s, April 1949 — the only one in the county.\n\nOn opening day Mr. Harlow rode it forty-one times, and the Courier ran a photograph of Mrs. Bridget Halloran refusing to.\n\nPLEASE HOLD THE HANDRAIL · CHILDREN MUST BE ACCOMPANIED', 1.8);
+  f.prop(textSignType('ESCALATOR TO 2', { bg: '#1d1d22', fg: '#e8c870', scale: 1 / 32 }), eX + 5, 12, eZ - 3, 0, {});
+
+  // ---- departments
+  const clerks = [];
+  const browse = (i, x, z, rot = 0) => b.spot('stand', x, i * FH + 1, z, rot, { room: floorRooms[i], act: 'browse', tags: ['browse', 'shop'], label: `Shopping at Harlow's` });
+  const counter = (i, x, z, type, rot = 0) => { f.prop(type, x, i * FH + 1, z, rot, {}); };
+  const clerkAt = (i, x, z, rot, lines) => { const s = b.spot('stand', x, i * FH + 1, z, rot, { room: floorRooms[i], act: 'counter', tags: ['clerk'], lines }); clerks.push(s); return s; };
+  // 1: cosmetics & hats — glass counters in a square, hat stands, glove cases
+  {
+    const y = 1;
+    for (const [x0, z0] of [[30, 24], [W - 70, 24]]) {
+      for (let k = 0; k < 4; k++) { counter(0, x0 + k * 10, z0, 'display_case', 0); counter(0, x0 + k * 10, z0 + 16, 'display_case', 2); }
+      for (let k = 0; k < 3; k++) f.prop('hat_display', x0 + 5 + k * 10, y, z0 + 8, 0, {});
+    }
+    counter(0, cx - 30, 12, 'jewelry_case', 0); counter(0, cx + 30, 12, 'jewelry_case', 0);
+    f.prop('cash_register', 40, y + 3.8, 24, 0, {}); f.prop('mirror_wall', 3, y + 4, 40, 1, {});
+    clerkAt(0, 45, 27, 0, ['May I help you, madam? Coty, Elizabeth Arden, Tangee...', 'That shade is called "Fire and Ice". Very daring.']);
+    clerkAt(0, W - 55, 27, 0, ['Gloves are on sale — kid leather, a dollar ninety-eight.', 'A hat for the Centennial? Every lady in town is in a hat today.']);
+    for (let k = 0; k < 6; k++) browse(0, 26 + k * ((W - 52) / 5), 18 + (k % 2) * 22, k % 2 ? 2 : 0);
+    b.spot('stand', cx + 30, y, 8, 2, { room: floorRooms[0], act: 'browse', tags: ['browse'] });
+  }
+  // 2: ladies' apparel — dress racks, mannequins, shoes, fabric
+  {
+    const i = 1, y = i * FH + 1;
+    for (let k = 0; k < 6; k++) f.prop('dress_rack', 20 + k * 14, y, 20, k % 2, { tint: rng.pick(['#8a2a3a', '#2a4a6a', '#6a5a3a', '#c8a0b0', '#3a5a3a']) });
+    for (let k = 0; k < 4; k++) f.prop('mannequin', W - 70 + k * 14, y, 14, 0, { tint: rng.pick(['#8a2a2a', '#2a3a5a', '#e0d0b0', '#5a3a5a']) });
+    f.prop('shoe_display', W - 30, y, 34, 3, {}); f.prop('shoe_display', W - 30, y, 44, 3, {}); f.prop('fabric_bolts', 20, y, 44, 1, {}); f.prop('sewing_dummy', 26, y, 50, 0, {});
+    f.prop('chair_upholstered_dining', W - 36, y, 38, 1, {}); f.prop('mirror_wall', W - 3, y + 4, 24, 3, {});
+    counter(i, cx + 20, 46, 'counter_shop', 0); f.prop('cash_register', cx + 20, y + 3.8, 46, 0, {});
+    clerkAt(i, cx + 20, 49, 0, ['The coats came in from New York on Tuesday.', 'Try the navy. It\'s you.']);
+    clerkAt(i, W - 40, 30, 3, ['Six and a half? Let me see what we have in the back.']);
+    for (let k = 0; k < 6; k++) browse(i, 22 + k * 16, 26 + (k % 3) * 8, k % 2 ? 2 : 0);
+  }
+  // 3: men's & boys'
+  {
+    const i = 2, y = i * FH + 1;
+    for (let k = 0; k < 5; k++) f.prop('dress_rack', 24 + k * 16, y, 22, 0, { tint: rng.pick(['#2a2a30', '#3a3a4a', '#4a3a2a', '#5a5a60']) });
+    f.prop('hat_display', W - 40, y, 18, 0, {}); f.prop('hat_display', W - 30, y, 18, 0, {}); f.prop('shoe_display', W - 20, y, 40, 3, {});
+    f.prop('mannequin', cx, y, 12, 0, { tint: '#2a2a30' }); f.prop('mirror_wall', 3, y + 4, 30, 1, {}); f.prop('barber_chair', 12, y, 44, 1, { tint: '#5a3a2a' });
+    counter(i, cx + 10, 44, 'counter_shop', 0);
+    clerkAt(i, cx + 10, 47, 0, ['A worsted, thirty-nine fifty. Two pairs of trousers.', 'Fedora or a snap-brim? The snap-brim is very popular with the younger men.']);
+    for (let k = 0; k < 5; k++) browse(i, 26 + k * 18, 30 + (k % 2) * 8, k % 2 ? 2 : 0);
+  }
+  // 4: toys & housewares — trains, dolls, televisions, ranges
+  if (NF > 3) {
+    const i = 3, y = i * FH + 1;
+    for (let k = 0; k < 4; k++) f.prop('toy_display', 20 + k * 14, y, 20, 0, {});
+    f.prop('toy_train', 30, y, 38, 0, {}); f.prop('rocking_horse', 44, y, 38, 1, {}); f.prop('dollhouse', 56, y, 38, 0, {}); f.prop('teddy_bear', 64, y + 3, 20, 0, {}); f.prop('wagon_red', 74, y, 36, 1, {}); f.prop('bicycle', 84, y, 36, 1, {});
+    f.box(24, y - 1 + 1, 30, 20, 1, 10, MAT.wood_light); // train layout table top
+    for (let k = 0; k < 3; k++) { f.prop('tv_console', W - 80 + k * 10, y, 14, 0, {}); }
+    f.prop('radio_display', W - 40, y, 14, 0, {});
+    for (let k = 0; k < 3; k++) f.prop(['stove', 'fridge', 'washing_machine'][k], W - 70 + k * 8, y, 40, 0, {});
+    f.prop('shelf_goods', W - 20, y, 30, 3, {}); f.prop('shelf_goods', W - 20, y, 38, 3, {});
+    clerkAt(i, 40, 30, 0, ['The Lionel\'s running, go ahead and watch it, son.', 'Lay-away for Christmas? A dollar down.']);
+    clerkAt(i, W - 60, 26, 0, ['Twenty-one inches, and the picture\'s clear as a bell. Channel 5 from Boston.']);
+    for (let k = 0; k < 6; k++) browse(i, 24 + k * 18, 28 + (k % 2) * 10, k % 2 ? 2 : 0);
+    b.spot('stand', 32, y, 42, 2, { room: floorRooms[i], act: 'look', tags: ['browse', 'play'], label: 'Watching the toy trains at Harlow\'s' });
+    read(b, 34, y + 3, 34, 'Lionel Layout', 'The Harlow\'s Christmas train — a Lionel No. 2026 locomotive and five cars, running on a figure-eight past a paper Union Station and a cotton-wool Juniper Hill.\n\nMr. Pruitt of the toy department sets it up on the first of September, "so the boys can start working on their fathers."');
+  }
+  // 5: furniture & the tea room
+  if (NF > 4) {
+    const i = 4, y = i * FH + 1;
+    const tx0 = cx + 8;
+    partitionZ(f, 2, stZ - 1, y, tx0 - 1, FH - 1, MAT.wallpaper_rose, [{ at: 30, w: 8, h: 11 }]);
+    const tea = b.room('The Tea Room', tx0, y, 2, W - tx0 - 2, FH - 1, stZ - 3, { lightMode: 'always', lightColor: [1, 0.88, 0.7] });
+    b.door(floorRooms[i], tea, tx0 - 1, y, 34, { axis: 'z', leaf: false, width: 8 });
+    for (const [x, z] of [[20, 16], [40, 16], [60, 16]]) f.prop(rng.pick(['sofa', 'loveseat']), x, y, z, 0, { tint: rng.pick(['#6a7a5a', '#8a4a3a', '#5a6a8a', '#a88a5a']) });
+    f.prop('bed_double', 24, y, 40, 0, { tint: '#d8c8b0' }); f.prop('dresser', 40, y, 44, 2, {}); f.prop('table_dining', 60, y, 40, 0, {}); f.prop('cabinet_china', 76, y, 46, 2, {}); f.prop('armchair', 80, y, 20, 3, { tint: '#6a4a3a' }); f.prop('lamp_floor', 86, y, 26, 0, {});
+    clerkAt(i, 50, 30, 0, ['Solid maple, made in Vermont. It\'ll outlast us both.']);
+    for (let k = 0; k < 4; k++) browse(i, 22 + k * 18, 28, k % 2 ? 1 : 3);
+    const teaSeats = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      const x = tx0 + 12 + c * ((W - tx0 - 24) / 2), z = 12 + r * 14;
+      f.prop('table_round', x, y, z, 0, { tint: '#f4f0e6' }); f.prop('teapot_set', x, y + 3, z, 0, {});
+      for (const [dx, dz, rr] of [[0, -3, 2], [0, 3, 0]]) { f.prop('chair_wood', x + dx, y, z + dz, rr, { tint: '#e8e0d0' }); teaSeats.push(b.spot('sit', x + dx, y, z + dz, rr, { room: tea, act: rng.pick(['eat', 'drink', 'talk_sit']), tags: ['eat_out', 'tea_room'], seat: 0.45, label: 'Tea at Harlow\'s' })); }
+    }
+    f.prop('pie_display', W - 8, y + 3.6, 8, 3, {}); f.prop('coffee_urn', W - 8, y + 3.6, 16, 3, {}); f.prop('counter_shop', W - 8, y, 12, 3, {});
+    const tw = b.spot('stand', tx0 + 20, y, 20, 0, { room: tea, act: 'serve', tags: ['work'], lines: ['The Centennial Tea: sandwiches, scones and a slice of Mrs. Halloran\'s apple cake. Sixty-five cents.', 'Lemon or milk?'] });
+    b.job('waitress', tw, { shift: ['11:00', '17:30'], outfit: 'waitress', sex: 'F', title: 'tea-room waitress' });
+    read(b, W - 8, y + 5, 12, 'Tea Room Card', 'THE TEA ROOM AT HARLOW\'S\n\nChicken salad sandwich · 45¢\nWelsh rarebit · 55¢\nCinnamon toast · 20¢\nThe Centennial Tea (3 to 5) · 65¢\n\nThe tea room was opened in 1911 by Mrs. Silas Harlow "so that ladies might have somewhere to sit down in this town that is not a church."');
+    // Mr. Harlow's office in the back (executive offices)
+    const ex = b.roomAtPoint(...b.m(W - 20, y + 0.5, BD - 8));
+    if (ex) { const sp = officeDesk(b, ex, W - 24, y, BD - 12, 0, { desk: 'desk_wood', act: 'write' }); b.job('store manager', sp, { shift: ['9:00', '17:30'], title: 'floor manager' }); f.prop('portrait', W - 3, y + 7, BD - 12, 3, {});
+      read(b, W - 4, y + 5, BD - 14, 'Photograph', 'A brown photograph, 1878: a young man with a beard and an apron in front of a shop one window wide. Painted on the window: S. HARLOW · DRY GOODS · NOTIONS.\n\nPencilled on the mount: "Opening day. Took in $3.40. Kept the first dime." The dime is taped to the corner of the frame.'); }
+  }
+  // six clerks, with the stock boy and the floor walker
+  clerks.slice(0, 6).forEach((s, k) => b.job('clerk', s, { shift: ['9:15', '17:45'], title: 'sales clerk', sex: k % 3 === 2 ? 'M' : 'F' }));
+  clerks.slice(6).forEach((s) => b.job('clerk', s, { shift: ['9:15', '17:45'], title: 'sales clerk' }));
+  b.job('floorwalker', browse(0, cx, 30, 0), { shift: ['9:15', '17:45'], title: 'floorwalker', lines: ['Good morning, madam. Gloves are to your left.'] });
+  // entrances: the revolving door (main), and a side door on each street side
+  b.entrance(floorRooms[0], cx, 1, 0, { outZ: -8, outY: 0, leaf: false, main: true });
+  if (sides.left) { f.carve(0, 1, 30, 2, 9, 4); sideEntrance(b, floorRooms[0], 0, 1, 32, -1, { leaf: 'door_glass', tint: '#6a4a2a' }); }
+  if (sides.right) { f.carve(W - 2, 1, 30, 2, 9, 4); sideEntrance(b, floorRooms[0], W - 1, 1, 32, 1, { leaf: 'door_glass', tint: '#6a4a2a' }); }
+  roofClutter(b, 6, 30, W - 6, BD - 4, H + 1, rng, { towerAt: [W * 0.8, BD * 0.7], towerScale: 1.4, vents: 4, skylights: 2 });
+  for (const e of b.entrances) linkToSidewalk(ctx, e.node);
+  return b;
+}
+
+// =====================================================================================================
+// THE RIALTO (1927) — marquee, blade sign, lobby, a dark auditorium with a glowing screen
+// =====================================================================================================
+function buildTheater(ctx, lot, spec) {
+  const rng = ctx.rng.fork('rialto' + lot.x + ',' + lot.z);
+  const name = spec.name || 'The Rialto';
+  const b = new Building(ctx, { name, kind: 'theater', lot, address: lot.address, established: spec.est || 1927, hours: [T(12, 30), T(23, 30)],
+    lore: 'Opened December 1927 with Douglas Fairbanks in "The Gaucho" and a Wurlitzer organ. Talkies came in 1929. Today: "Roman Holiday" at 2, "Shane" at 7:30.' });
+  const f = b.f, W = lot.w, D = lot.d, cx = Math.round(W / 2);
+  const BD = D - 2, H = 48;
+  const sides = streetSides(lot);
+  const TC = MAT.terracotta, CR = MAT.art_deco_cream, IN = MAT.velvet_red;
+  f.box(0, -1, 0, W, 1, D, MAT.sidewalk);
+  shell(f, 0, 0, 0, W, H, BD, MAT.brick_brown, MAT.plaster_pink);
+  // facade: cream terracotta front with a big arched window and a stepped parapet
+  f.box(0, 0, 0, W, H + 8, 2, CR);
+  for (let k = 0; k < 4; k++) f.box(cx - 30 + k * 6, H + 8 + k * 3, 0, 60 - k * 12, 3, 2, CR);
+  f.box(cx - 12, H + 20, 0, 24, 2, 2, MAT.art_deco_gold);
+  for (const x of [4, W - 8]) { f.box(x, 0, -1, 4, H + 8, 1, TC); f.box(x, H + 8, -1, 4, 4, 1, MAT.art_deco_gold); }
+  f.archCarve(cx - 14, 26, 0, 28, 26, 2); f.archCarve(cx - 14, 26, 1, 28, 26, 1, MAT.glass_stained_gold);
+  for (let x = cx - 10; x < cx + 12; x += 6) f.box(x, 26, 0, 1, 18, 1, MAT.art_deco_gold);
+  f.box(cx - 15, 25, -1, 30, 1, 1, MAT.art_deco_gold);
+  f.text('RIALTO', cx, H - 2, -1, MAT.sign_red, { align: 'center', font: 'big' });
+  // poster cases flanking the doors
+  for (const x of [12, W - 22]) { f.box(x - 1, 2, -1, 12, 12, 1, MAT.art_deco_gold); f.box(x, 3, -1, 10, 10, 1, MAT.glass); }
+  f.prop('movie_poster', 17, 3, -0.6, 0, { tint: '#c86a3a' }); f.prop('movie_poster', W - 17, 3, -0.6, 0, { tint: '#3a6ac8' });
+  read(b, 17, 6, -1.5, 'Poster — Roman Holiday', 'PARAMOUNT PRESENTS\nGREGORY PECK · AUDREY HEPBURN\nin William Wyler\'s\nROMAN HOLIDAY\nwith Eddie Albert\n\nMatinee today 2:00 · Adults 35¢ · Children 12¢\n\n"Introducing Audrey Hepburn" — and after this, nobody will need to.');
+  read(b, W - 17, 6, -1.5, 'Poster — Shane', 'GEORGE STEVENS\' production of\nSHANE\nALAN LADD · JEAN ARTHUR · VAN HEFLIN\nwith Brandon De Wilde · Jack Palance\nColor by Technicolor\n\nTonight 7:30 · Adults 50¢\n\nCOMING OCT. 8: "THE ROBE" — in CinemaScope! (The new screen is on order.)');
+  // the marquee
+  const MZ = -16, MX0 = cx - 38, MX1 = cx + 38, MY = 13, MH = 15;
+  f.box(MX0, MY, MZ, MX1 - MX0, MH, -MZ, MAT.trim_dark);
+  f.box(MX0 + 1, MY - 1, MZ + 1, MX1 - MX0 - 2, 1, -MZ - 1, MAT.art_deco_gold);
+  f.box(MX0 - 1, MY, MZ - 1, MX1 - MX0 + 2, 1, 1, MAT.marquee_bulbs); f.box(MX0 - 1, MY + MH - 1, MZ - 1, MX1 - MX0 + 2, 1, 1, MAT.marquee_bulbs);
+  f.box(MX0 - 1, MY, MZ - 1, 1, MH, 1, MAT.marquee_bulbs); f.box(MX1, MY, MZ - 1, 1, MH, 1, MAT.marquee_bulbs);
+  f.box(MX0 + 2, MY + 2, MZ - 1, MX1 - MX0 - 4, 11, 1, MAT.sign_white);
+  f.text('ROMAN HOLIDAY 2PM', cx, MY + 8, MZ - 2, MAT.trim_black, { align: 'center', font: 'small' });
+  f.text('SHANE 7:30', cx, MY + 2, MZ - 2, MAT.sign_red, { align: 'center', font: 'small' });
+  f.box(MX0, MY + MH, MZ, MX1 - MX0, 1, -MZ, MAT.marquee_bulbs);
+  f.box(MX0, MY + MH + 1, MZ + 2, MX1 - MX0, 3, 1, MAT.art_deco_gold);
+  for (let x = MX0 + 3; x < MX1 - 2; x += 4) for (let z = MZ + 2; z < -1; z += 4) f.box(x, MY - 1, z, 1, 1, 1, MAT.bulb_warm);
+  // marquee ends: RIALTO on each side
+  {
+    const L = f.faceFrame('left'), R = f.faceFrame('right');
+    L.box(LZ(f, -1) , MY + 2, LX(f, MX0) - 1, 14, 11, 1, MAT.sign_white);
+    L.text('RIALTO', LZ(f, MZ / 2), MY + 5, LX(f, MX0) - 2, MAT.sign_red, { align: 'center', font: 'small' });
+    R.box(RZ(f, MZ + 1), MY + 2, RX(f, MX1 - 1) - 1, 14, 11, 1, MAT.sign_white);
+    R.text('RIALTO', RZ(f, MZ / 2), MY + 5, RX(f, MX1 - 1) - 2, MAT.sign_red, { align: 'center', font: 'small' });
+    // vertical blade sign above the marquee
+    const bx = cx - 1;
+    f.box(bx, MY + MH + 4, -12, 2, 50, 11, MAT.sign_navy);
+    f.box(bx, MY + MH + 3, -13, 2, 1, 13, MAT.marquee_bulbs); f.box(bx, MY + MH + 54, -13, 2, 1, 13, MAT.marquee_bulbs); f.box(bx, MY + MH + 3, -13, 2, 52, 1, MAT.marquee_bulbs);
+    f.box(bx, MY + MH + 54, -10, 2, 6, 6, MAT.art_deco_gold);
+    vtext(L, 'RIALTO', LZ(f, -6.5), MY + MH + 53, LX(f, bx) - 1, MAT.neon_red, { gap: 1 });
+    vtext(R, 'RIALTO', RZ(f, -6.5), MY + MH + 53, RX(f, bx + 1) - 1, MAT.neon_red, { gap: 1 });
+    b.light(cx, MY + MH + 30, -8, { color: [1, 0.3, 0.25], radius: 12, mode: 'night' });
+    b.light(cx, MY - 2, MZ / 2, { color: [1, 0.85, 0.55], radius: 11, mode: 'night' });
+  }
+  // doors & the ticket booth under the marquee
+  for (const dx of [-12, -6, 2, 8]) { f.carve(cx + dx, 1, 0, 4, 9, 2); f.box(cx + dx - 1, 1, -1, 1, 10, 1, MAT.art_deco_gold); }
+  f.box(cx - 13, 10, -1, 26, 1, 1, MAT.art_deco_gold);
+  f.box(cx - 20, 0, -12, 40, 1, 12, MAT.floor_terrazzo);
+  f.prop('ticket_booth', cx, 1, -6, 0, {});
+  // ---- rooms
+  const LZ1 = 24;                                   // lobby depth
+  const lobby = b.room('Lobby', 2, 1, 2, W - 4, 16, LZ1 - 2, { lightMode: 'always', lightColor: [1, 0.78, 0.5], lightPower: 1.1 });
+  f.box(2, 0, 2, W - 4, 1, LZ1 - 2, MAT.carpet_red);
+  f.box(2, 17, 2, W - 4, 1, LZ1 - 2, MAT.ceiling_tin);
+  const booth = b.room('Ticket Booth', cx - 3, 1, -9, 6, 9, 6, { lightMode: 'always', lightColor: [1, 0.85, 0.6] });
+  const cashier = b.spot('sit', cx, 1, -5, 0, { room: booth, act: 'counter', tags: ['work'], seat: 0.6, lines: ['Two for "Roman Holiday"? That\'s seventy cents.', 'Children twelve cents, under six free on a lap.', '"Shane" at seven-thirty. It\'s a western, but the ladies like it too.'] });
+  b.job('cashier', cashier, { shift: ['13:00', '21:30'], title: 'ticket girl', sex: 'F' });
+  f.carve(cx - 1, 1, -3, 2, 8, 1);
+  for (const dx of [-10, 4]) b.entrance(lobby, cx + dx + 2, 1, 0, { outZ: -18, outY: 0, leaf: 'door_glass', tint: '#c9a24a', main: dx === -10 });
+  b.door(booth, lobby, cx - 4, 1, 0, { leaf: false });
+  // concession: the popcorn machine, candy counter, posters, a velvet rope
+  f.prop('popcorn_machine', W - 14, 1, LZ1 - 3, 0, {});
+  for (let x = W - 40; x < W - 18; x += 4) f.prop('display_case', x + 2, 1, LZ1 - 5, 0, {});
+  f.prop('candy_jars', W - 30, 4, LZ1 - 5, 0, {}); f.prop('cash_register', W - 24, 4, LZ1 - 5, 0, {});
+  const conc = b.spot('stand', W - 28, 1, LZ1 - 2.5, 0, { room: lobby, act: 'counter', tags: ['clerk'], lines: ['Popcorn\'s a dime. Butter\'s free.', 'Jujubes, Milk Duds, Good & Plenty — a nickel each.'] });
+  b.job('concession', conc, { shift: ['13:00', '21:30'], title: 'candy-counter girl', sex: 'F' });
+  for (let k = 0; k < 3; k++) b.spot('stand', W - 34 + k * 4, 1, LZ1 - 9, 2, { room: lobby, act: 'wait', tags: ['shop', 'customer'] });
+  for (const [x, z, r] of [[3, 8, 1], [3, 16, 1], [W - 3, 8, 3]]) f.prop('movie_poster', x, 5, z, r, { tint: rng.pick(['#c83a3a', '#3a6ac8', '#e0b040', '#3a8a5a']) });
+  read(b, 3.5, 7, 16, 'Poster — Coming Attractions', 'COMING SOON TO THE RIALTO\n\nFROM HERE TO ETERNITY — Burt Lancaster, Montgomery Clift, Deborah Kerr, Frank Sinatra\nTHE ROBE — the first picture in CinemaScope! (Oct. 8)\nHOUSE OF WAX — in 3-Dimension (glasses provided)\n\nSaturday Kiddie Matinee: Flash Gordon serial, Chapter 7, plus cartoons. 10 a.m., twelve cents.');
+  f.prop('velvet_rope', cx - 8, 1, LZ1 - 4, 0, {}); f.prop('velvet_rope', cx + 8, 1, LZ1 - 4, 0, {});
+  f.prop('chandelier', cx, 11, 12, 0, {});
+  read(b, cx - 30, 4, 3, 'Bronze Plaque', 'THE RIALTO\nOpened December 23, 1927, with Douglas Fairbanks in "The Gaucho", accompanied by Miss Viola Pratt at the Mighty Wurlitzer.\n\nThe first talking picture shown in Juniper Bay, "The Broadway Melody", played here for three weeks in 1929. Miss Pratt, who had lost her job, sat in the front row every night and applauded the organ parts.\n\nThe Wurlitzer is still here. Mr. Pruitt plays it on Christmas Eve.');
+  const usher = b.spot('stand', cx, 1, LZ1 - 2, 2, { room: lobby, act: 'stand', tags: ['work'], lines: ['Tickets, please. Balcony\'s closed today, folks — down front is best.', 'No talking during the picture.'] });
+  b.job('usher', usher, { shift: ['13:30', '22:00'], title: 'usher', outfit: 'bellhop' });
+  // ---- the auditorium
+  const A0 = LZ1 + 1, SZ = BD - 16;                 // auditorium from A0; stage from SZ
+  partitionX(f, 2, W - 2, 1, LZ1, 16, MAT.wood_panel, [{ at: 14, w: 6, h: 10 }, { at: W - 20, w: 6, h: 10 }]);
+  const aud = b.room('Auditorium', 2, 1, A0, W - 4, H - 4, BD - 2 - A0, { lightMode: 'never', ambient: 0.02, kind: 'auditorium', nav: [cx, A0 + 6] });
+  f.box(2, 0, A0, W - 4, 1, BD - 2 - A0, MAT.carpet_red);
+  f.walls(2, 1, A0, W - 4, H - 4, BD - 2 - A0, MAT.plaster_pink, 1);
+  b.door(lobby, aud, 17, 1, LZ1, { leaf: 'door_wood', tint: '#6a1a1a', width: 6 });
+  b.door(lobby, aud, W - 17, 1, LZ1, { leaf: 'door_wood', tint: '#6a1a1a', width: 6 });
+  // wall panels, pilasters, organ grilles, sconces glowing in the dark
+  for (const x of [2, W - 3]) {
+    for (let z = A0 + 6; z < SZ; z += 12) { f.box(x, 1, z, 1, H - 8, 2, MAT.art_deco_gold); f.box(x + (x < cx ? 1 : -1), 12, z, 1, 1, 2, MAT.bulb_always); }
+    f.box(x, 18, SZ - 14, 1, 14, 10, MAT.art_deco_gold); for (let yy = 19; yy < 32; yy += 2) f.box(x + (x < cx ? 1 : -1), yy, SZ - 13, 1, 1, 8, MAT.trim_dark);
+  }
+  f.box(2, H - 5, A0, W - 4, 1, BD - 2 - A0, MAT.ceiling_tin);
+  for (let z = A0 + 8; z < BD - 4; z += 10) f.box(2, H - 6, z, W - 4, 1, 1, MAT.art_deco_gold);
+  // proscenium, curtains, stage, the screen
+  f.box(2, 1, SZ, W - 4, H - 5, 2, MAT.plaster_pink);
+  f.archCarve(cx - 32, 5, SZ, 64, 34, 2);
+  f.box(cx - 34, 4, SZ - 1, 2, 30, 1, MAT.art_deco_gold); f.box(cx + 32, 4, SZ - 1, 2, 30, 1, MAT.art_deco_gold);
+  f.box(2, 0, SZ - 6, W - 4, 4, BD - 2 - SZ + 6, MAT.stage_wood);
+  f.box(cx - 34, 1, SZ - 6, 68, 3, 1, MAT.art_deco_gold);
+  f.box(cx - 30, 5, SZ + 1, 6, 30, 2, IN); f.box(cx + 24, 5, SZ + 1, 6, 30, 2, IN);
+  f.box(cx - 30, 30, SZ + 1, 60, 6, 2, IN);
+  f.box(cx - 26, 8, BD - 3, 52, 22, 1, MAT.movie_screen);
+  f.box(cx - 27, 7, BD - 3, 54, 1, 1, MAT.trim_black); f.box(cx - 27, 30, BD - 3, 54, 1, 1, MAT.trim_black);
+  f.prop('organ_console', 14, 4, SZ - 3, 1, {});
+  read(b, 14, 6, SZ - 4, 'The Mighty Wurlitzer', 'Rudolph Wurlitzer Co., North Tonawanda, N.Y. — Opus 1742, Style 190, two manuals, eight ranks.\n\nIt can do a cathedral organ, a calliope, a steam whistle, a thunderstorm, horses\' hooves, a doorbell and a Model T horn. In 1927 it did all of them during "The Gaucho".');
+  // raked floor and seats: rows facing the screen
+  const rows = Math.max(4, Math.min(8, Math.floor((SZ - 8 - (A0 + 6)) / 4)));
+  const seatXs = [];
+  for (const [a, c] of [[8, cx - 22], [cx - 16, cx + 16], [cx + 22, W - 8]]) { const n = Math.max(1, Math.floor((c - a) / 9.4)); for (let k = 0; k < n; k++) seatXs.push(a + 4.7 + k * ((c - a - 9.4) / Math.max(1, n - 1))); }
+  let seatCount = 0;
+  for (let r = 0; r < rows; r++) {
+    const z = SZ - 10 - r * 4, hr = Math.floor(r / 2);
+    if (hr > 0) f.box(4, 1, z - 2, W - 8, hr, 4, MAT.carpet_red);
+    for (const x of seatXs) {
+      f.prop('theater_seats', x, 1 + hr, z, 2, { tint: '#8a1f24' });
+      for (let s = 0; s < 4; s++) { b.spot('sit', x - 3.3 + s * 2.2, 1 + hr, z, 2, { room: aud, act: 'watch', tags: ['theater'], seat: 0.45, label: 'At the pictures' }); seatCount++; }
+    }
+    b.playerSeat(seatXs[Math.floor(seatXs.length / 2)], 1 + hr, z, 2);
+  }
+  // aisle lights
+  for (const x of [cx - 19, cx + 19]) for (let z = A0 + 4; z < SZ - 8; z += 6) f.box(x, 1, z, 1, 1, 1, MAT.bulb_always);
+  const nav0 = b.navPoint(aud, cx - 19, 1, SZ - 12), nav1 = b.navPoint(aud, cx + 19, 1, SZ - 12);
+  void nav0; void nav1;
+  // exit to Main Street near the stage
+  if (sides.left || sides.right) {
+    const ex = sides.left ? 1 : W - 2;
+    f.carve(sides.left ? 0 : W - 2, 1, SZ - 16, 2, 9, 4);
+    sideEntrance(b, aud, sides.left ? 0 : W - 1, 1, SZ - 14, sides.left ? -1 : 1, { leaf: 'door_wood', tint: '#4a2a1a' });
+    f.box(ex, 10, SZ - 16, 1, 1, 4, MAT.neon_red);
+  }
+  // ---- projection booth over the lobby, up a narrow stair
+  const PB = { x0: cx - 14, x1: cx + 14, z0: 4, z1: LZ1 };
+  f.box(PB.x0 - 1, 17, PB.z0 - 1, PB.x1 - PB.x0 + 2, 1, PB.z1 - PB.z0 + 2, MAT.floor_concrete);
+  f.walls(PB.x0 - 1, 18, PB.z0 - 1, PB.x1 - PB.x0 + 2, 12, PB.z1 - PB.z0 + 2, MAT.plaster_gray, 1);
+  f.box(PB.x0 - 1, 30, PB.z0 - 1, PB.x1 - PB.x0 + 2, 1, PB.z1 - PB.z0 + 2, MAT.concrete);
+  const pbooth = b.room('Projection Booth', PB.x0, 18, PB.z0, PB.x1 - PB.x0, 11, PB.z1 - PB.z0, { lightMode: 'auto', lightColor: [0.9, 0.9, 1] });
+  f.carve(cx - 6, 23, PB.z1, 3, 3, 2); f.carve(cx + 3, 23, PB.z1, 3, 3, 2);
+  f.carve(PB.x0 + 1, 17, LZ1, 1, 1, 1);
+  f.prop('projector', cx - 5, 18, PB.z1 - 3, 2, {}); f.prop('projector', cx + 4, 18, PB.z1 - 3, 2, {});
+  f.prop('filing_cabinet', PB.x0 + 2, 18, PB.z0 + 2, 1, {}); f.prop('stool_tall', cx, 18, PB.z1 - 6, 2, {});
+  const proj = b.spot('stand', cx - 1, 18, PB.z1 - 6, 2, { room: pbooth, act: 'wrench', tags: ['work'], lines: ['Reel two, changeover in ten seconds... and... there.', 'Carbon arcs burn hot. Don\'t touch that.'] });
+  b.job('projectionist', proj, { shift: ['13:15', '23:15'], title: 'projectionist' });
+  read(b, PB.x0 + 3, 21, PB.z0 + 2, 'Projectionist\'s Log', 'SAT 9/26/53\n\n2:00  ROMAN HOLIDAY — 12 reels. Changeover marks OK. Reel 7 splice at 440 ft — watch it.\n       Newsreel: Korea armistice, the Queen\'s Coronation (repeat), Rocky Marciano.\n7:30  SHANE — 12 reels, Technicolor. Mind the focus in reel 3.\n\nNote to self: Mr. Pruitt wants the organ lift greased before Christmas.');
+  const st = stairs(f, W - 10, 1, 4, '+z', 16, { w: 4, run: 1, mat: MAT.wood_dark, rail: false });
+  void st;
+  f.carve(W - 10, 17, 4, 4, 1, 16);
+  f.carve(PB.x1, 18, LZ1 - 6, 1, 9, 4);
+  f.box(PB.x1 + 1, 17, 4, W - 11 - PB.x1, 1, LZ1 - 4, MAT.floor_concrete); f.carve(W - 10, 17, 4, 4, 1, 16);
+  const landing = b.room('Booth Stair', PB.x1 + 1, 18, 4, W - 11 - PB.x1 + 4, 11, LZ1 - 4, { lightMode: 'auto' });
+  b.stairs(lobby, [W - 8, 1, 3], landing, [W - 8, 17, 21]);
+  b.door(landing, pbooth, PB.x1, 18, LZ1 - 4, { axis: 'z', leaf: 'door_wood', tint: '#4a3a2a' });
+  // roof
+  f.box(0, H, 2, W, 1, BD - 2, MAT.roof_tar);
+  roofClutter(b, 6, 30, W - 6, BD - 4, H + 1, rng, { tower: false, vents: 3, skylights: 0, antenna: false });
+  void seatCount;
+  for (const e of b.entrances) linkToSidewalk(ctx, e.node);
+  return b;
+}
+
+// =====================================================================================================
+// THE JUNIPER BAY COURIER (est. 1866) — counter, pressroom, newsroom, editor's office, composing room
+// =====================================================================================================
+function buildNewspaper(ctx, lot, spec) {
+  const rng = ctx.rng.fork('courier' + lot.x + ',' + lot.z);
+  const name = spec.name || 'The Juniper Bay Courier';
+  const b = new Building(ctx, { name, kind: 'newspaper', lot, address: lot.address, established: spec.est || 1866, hours: [T(8), T(24)],
+    lore: 'Founded 1866 by Josiah Lowell with a hand press in a sail loft; in this building since 1891. Editor Ada Lowell. The Sunday Centennial edition runs forty-eight pages — "CENTURY BY THE SEA".' });
+  const f = b.f, W = lot.w, D = lot.d, FH = 16, NF = 3;
+  const BD = D - 6, H = NF * FH, cx = Math.round(W / 2);
+  const sides = streetSides(lot);
+  const BR = MAT.brick_red, TR = MAT.sandstone, IN = MAT.plaster_cream;
+  f.box(0, -1, 0, W, 1, D, MAT.sidewalk);
+  f.box(0, -1, BD, W, 1, D - BD, MAT.concrete);
+  shell(f, 0, 0, 0, W, H, BD, BR, IN);
+  for (let i = 0; i < NF; i++) slab(f, 1, i * FH, 1, W - 2, BD - 2, i === 0 ? MAT.floor_concrete : MAT.floor_pine);
+  f.box(0, H, 0, W, 1, BD, MAT.roof_tar);
+  f.walls(0, H + 1, 0, W, 4, BD, BR, 1);
+  const fc = facesOf(f, 0, 0, W, BD);
+  for (const side of ['front', 'left', 'right', 'back']) {
+    if ((side === 'left' || side === 'right') && !sides[side]) continue;
+    const face = fc[side];
+    const cols = colsIn(face.a, face.b, 5, 11, 5);
+    gridFacade(face, cols, 5, rowsFor(1, NF, FH, 4, 9), { wall: BR, inner: IN, sill: TR, lintels: TR, lintelWide: true });
+    cornice(face.F, face.a, H - 1, face.b - face.a, TR, { z: face.zf, brackets: 5 });
+    if (side !== 'front') for (const x of colsIn(face.a + 4, face.b - 4, 8, 16, 2)) { face.F.archCarve(x, 3, face.zf, 8, 11, 2); face.F.archCarve(x, 3, face.zf + 1, 8, 11, 1, MAT.glass); }
+  }
+  // ground floor front: the counter's door and big arched windows onto the pressroom
+  const CX1 = 44;                                      // counter office width
+  for (const x of colsIn(CX1 + 4, W - 4, 12, 18, 2)) { f.archCarve(x, 2, 0, 12, 13, 2); f.archCarve(x, 2, 1, 12, 13, 1, MAT.glass); f.box(x - 1, 1, -1, 14, 1, 1, TR); }
+  f.carve(8, 1, 0, 4, 10, 2); f.box(7, 1, -1, 1, 11, 1, TR); f.box(12, 1, -1, 1, 11, 1, TR); f.box(7, 11, -1, 6, 1, 1, TR);
+  f.carve(18, 3, 0, 20, 8, 2); f.box(18, 3, 0, 20, 8, 1, MAT.glass_shop);
+  // the name across the front, EST. 1866, and the bulletin board
+  f.box(2, FH - 3, -1, W - 4, 9, 1, MAT.sign_black);
+  f.box(2, FH - 4, -1, W - 4, 1, 1, MAT.art_deco_gold); f.box(2, FH + 6, -1, W - 4, 1, 1, MAT.art_deco_gold);
+  const nm = 'THE JUNIPER BAY COURIER';
+  if (f.textWidth(nm, 1, 'big') < W - 8) f.text(nm, cx, FH - 2, -2, MAT.art_deco_gold, { align: 'center', font: 'big' });
+  else f.text(nm, cx, FH - 1, -2, MAT.art_deco_gold, { align: 'center', font: 'small' });
+  f.text('EST. 1866', cx, H - 6, -1, MAT.trim_cream, { align: 'center', font: 'small' });
+  f.box(20, 12, -1, 16, 1, 1, TR);
+  f.box(40, 3, -1, 1, 1, 1, TR);
+  read(b, 26, 4, -1, 'Bulletin Board in the Window', 'COURIER BULLETINS — posted as they come in\n\n10:40 a.m. — Harbor Days fair opens. Record crowd, says Chief Duffy.\n11:30 a.m. — Mrs. Hatch\'s cat rescued (again) from the maple on Maple St. Engine Co. No. 1: 1, Admiral: 3 lifetime.\n1:05 p.m. — Red Sox trail Yankees 4–1, 5th inning.\n\nSUNDAY: Special 48-page CENTENNIAL EDITION — "CENTURY BY THE SEA." Order extra copies at the counter, 15¢.');
+  f.prop('newspaper_box', 14, 0, -3, 0, {}); f.prop('newspaper_bundles', 40, 0, -2, 0, {});
+  cornerStone(b, f, W - 12, 1, 0, 1891, 'THE JUNIPER BAY COURIER\nFounded 1866 · This building 1891\n\n"The Truth, Plainly Printed."\n\nLaid by Josiah Lowell, publisher, and Ada Lowell, aged 1 week, "who is expected to take over the business in due course." (She did, in 1946.)');
+  // truck at the curb
+  f.prop('truck_delivery', W - 18, 0, -20, 1, { tint: '#2a4a3a', cat: 'far' });
+
+  // ---- ground floor: the counter, the pressroom, the mailroom
+  const PZ0 = 28;
+  const counterR = b.room('Front Counter', 2, 1, 2, CX1 - 2, FH - 1, PZ0 - 3, { lightMode: 'always', lightColor: [1, 0.9, 0.72] });
+  const press = b.room('Pressroom', 2, 1, PZ0, W - 4, FH - 1, BD - 2 - PZ0, { lightMode: 'always', lightColor: [0.95, 0.95, 0.88], kind: 'industrial' });
+  const lobbyR = b.room('Front Hall', CX1 + 1, 1, 2, W - CX1 - 3, FH - 1, PZ0 - 3, { lightMode: 'auto' });
+  partitionZ(f, 2, PZ0 - 1, 1, CX1, FH - 1, MAT.wood_panel, [{ at: 12, w: 4 }]);
+  partitionX(f, 2, W - 2, 1, PZ0 - 1, FH - 1, IN, [{ at: 20, w: 4 }, { at: W - 30, w: 6, h: 12 }]);
+  f.box(40, 5, PZ0 - 1, W - 80, 6, 1, MAT.glass);           // viewing window into the pressroom
+  b.entrance(counterR, 10, 1, 0, { outZ: -6, outY: 0, leaf: 'door_glass', tint: '#2a2a2a', main: true });
+  b.door(counterR, lobbyR, CX1, 1, 14, { axis: 'z', leaf: 'door_wood' });
+  b.door(counterR, press, 22, 1, PZ0 - 1, { leaf: 'door_wood', tint: '#4a4a4a' });
+  b.door(lobbyR, press, W - 27, 1, PZ0 - 1, { leaf: false, width: 6 });
+  const cc = counterRun(b, counterR, 4, CX1 - 4, 1, 14, { rot: 0, type: 'counter_shop' });
+  b.job('counter clerk', cc.clerk, { shift: ['8:30', '17:00'], title: 'classified-ads clerk', sex: 'F', lines: ['Classified ads are three cents a word, ten-word minimum.', 'Sunday Centennial edition? Fifteen cents, and you\'d better order two.'] });
+  f.prop('newspaper_pile', 8, 4, 14, 0, {}); f.prop('clock_wall', CX1 / 2, 10, 2.6, 2, {});
+  readH(b, 4, 6, 20, 'Framed Front Page, 1902', '<div class="plaque"><h1>The Juniper Bay Courier</h1></div><p class="typed" style="text-align:center"><b>Thursday, June 12, 1902 · Extra</b><br><br><b style="font-size:1.3em">MARKET STREET IN ASHES</b><br><i>Fire Starts in Beal\'s Livery at Four O\'Clock — Three Blocks Lost — Not One Life Taken</i><br><br>"By the grace of God and the Harbor Street bucket line, every soul in Juniper Bay slept under a roof last night, if not their own..."<br><br>(Printed on a borrowed press in Gloucester. The Courier\'s own building, on Mill Street, was spared by a change in the wind.)</p>');
+  // the pressroom: two big presses, paper rolls, bundles, the press crew
+  const pcx = W / 2, pcz = (PZ0 + BD) / 2;
+  f.prop('printing_press', pcx - 16, 1, pcz, 0, {}); f.prop('printing_press', pcx + 16, 1, pcz, 0, {});
+  f.box(pcx - 30, 0, pcz - 8, 60, 1, 16, MAT.rubber_mat);
+  for (let k = 0; k < 5; k++) f.prop('paper_rolls', 8 + k * 6, 1, BD - 6, 0, {});
+  for (let k = 0; k < 4; k++) f.prop('newspaper_bundles', W - 10, 1, PZ0 + 6 + k * 5, 3, {});
+  f.prop('tools_wall', 3, 4, pcz, 1, {}); f.prop('oil_drum', 6, 1, PZ0 + 4, 0, {}); f.prop('oil_drum', 9, 1, PZ0 + 4, 0, {});
+  const pressSpots = [];
+  for (const [dx, dz, r] of [[-16, -7, 2], [-16, 7, 0], [16, -7, 2], [16, 7, 0], [-4, 0, 1], [4, 0, 3]]) pressSpots.push(b.spot('stand', pcx + dx, 1, pcz + dz, r, { room: press, act: dx % 16 === 0 && dx !== 0 ? 'wrench' : 'counter', tags: ['press', 'work'], label: 'Running the presses', lines: ['Mind your sleeves near the rollers!', 'Forty-eight pages. She\'ll run till two in the morning.'] }));
+  b.job('pressman', [pressSpots[0], pressSpots[4]], { shift: ['14:00', '23:59'], title: 'pressman', outfit: 'mechanic', sex: 'M' });
+  b.job('pressman', [pressSpots[3], pressSpots[5]], { shift: ['14:00', '23:59'], title: 'pressman', outfit: 'mechanic', sex: 'M' });
+  const mail = b.spot('stand', W - 14, 1, PZ0 + 14, 1, { room: press, act: 'carry', tags: ['work'], held: 'newspaper' });
+  b.job('mailroom', mail, { shift: ['15:00', '23:59'], title: 'mailroom hand', age: [16, 30] });
+  read(b, pcx, 5, pcz - 9, 'Press Plate', 'R. HOE & CO., NEW YORK — ROTARY PERFECTING PRESS, 1924\nPrints 24,000 eight-page papers an hour, folded.\n\nThe old Washington hand press that printed the first Courier, on April 2, 1866 — one sheet, both sides, 300 copies — stands in the front hall.');
+  // loading door at the back
+  f.carve(W - 26, 1, BD - 2, 10, 11, 2);
+  f.box(W - 26, 1, BD - 1, 10, 11, 1, MAT.wood_gray);
+  b.door(press, null, W - 21, 1, BD - 1, { leaf: false, width: 8 });
+  linkToSidewalk(ctx, b.navPoint(press, W - 21, 0, BD + 4), 40);
+  // front hall: the 1866 hand press
+  f.prop('printing_press', CX1 + 20, 1, 12, 0, { scale: 0.6 });
+  read(b, CX1 + 14, 4, 10, 'The Washington Hand Press', 'THE FIRST PRESS OF THE JUNIPER BAY COURIER\nR. Hoe & Co., 1851 — bought second-hand in Salem for $140.\n\nJosiah Lowell printed Vol. I, No. 1 on it on April 2, 1866, in a sail loft on Whitcomb\'s wharf: one sheet, 300 copies, "and sold 212 of them, which is the population of this town in 1853 and, I choose to believe, not a coincidence."');
+
+  // ---- upper floors: newsroom & editor (2), composing room & morgue (3)
+  const stX = W - 14, stZ = BD - 2 - (FH + 8);
+  const news = b.room('Newsroom', 2, FH + 1, 2, W - 4, FH - 1, stZ - 3, { lightMode: 'always', lightColor: [1, 0.95, 0.85] });
+  const comp = b.room('Composing Room', 2, 2 * FH + 1, 2, W - 4, FH - 1, stZ - 3, { lightMode: 'always', lightColor: [1, 0.95, 0.85] });
+  const wire = b.room('Wire Room', 2, FH + 1, stZ, stX - 4, FH - 1, BD - 2 - stZ, { lightMode: 'auto' });
+  const morgue = b.room('The Morgue (Archives)', 2, 2 * FH + 1, stZ, stX - 4, FH - 1, BD - 2 - stZ, { lightMode: 'auto' });
+  for (const [y, r1, r2] of [[FH + 1, news, wire], [2 * FH + 1, comp, morgue]]) {
+    partitionX(f, 2, stX - 1, y, stZ - 1, FH - 1, IN, [{ at: 12, w: 4 }]);
+    b.door(r1, r2, 14, y, stZ - 1, { leaf: 'door_wood' });
+  }
+  // newsroom desks
+  const reporters = [];
+  for (let r = 0; r < 2; r++) for (let k = 0; k < 4; k++) {
+    const s0 = officeDesk(b, news, 12 + k * 14, FH + 1, 26 + r * 12, 0, { lamp: k % 2 === 0, act: 'type', tags: ['work', 'newsroom'] });
+    reporters.push(s0);
+  }
+  b.job('reporter', reporters[0], { shift: ['10:00', '19:00'], title: 'reporter', lines: ['I\'ve got the cat story. Front page? No? Page three.', 'Mayor\'s speech is eleven pages. We\'re running six.'] });
+  b.job('reporter', [reporters[5], reporters[2]], { shift: ['12:00', '22:00'], title: 'reporter', lines: ['I\'m covering the fireworks, then the presses. Then sleep, maybe.'] });
+  b.job('copy editor', reporters[3], { shift: ['14:00', '23:30'], title: 'copy editor' });
+  f.prop('newspaper_pile', 30, FH + 4, 38, 0, {}); f.prop('coat_rack', 4, FH + 1, 4, 0, {}); f.prop('office_water_cooler', W - 6, FH + 1, 4, 3, {}); f.prop('clock_wall', 40, FH + 10, 2.6, 2, {});
+  f.box(4, FH + 4, stZ - 2, 30, 7, 1, MAT.chalkboard);
+  f.text('SUNDAY 48 PP', 19, FH + 7, stZ - 3, MAT.blackboard_text, { align: 'center', font: 'small' });
+  // the editor's glass office in the front corner
+  const ed = { x0: W - 40, x1: W - 3, z0: 2, z1: 22 };
+  partitionX(f, ed.x0, ed.x1, FH + 1, ed.z1, FH - 1, MAT.wood_dark, [{ at: ed.x0 + 3, w: 4 }]);
+  partitionZ(f, ed.z0, ed.z1, FH + 1, ed.x0 - 1, FH - 1, MAT.wood_dark, []);
+  f.box(ed.x0 + 9, FH + 4, ed.z1, ed.x1 - ed.x0 - 12, 7, 1, MAT.glass); f.box(ed.x0 - 1, FH + 4, ed.z0 + 3, 1, 7, ed.z1 - ed.z0 - 6, MAT.glass);
+  const edR = b.room('Editor\'s Office', ed.x0, FH + 1, ed.z0, ed.x1 - ed.x0, FH - 1, ed.z1 - ed.z0, { lightMode: 'always' });
+  b.door(news, edR, ed.x0 + 5, FH + 1, ed.z1, { leaf: 'door_glass', tint: '#4a3a2a' });
+  f.prop('desk_rolltop', ed.x0 + 20, FH + 1, ed.z0 + 4, 2, {});
+  const editor = b.spot('sit', ed.x0 + 20, FH + 1, ed.z0 + 7.2, 2, { room: edR, act: 'write', tags: ['work'], seat: 0.46, lines: ['"CENTURY BY THE SEA." Don\'t you dare leak it.', 'Forty-eight pages and not a comma out of place. Not one.'] });
+  f.prop('chair_office', ed.x0 + 20, FH + 1, ed.z0 + 7.2, 2, {}); f.prop('typewriter', ed.x0 + 30, FH + 4, ed.z0 + 12, 1, {}); f.prop('table_side', ed.x0 + 30, FH + 1, ed.z0 + 12, 0, {});
+  f.prop('bookshelf', ed.x1 - 2, FH + 1, ed.z0 + 16, 3, {}); f.prop('ashtray_stand' in {} ? 'coat_rack' : 'coat_rack', ed.x0 + 2, FH + 1, ed.z0 + 2, 0, {});
+  b.job('editor', editor, { shift: ['9:00', '23:59'], title: 'editor of the Courier', sex: 'F' });
+  // the Sunday proofs pinned to the wall
+  f.box(ed.x0 + 6, FH + 5, ed.z1 - 1, 10, 7, 1, MAT.canvas_white);
+  f.box(ed.x0 + 7, FH + 10, ed.z1 - 2, 8, 1, 1, MAT.trim_black); f.box(ed.x0 + 7, FH + 8, ed.z1 - 2, 6, 1, 1, MAT.trim_black);
+  readH(b, ed.x0 + 11, FH + 8, ed.z1 - 2, 'Proof — Sunday Centennial Edition', '<div class="plaque"><h1>The Juniper Bay Courier</h1></div><p class="typed" style="text-align:center">SUNDAY, SEPTEMBER 27, 1953 · CENTENNIAL EDITION · 48 PAGES · 15¢<br><br><b style="font-size:1.6em;letter-spacing:0.05em">CENTURY BY THE SEA</b><br><i>Juniper Bay Marks Its Hundredth Year With Fair, Fireworks and a Letter to 2053</i><br><br>"A town is not its wharves, its steeples or its brick. It is a hundred years of people deciding, every morning, to stay." — from the Mayor\'s address<br><br>INSIDE: The Great Gale of 1867 · The Fire of 1902 · The Strike of 1934 · The Hurricane of 1938 · Our Honor Rolls · 212 Souls: The Families of 1853 · Harlow\'s at 75 · What the Capsule Holds<br><br><span style="color:#a33">(proof — A.L. — "Check spelling of Castellano on p. 12. Check it TWICE.")</span></p>', 2);
+  read(b, ed.x0 + 20, FH + 6, ed.z0 + 1, 'Photograph on the Editor\'s Wall', 'Four generations of Lowells on the Courier steps, 1946: old Josiah\'s grandson Edmund in his wheelchair, Ada holding the first copy she edited, her son Tom (now at the Globe), and a baby — her granddaughter, "the fifth Lowell, who will certainly be a reporter, because she has never once stopped asking questions."');
+  // wire room teletypes
+  for (let k = 0; k < 3; k++) { f.prop('table_card', 8 + k * 10, FH + 1, BD - 8, 0, {}); f.prop('typewriter', 8 + k * 10, FH + 4, BD - 8, 0, {}); }
+  b.spot('stand', 18, FH + 1, BD - 11, 2, { room: wire, act: 'read_stand', tags: ['work', 'newsroom'] });
+  read(b, 8, FH + 4, BD - 9, 'Teletype Tape', 'AP BOSTON 1247P — ... JUNIPER BAY MASS. CELEBRATES CENTENNIAL TODAY WITH FAIR AND FIREWORKS. TOWN FOUNDED 1853 BY SEA CAPT. ELIAS WHITCOMB ... MORE ...\nAP NEW YORK — YANKEES 6 RED SOX 3 (FINAL)\nAP WASHINGTON — PRESIDENT EISENHOWER SPENDS WEEKEND AT CAMP DAVID ...');
+  // composing room: linotypes along the front windows, the stone, the proof press
+  const linos = [];
+  for (let k = 0; k < 5; k++) {
+    const x = 14 + k * ((W - 40) / 4);
+    f.prop('linotype', x, 2 * FH + 1, 10, 2, {});
+    linos.push(b.spot('sit', x, 2 * FH + 1, 14, 0, { room: comp, act: 'type', tags: ['work', 'linotype'], seat: 0.55, label: 'Setting type on the Linotype', lines: ['Etaoin shrdlu.', 'Hot metal, hot room. Mind your elbows.'] }));
+    f.prop('stool_tall', x, 2 * FH + 1, 14, 0, {});
+  }
+  b.job('linotype', linos[0], { shift: ['10:00', '18:00'], title: 'linotype operator' });
+  b.job('linotype', linos[2], { shift: ['16:00', '23:59'], title: 'linotype operator' });
+  f.box(cx - 12, 2 * FH + 1, 30, 24, 4, 8, MAT.stainless);            // the imposing stone
+  b.spot('stand', cx, 2 * FH + 1, 27, 2, { room: comp, act: 'counter', tags: ['work', 'press'], label: 'Making up pages on the stone' });
+  b.job('compositor', b.spot('stand', cx + 6, 2 * FH + 1, 39, 0, { room: comp, act: 'counter', tags: ['work'] }), { shift: ['12:00', '23:30'], title: 'make-up man' });
+  for (let k = 0; k < 3; k++) f.prop('shelf_hardware', W - 8, 2 * FH + 1, 28 + k * 5, 3, {});
+  read(b, 14, 2 * FH + 5, 8, 'Wedding Announcement, in Type', 'A column of hot-metal type, locked in a galley on the Linotype\'s tray, read backwards:\n\nNOVAK–BRENNAN. Miss Helen Novak, daughter of Mr. and Mrs. Casimir Novak of Maple Street, will be married to Mr. Robert Brennan...\n\nA note taped to the galley: "Set by the groom. Proofed by the groom. Proofed again by the groom. — ETAOIN"');
+  // the morgue: bound volumes back to 1866
+  for (let k = 0; k < 5; k++) f.prop('bookshelf', 6 + k * 6, 2 * FH + 1, BD - 4, 0, {});
+  for (let k = 0; k < 3; k++) f.prop('filing_cabinet', 40 + k * 3, 2 * FH + 1, BD - 4, 0, {});
+  read(b, 12, 2 * FH + 4, BD - 5, 'Bound Volumes, 1866–1953', 'Eighty-seven years of the Courier, bound in red buckram.\n\nThe volume for 1934 falls open by itself at July 30: "STRIKE ENDS — NICKEL WON." The volume for 1938 is swollen and stained; it was on the bottom shelf the night of the hurricane.\n\nThe volume for 1945 has a dried rose pressed at V-J Day. Nobody will say who put it there.');
+  // stair core
+  const core = stairCore(b, stX, stZ, FH, 0, NF, { mat: MAT.wood_mid, wall: IN, doorSide: () => 'left' });
+  b.door(press, core.rooms[0], stX - 1, 1, stZ + 2, { axis: 'z', leaf: 'door_wood' });
+  b.door(wire, core.rooms[1], stX - 1, FH + 1, stZ + 2, { axis: 'z', leaf: 'door_wood' });
+  b.door(morgue, core.rooms[2], stX - 1, 2 * FH + 1, stZ + 2, { axis: 'z', leaf: 'door_wood' });
+  roofClutter(b, 4, 10, W - 20, BD - 4, H + 1, rng, { towerAt: [W * 0.3, BD * 0.6], vents: 3, skylights: 1 });
+  for (const e of b.entrances) linkToSidewalk(ctx, e.node);
+  return b;
+}
+
+// =====================================================================================================
+// UNION STATION (1889) — brick & granite head house with a clock tower, and the great arched train shed
+// =====================================================================================================
+function buildStation(ctx, lot, spec) {
+  const rng = ctx.rng.fork('station' + lot.x + ',' + lot.z);
+  const name = spec.name || 'Union Station';
+  const b = new Building(ctx, { name, kind: 'station', lot, address: lot.address, established: spec.est || 1889, hours: [T(5), T(24)],
+    lore: 'Opened 1889 by the Boston & Juniper Bay Railroad, with its great arched train shed. Four trains a day to Boston. The station clock, says stationmaster Otto Lindqvist, has not been wrong since 1911.' });
+  const f = b.f, W = lot.w, D = lot.d, cx = Math.round(W / 2);
+  const BR = MAT.brick_red, GR = MAT.granite, IN = MAT.plaster_cream;
+  // tracks: centre lines in local z. Track 1 lines up with the main line (rails at world z −979/−973 vox).
+  const oz = lot.z, trackZ1 = Math.round((oz + D) - (-976) - 0.5) - 1;           // local z of the rail pair centre
+  const T1 = Math.max(80, Math.min(D - 60, trackZ1));
+  const HZ0 = 20, HZ1 = T1 - 20;                        // head house z range
+  const P1 = [HZ1, T1 - 7], P2 = [T1 + 8, T1 + 26];     // platforms
+  const T2 = T1 + 33, T3 = T1 + 50;
+  const SZ1 = Math.min(D - 2, T3 + 18);                 // shed back wall
+  // ---- ground: forecourt, cab stand, the whole lot in gravel & ballast
+  f.box(0, -1, 0, W, 1, D, MAT.gravel);
+  f.box(0, -1, 0, W, 1, HZ0 + 2, MAT.sidewalk_brick);
+  f.box(cx - 70, -1, 0, 140, 1, HZ0, MAT.cobble);
+  // ---- tracks (full lot width): ballast, ties, rails
+  const track = (zc, x0 = 0, x1 = W) => {
+    f.box(x0, -1, zc - 12, x1 - x0, 1, 25, MAT.gravel);
+    for (let x = x0 + 1; x < x1; x += 3) f.box(x, -1, zc - 5, 1, 1, 11, MAT.rail_tie);
+    f.box(x0, 0, zc - 3, x1 - x0, 1, 1, MAT.rail_steel); f.box(x0, 0, zc + 3, x1 - x0, 1, 1, MAT.rail_steel);
+  };
+  const T1c = T1 + 0.5;
+  track(T1); track(T2, 24, W - 24); track(T3, 24, W - 24);
+  for (const [zc, x] of [[T2, 24], [T2, W - 25], [T3, 24], [T3, W - 25]]) { f.box(x, 0, zc - 5, 1, 3, 11, MAT.wood_dark); f.box(x + (x < cx ? -1 : 1), 1, zc - 5, 1, 1, 11, MAT.trim_red); }
+  // ---- platforms under the shed
+  const SX0 = 40, SX1 = W - 40;
+  f.box(SX0, 0, P1[0], SX1 - SX0, 1, P1[1] - P1[0], MAT.concrete);
+  f.box(SX0, 0, P2[0], SX1 - SX0, 1, P2[1] - P2[0], MAT.concrete);
+  f.box(SX0, 0, P1[1] - 1, SX1 - SX0, 1, 1, MAT.trim_white); f.box(SX0, 0, P2[0], SX1 - SX0, 1, 1, MAT.trim_white); f.box(SX0, 0, P2[1] - 1, SX1 - SX0, 1, 1, MAT.trim_white);
+  // barrow crossing from platform 1 to platform 2 at the east end
+  const BX = SX1 - 16;
+  f.box(BX, -1, P1[1], 8, 1, P2[0] - P1[1], MAT.dock_wood); f.box(BX, 0, P1[1], 8, 1, P2[0] - P1[1], MAT.dock_wood);
+  f.box(BX, 0, T1 - 3, 8, 1, 1, MAT.rail_steel); f.box(BX, 0, T1 + 3, 8, 1, 1, MAT.rail_steel);
+
+  // ---- head house: waiting room pavilion + wings + clock tower
+  const PX0 = cx - 50, PX1 = cx + 50, WX0 = cx - 92, WX1 = cx + 92;
+  const PH = 40, WH = 26, HD = HZ1 - HZ0;
+  shell(f, PX0, 0, HZ0, PX1 - PX0, PH, HD, BR, IN);
+  shell(f, WX0, 0, HZ0 + 4, PX0 - WX0 + 1, WH, HD - 4, BR, IN);
+  shell(f, PX1 - 1, 0, HZ0 + 4, WX1 - PX1 + 1, WH, HD - 4, BR, IN);
+  f.box(WX0 + 1, 0, HZ0 + 5, WX1 - WX0 - 2, 1, HD - 6, MAT.floor_terrazzo);
+  f.box(PX0 + 1, 0, HZ0 + 1, PX1 - PX0 - 2, 1, HD - 2, MAT.floor_bigcheck);
+  // granite base & belt courses, round-arched windows
+  f.walls(WX0 - 1, 0, HZ0 + 3, WX1 - WX0 + 2, 4, HD - 2, GR, 1);
+  f.walls(PX0 - 1, 0, HZ0 - 1, PX1 - PX0 + 2, 4, HD + 2, GR, 1);
+  f.walls(PX0 - 1, PH - 12, HZ0 - 1, PX1 - PX0 + 2, 1, HD + 2, GR, 1);
+  f.walls(WX0 - 1, WH - 6, HZ0 + 3, WX1 - WX0 + 2, 1, HD - 2, GR, 1);
+  for (const x of colsIn(WX0 + 4, PX0 - 4, 6, 12, 2).concat(colsIn(PX1 + 4, WX1 - 4, 6, 12, 2))) { f.archCarve(x, 4, HZ0 + 4, 6, 12, 2); f.archCarve(x, 4, HZ0 + 5, 6, 12, 1, MAT.glass); f.box(x - 1, 3, HZ0 + 3, 8, 1, 1, GR); }
+  for (const x of [PX0 + 6, PX0 + 22, PX1 - 32, PX1 - 16]) { f.archCarve(x, 6, HZ0, 10, 26, 2); f.archCarve(x, 6, HZ0 + 1, 10, 26, 1, MAT.glass); f.box(x + 4, 6, HZ0, 2, 18, 1, MAT.trim_dark); f.box(x - 1, 5, HZ0 - 1, 12, 1, 1, GR); }
+  // roofs: slate hips on the wings, a steep hip on the pavilion
+  f.hip(WX0 - 1, WH, HZ0 + 3, PX0 - WX0 + 2, HD - 2, MAT.roof_slate, { overhang: 1, rise: 1, fill: MAT.roof_slate });
+  f.hip(PX1 - 1, WH, HZ0 + 3, WX1 - PX1 + 2, HD - 2, MAT.roof_slate, { overhang: 1, rise: 1, fill: MAT.roof_slate });
+  f.gable(PX0 - 1, PH, HZ0 - 1, PX1 - PX0 + 2, HD + 2, MAT.roof_slate, { axis: 'x', overhang: 1, gableMat: BR });
+  // UNION STATION across the pavilion front, 1889
+  f.box(PX0 + 2, PH - 10, HZ0 - 1, PX1 - PX0 - 4, 8, 1, GR);
+  f.text('UNION STATION', cx, PH - 9, HZ0 - 2, MAT.trim_dark, { align: 'center', font: 'big' });
+  // clock tower on the Lantern Avenue axis, flush with the pavilion front
+  const TW = 24, tx0 = cx - TW / 2, TH = 96;
+  f.walls(tx0, 0, HZ0, TW, TH, TW, BR, 2);
+  f.walls(tx0 - 1, 0, HZ0 - 1, TW + 2, 5, TW + 2, GR, 1);
+  for (let yy = 8; yy < TH; yy += 22) f.walls(tx0 - 1, yy, HZ0 - 1, TW + 2, 1, TW + 2, GR, 1);
+  const tf = facesOf(f, tx0, HZ0, tx0 + TW, HZ0 + TW);
+  for (const side of ['front', 'back', 'left', 'right']) {
+    const face = tf[side];
+    clockFace(face.F, Math.round((face.a + face.b) / 2), TH - 12, face.zf, 8, {});
+    for (const dx of [-5, 2]) { const ax = Math.round((face.a + face.b) / 2) + dx; face.F.archCarve(ax, TH - 30, face.zf, 3, 8, 2); face.F.box(ax, TH - 30, face.zf + 1, 3, 8, 1, MAT.glass_dark); }
+  }
+  f.walls(tx0 - 2, TH, HZ0 - 2, TW + 4, 2, TW + 4, GR, 1);
+  const rh = f.hip(tx0 - 1, TH + 2, HZ0 - 1, TW + 2, TW + 2, MAT.roof_slate, { overhang: 0, rise: 2 });
+  f.box(cx, TH + 2 + rh, HZ0 + TW / 2, 1, 10, 1, MAT.iron); f.box(cx - 3, TH + 8 + rh, HZ0 + TW / 2, 7, 1, 1, MAT.iron);
+  f.sphere(cx + 0.5, TH + 13 + rh, HZ0 + TW / 2 + 0.5, 1.2, MAT.art_deco_gold);
+  b.light(cx, TH - 12, HZ0 - 3, { color: [1, 0.95, 0.8], radius: 10, mode: 'night' });
+  // the entrance: a great arch in the tower base, three doors
+  f.archCarve(tx0 + 4, 1, HZ0, TW - 8, 22, 2);
+  f.box(tx0 + 3, 0, HZ0 - 1, TW - 6, 1, 1, GR);
+  for (let k = 0; k < 5; k++) f.box(tx0 + 3 + k * 4, 19 + (k === 2 ? 3 : k === 1 || k === 3 ? 2 : 0), HZ0 - 1, 2, 2, 1, GR);
+  f.box(tx0 + 4, 12, HZ0 + 1, TW - 8, 8, 1, MAT.glass_stained_gold);
+  f.box(tx0 + 4, 1, HZ0 + 1, TW - 8, 11, 1, MAT.wood_dark);
+  for (const dx of [-6, 0, 6]) f.carve(cx + dx - 2, 1, HZ0 + 1, 4, 9, 1);
+  const vest = b.room('Vestibule', tx0 + 2, 1, HZ0 + 2, TW - 4, 20, TW - 4, { lightMode: 'always', lightColor: [1, 0.85, 0.6] });
+  for (const dx of [-6, 6]) b.entrance(vest, cx + dx, 1, HZ0, { outZ: HZ0 - 8, outY: 0, leaf: 'door_wood', tint: '#4a2a1a', main: dx === -6 });
+  b.entrance(vest, cx, 1, HZ0, { outZ: HZ0 - 8, outY: 0, leaf: 'door_wood', tint: '#4a2a1a', main: true });
+  f.carve(tx0 + 6, 1, HZ0 + TW - 2, TW - 12, 16, 2);
+  // porte-cochère canopy over the forecourt (clear of the doors)
+  for (const x of [cx - 40, cx + 40]) { f.box(x, 0, 2, 2, 16, 2, MAT.iron_green); }
+  f.box(cx - 42, 16, 1, 84, 1, HZ0 - 1, MAT.iron_green); f.box(cx - 42, 17, 1, 84, 1, HZ0 - 1, MAT.glass);
+  f.box(cx - 42, 16, 0, 84, 2, 1, MAT.iron_green);
+  for (let x = cx - 38; x < cx + 40; x += 12) f.box(x, 15, 3, 1, 1, HZ0 - 4, MAT.bulb_warm);
+  // forecourt furniture (kept clear of the doorway axis)
+  for (const x of [cx - 60, cx + 58]) { f.prop('car_taxi', x, 0, 8, 1, { tint: '#e0b030', cat: 'far' }); }
+  f.prop('flag_pole', cx - 34, 0, 4, 0, { cat: 'far' }); f.prop('flag_pole', cx + 34, 0, 4, 0, { cat: 'far' });
+  f.prop('bench_park', cx - 50, 0, HZ0 - 3, 0, {}); f.prop('bench_park', cx + 50, 0, HZ0 - 3, 0, {});
+  f.prop('luggage_cart', cx + 24, 0, HZ0 - 4, 1, {});
+  b.spot('stand', cx - 60, 0, 12, 1, { act: 'wait', tags: ['taxi'], lines: ['Taxi? Anywhere in town, thirty-five cents.'] });
+  cornerStone(b, f, PX0 + 4, 4, HZ0, 1889, 'UNION STATION\nBoston & Juniper Bay Railroad\nErected 1889 · Bradlee, Winslow & Wetherell, Architects\n\nThe first train into Juniper Bay arrived on July 4, 1872, fourteen minutes late. The town band played through all fourteen.');
+
+  // ---- waiting room
+  const wr = b.room('Waiting Room', PX0 + 2, 1, HZ0 + 2, PX1 - PX0 - 4, PH - 4, HD - 4, { lightMode: 'always', lightColor: [1, 0.86, 0.62], lightPower: 1.2, nav: [cx, HZ0 + TW + 8] });
+  b.door(vest, wr, cx, 1, HZ0 + TW - 1, { leaf: false, width: 10 });
+  f.box(PX0 + 2, PH - 3, HZ0 + 2, PX1 - PX0 - 4, 1, HD - 4, MAT.wood_panel_light);
+  for (let x = PX0 + 10; x < PX1 - 4; x += 12) f.box(x, PH - 4, HZ0 + 2, 1, 1, HD - 4, MAT.wood_dark);
+  for (const x of [cx - 30, cx + 30]) f.prop('chandelier', x, PH - 12, HZ0 + HD / 2, 0, {});
+  // benches: rows of back-to-back pairs
+  const benches = [];
+  for (const bx of [PX0 + 14, PX0 + 30, PX1 - 30, PX1 - 14]) for (const [bz, r] of [[HZ0 + TW + 6, 0], [HZ0 + TW + 9, 2]]) {
+    if (bz > HZ1 - 8) continue;
+    f.prop('bench_station', bx, 1, bz, r, {});
+    b.playerSeat(bx, 1, bz, r);
+    for (const dx of [-3.4, -1.1, 1.1, 3.4]) benches.push(b.spot('sit', bx + dx, 1, bz, r, { room: wr, act: rng.pick(['wait', 'read', 'sit', 'doze']), tags: ['station', 'waiting'], seat: 0.45, label: 'Waiting for a train' }));
+  }
+  // ticket windows on the west wall (the ticket office behind)
+  const TO = { x0: WX0 + 2, x1: PX0 - 1 };
+  const tix = [];
+  for (let k = 0; k < 3; k++) {
+    const tz = HZ0 + 10 + k * 8;
+    f.prop('ticket_window', PX0 + 1.8, 1, tz, 1, {});
+    f.carve(PX0, 4, tz - 1, 2, 4, 3); f.box(PX0 + 1, 4, tz - 1, 1, 4, 3, MAT.glass);
+    tix.push(b.spot('stand', PX0 - 2, 1, tz, 1, { act: 'counter', tags: ['clerk'], lines: ['Boston, round trip? Two dollars and ten cents.', 'The 4:52 is on time. It\'s always on time.'] }));
+    b.spot('stand', PX0 + 5, 1, tz, 3, { room: wr, act: 'wait', tags: ['shop', 'customer', 'station'] });
+  }
+  f.box(PX0 + 1, 10, HZ0 + 6, 1, 3, 26, MAT.sign_black);
+  // departure board & the big clock over the platform doors (back wall faces the hall)
+  const BZw = HZ1 - 2;
+  f.box(cx - 22, 14, BZw - 1, 44, 12, 1, MAT.sign_black);
+  f.box(cx - 23, 13, BZw - 1, 46, 1, 1, MAT.art_deco_gold); f.box(cx - 23, 26, BZw - 1, 46, 1, 1, MAT.art_deco_gold);
+  f.text('4:52 BOSTON - ON TIME', cx, 20, BZw - 2, MAT.sign_yellow, { align: 'center', font: 'small' });
+  f.text('6:15 PORTLAND - TRK 2', cx, 15, BZw - 2, MAT.sign_white, { align: 'center', font: 'small' });
+  f.prop('departure_board', cx - 30, 12, BZw - 1.5, 0, {});
+  clockFace(f, cx, 32, BZw, 5, {});
+  read(b, cx, 22, BZw - 2, 'Departure Board', 'BOSTON & JUNIPER BAY RAILROAD — DEPARTURES\n\n 6:40 a.m.  BOSTON (North Station) — Track 1 — DEPARTED\n11:05 a.m.  BOSTON — Track 1 — DEPARTED\n 4:52 p.m.  BOSTON — Track 1 — ON TIME\n 6:15 p.m.  PORTLAND, ME. (via Newburyport) — Track 2 — ON TIME\n\nARRIVALS\n 4:40 p.m.  from BOSTON — Track 1 — ON TIME\n\nCentennial Special: extra coaches added to the 4:52 for Harbor Days visitors.', 2.4);
+  read(b, cx + 8, 30, BZw - 1, 'The Station Clock', 'SETH THOMAS CLOCK CO. — REGULATOR No. 2, 1889\n\nA small brass plate under the dial, screwed on by the stationmaster himself:\n"This clock has not been wrong since 1911. — O. Lindqvist, Stationmaster"\n\n(In 1911 the railroad installed a telegraph time signal from the Naval Observatory. Mr. Lindqvist does not mention this.)', 2.4);
+  // doors to platform 1
+  for (const dx of [-30, 0, 30]) { f.carve(cx + dx - 3, 1, HZ1 - 2, 6, 10, 2); }
+  // newsstand in the hall
+  const nsx = PX1 - 12;
+  f.prop('counter_shop', nsx, 1, HZ0 + 8, 3, {}); f.prop('magazine_rack', nsx + 4, 1, HZ0 + 14, 3, {}); f.prop('newspaper_pile', nsx, 4, HZ0 + 8, 0, {}); f.prop('candy_jars', nsx, 4, HZ0 + 11, 0, {});
+  const nsc = b.spot('stand', nsx + 3, 1, HZ0 + 8, 3, { room: wr, act: 'counter', tags: ['clerk'], lines: ['Globe, Herald, Post — or the Courier, hometown news.', 'Life magazine, twenty cents. Marilyn Monroe on the cover — she\'s selling fast.'] });
+  b.job('news vendor', nsc, { shift: ['6:00', '19:00'], title: 'news vendor', outfit: 'shopkeeper' });
+  b.spot('stand', nsx - 3, 1, HZ0 + 8, 1, { room: wr, act: 'browse', tags: ['browse', 'shop'] });
+  read(b, PX0 + 6, 6, HZ1 - 3, 'Honor Roll', 'BOSTON & JUNIPER BAY RAILROAD EMPLOYEES WHO SERVED 1941–1945\n\nForty-one names in gilt. Three have gold stars:\nFireman Walter Kowalski · Brakeman James Duffy · Clerk Arthur Pease\n\nBelow, added in 1953 on a separate card: "Welcome home, Sal. — The 4:52 crew."');
+  read(b, cx - 12, 4, HZ0 + TW + 1, 'Notice', 'PASSENGERS ARE REQUESTED\nnot to spit on the floor, not to place parcels on the benches, and not to ask the stationmaster about the clock unless they have a quarter of an hour to spare.');
+
+  // ---- west wing: ticket office & stationmaster; east wing: lunch room
+  const tRoom = b.room('Ticket Office', TO.x0, 1, HZ0 + 6, TO.x1 - TO.x0, WH - 4, HD - 8, { lightMode: 'always' });
+  const lRoom = b.room('Station Lunch Room', PX1 + 1, 1, HZ0 + 6, WX1 - PX1 - 3, WH - 4, HD - 8, { lightMode: 'always', lightColor: [1, 0.9, 0.7] });
+  f.carve(PX0 - 1, 1, HZ1 - 12, 2, 9, 4); b.door(wr, tRoom, PX0 - 1, 1, HZ1 - 10, { axis: 'z', leaf: 'door_wood', tint: '#4a3a2a' });
+  f.carve(PX1 - 1, 1, HZ0 + 14, 2, 9, 6); b.door(wr, lRoom, PX1 - 1, 1, HZ0 + 17, { axis: 'z', leaf: false, width: 6 });
+  tix.forEach((s) => { s.room = tRoom; });
+  const smDesk = officeDesk(b, tRoom, TO.x0 + 12, 1, HZ1 - 12, 0, { desk: 'desk_rolltop', act: 'write' });
+  f.prop('telephone', TO.x0 + 20, 4, HZ1 - 12, 0, {}); f.prop('safe_small', TO.x0 + 3, 1, HZ0 + 9, 1, {}); f.prop('clock_wall', TO.x0 + 10, 9, HZ0 + 6.6, 2, {});
+  f.prop('radio_table', TO.x0 + 24, 1, HZ1 - 5, 0, {});
+  read(b, TO.x0 + 6, 5, HZ1 - 5, 'Stationmaster\'s Commission', 'BOSTON & JUNIPER BAY RAILROAD CO.\nOtto Lindqvist is hereby appointed Station Agent and Stationmaster at Juniper Bay, effective March 1, 1920.\n\nPinned beside it: a telegram, yellow with age — "CLOCK SLOW 2 SECONDS STOP PLEASE ADVISE STOP" — and his reply, framed: "CLOCK CORRECT STOP SUN SLOW STOP LINDQVIST."');
+  // platform spots for the stationmaster, conductor, porter
+  const plat = (x, z, rot, o = {}) => b.spot('stand', x, 1, z, rot, { act: 'stand', tags: o.tags || ['work'], ...o });
+  const shed = b.room('Train Shed', SX0, 1, HZ1, SX1 - SX0, 52, SZ1 - HZ1, { lightMode: 'night', ambient: 0.85, kind: 'shed', lightColor: [1, 0.85, 0.6], nav: [cx, (P1[0] + P1[1]) / 2] });
+  for (const dx of [-30, 0, 30]) b.door(wr, shed, cx + dx, 1, HZ1 - 1, { leaf: 'door_wood', tint: '#4a2a1a', width: 6 });
+  const sm1 = plat(cx - 8, P1[1] - 3, 2, { act: 'look', lines: ['The 4:52 is on time. It\'s always on time.', 'Clock hasn\'t been wrong since 1911. Not once.'] });
+  b.job('stationmaster', [smDesk, sm1], { shift: ['6:00', '18:30'], title: 'stationmaster', outfit: 'conductor' });
+  b.job('ticket clerk', tix, { shift: ['6:00', '19:00'], title: 'ticket clerk', outfit: 'clerk' });
+  const cond = plat(SX0 + 120, P1[1] - 2, 2, { act: 'wait', lines: ['Boooard! All aboard for Boston!', 'Watch your step, ma\'am — mind the gap.'] });
+  b.job('conductor', cond, { shift: ['15:30', '19:00'], title: 'conductor', outfit: 'conductor' });
+  const porter = plat(SX0 + 160, P1[0] + 4, 1, { act: 'carry', held: 'suitcase', lines: ['Carry your bags, sir?', 'The Whitcomb? Right across the street. I\'ll walk you over.'] });
+  b.job('porter', [porter, plat(cx + 20, P1[0] + 3, 2, { act: 'stand' })], { shift: ['8:00', '20:00'], title: 'redcap porter', outfit: 'bellhop' });
+  const bag = plat(TO.x0 + 4, P1[0] + 4, 2, { act: 'carry' });
+  b.job('baggage man', bag, { shift: ['7:00', '17:00'], title: 'baggage man', outfit: 'dock' });
+  // lunch room: counter with stools, booths
+  const LX0 = PX1 + 2, LX1 = WX1 - 3;
+  for (let x = LX0 + 4; x < LX1 - 4; x += 4) f.prop('diner_counter', x + 2, 1, HZ0 + 22, 0, {});
+  const lunch = [];
+  for (let x = LX0 + 5; x < LX1 - 4; x += 3.3) { f.prop('soda_stool', x, 1, HZ0 + 19.4, 2, {}); lunch.push(b.spot('sit', x, 1, HZ0 + 19.4, 2, { room: lRoom, act: 'eat', tags: ['eat_out'], seat: 0.7, label: 'Coffee at the station lunch room' })); b.playerSeat(x, 1, HZ0 + 19.4, 2, 0.7); }
+  f.prop('coffee_urn', LX0 + 4, 4, HZ0 + 22, 0, {}); f.prop('pie_display', LX1 - 6, 4, HZ0 + 22, 0, {}); f.prop('stove', LX0 + 8, 1, HZ0 + 29, 0, {}); f.prop('menu_board', (LX0 + LX1) / 2, 7, HZ0 + 30.5, 0, {});
+  const lcook = b.spot('stand', LX0 + 8, 1, HZ0 + 26, 2, { room: lRoom, act: 'cook', tags: ['work'] });
+  const lwait = b.spot('stand', (LX0 + LX1) / 2, 1, HZ0 + 25, 0, { room: lRoom, act: 'serve', tags: ['work'], lines: ['Coffee and a doughnut, fifteen cents. Train\'s not for an hour, hon.'] });
+  b.job('cook', lcook, { shift: ['5:30', '19:00'], outfit: 'cook', title: 'lunch-room cook' });
+  b.job('waitress', lwait, { shift: ['5:30', '19:00'], outfit: 'waitress', sex: 'F', title: 'lunch-room waitress' });
+  for (let k = 0; k < 2; k++) { const tx = LX0 + 8 + k * 14, tz = HZ0 + 10; f.prop('diner_booth', tx, 1, tz, 0, {}); lunch.push(b.spot('sit', tx - 1, 1, tz - 1.2, 2, { room: lRoom, act: 'eat', tags: ['eat_out'], seat: 0.45 })); lunch.push(b.spot('sit', tx + 1, 1, tz + 1.2, 0, { room: lRoom, act: 'eat', tags: ['eat_out'], seat: 0.45 })); }
+  f.carve(LX0 + 30, 1, HZ1 - 2, 4, 9, 2); b.door(lRoom, shed, LX0 + 32, 1, HZ1 - 1, { leaf: 'door_wood' });
+  f.carve(TO.x0 + 6, 1, HZ1 - 2, 4, 9, 2); b.door(tRoom, shed, TO.x0 + 8, 1, HZ1 - 1, { leaf: 'door_wood' });
+
+  // ---- the great arched train shed
+  const Rz0 = HZ1 - 2, Rz1 = SZ1, span = Rz1 - Rz0, R = span / 2, zc = Rz0 + R, spring = 10;
+  const yOut = (z) => { const d = z + 0.5 - zc; return d * d >= R * R ? 0 : Math.sqrt(R * R - d * d); };
+  // brick side wall along the back (north) with arched windows, up to the springing
+  f.box(SX0 - 8, 0, SZ1 - 2, SX1 - SX0 + 16, spring, 2, BR);
+  for (let x = SX0; x < SX1 - 8; x += 20) { f.archCarve(x + 6, 2, SZ1 - 2, 6, 7, 2); }
+  // ribs every 24 voxels: steel arches (run-length merged columns)
+  const ribX = [];
+  for (let x = SX0 - 6; x <= SX1 + 6; x += 24) ribX.push(x);
+  const ribCols = [];
+  for (let z = Rz0; z < Rz1; z++) { const yo = Math.floor(yOut(z)); const yi = Math.max(0, Math.floor(yOut(z) - 3)); ribCols.push([z, yi, yo]); }
+  const runs = [];
+  for (const [z, yi, yo] of ribCols) { const last = runs[runs.length - 1]; if (last && last.yi === yi && last.yo === yo) last.n++; else runs.push({ z, yi, yo, n: 1 }); }
+  for (const x of ribX) for (const r of runs) f.box(x, spring + r.yi, r.z, 2, Math.max(1, r.yo - r.yi + 1), r.n, MAT.iron);
+  for (const x of ribX) { f.box(x, 0, Rz1 - 3, 2, spring, 2, MAT.iron); f.box(x, 0, Rz0, 2, spring, 2, MAT.iron); }
+  // roof skin: slate on the flanks, a broad glazed band along the crown; stepped to close the slopes
+  let prev = null;
+  for (let z = Rz0; z < Rz1; z++) {
+    const yo = Math.floor(yOut(z)), yn = Math.floor(yOut(z < zc ? z - 1 : z + 1));
+    const y0 = Math.min(yo, Math.max(0, yn)), h = yo - y0 + 1;
+    const glass = Math.abs(z + 0.5 - zc) < R * 0.55;
+    f.box(SX0 - 8, spring + y0 + 1, z, SX1 - SX0 + 16, h, 1, glass ? MAT.glass : MAT.roof_slate);
+    prev = yo;
+  }
+  void prev;
+  // purlins & a lantern ridge
+  for (const dz of [-0.55, -0.3, 0, 0.3, 0.55]) { const z = Math.round(zc + dz * R); f.box(SX0 - 8, spring + Math.floor(yOut(z)), z, SX1 - SX0 + 16, 1, 1, MAT.iron); }
+  f.box(SX0 - 8, spring + Math.floor(R) + 1, Math.round(zc) - 3, SX1 - SX0 + 16, 3, 6, MAT.iron_green);
+  // glazed end screens down to the height of the trains
+  for (const x of [SX0 - 8, SX1 + 7]) {
+    for (let y = 22; y < spring + R; y += 1) { const hw = Math.sqrt(Math.max(0, R * R - (y - spring) * (y - spring))); if (hw < 2) continue; f.box(x, y, Math.round(zc - hw + 1), 1, 1, Math.round(2 * hw - 2), MAT.glass); }
+    f.box(x, 21, Rz0 + 2, 1, 1, span - 4, MAT.iron);
+    for (let z = Rz0 + 8; z < Rz1 - 6; z += 12) f.box(x, 22, z, 1, Math.floor(yOut(z)) + spring - 22, 1, MAT.iron);
+  }
+  b.light(cx, 40, zc, { color: [1, 0.85, 0.6], radius: 22, mode: 'night' });
+  b.light(cx - 120, 34, zc, { color: [1, 0.85, 0.6], radius: 18, mode: 'night' }); b.light(cx + 120, 34, zc, { color: [1, 0.85, 0.6], radius: 18, mode: 'night' });
+
+  // ---- the train at platform 1, heading west: locomotive, tender, two coaches
+  const trainY = 1, S8 = 4 / 8;              // prop units 1/8 m → voxels (0.25 m): 2 prop px per voxel
+  const loco = 124 * S8, tender = 74 * S8, coach = 148 * S8;
+  let tx = SX0 + 24;
+  f.prop('locomotive', tx + loco / 2, trainY, T1c, 3, { tint: '#26272b', cat: 'far' }); tx += loco + 1;
+  f.prop('coal_tender', tx + tender / 2, trainY, T1c, 3, { tint: '#26272b', cat: 'far' }); tx += tender + 1;
+  f.prop('passenger_car', tx + coach / 2, trainY, T1c, 3, { tint: '#2f4f3a', cat: 'far' }); const coach1 = tx; tx += coach + 1;
+  f.prop('passenger_car', tx + coach / 2, trainY, T1c, 3, { tint: '#2f4f3a', cat: 'far' }); tx += coach + 1;
+  f.prop('passenger_car', SX1 - 60, trainY, T2 + 0.5, 1, { tint: '#6a2a24', cat: 'far' });
+  f.prop('boxcar', W - 80, trainY, T3 + 0.5, 1, { tint: '#8a3a2a', cat: 'far' }); f.prop('boxcar', W - 80 - 50, trainY, T3 + 0.5, 1, { tint: '#6a5a3a', cat: 'far' });
+  b.light(SX0 + 26, 8, T1c, { color: [1, 0.9, 0.6], radius: 8, mode: 'night' });
+  read(b, SX0 + 50, 6, P1[1] - 1.5, 'Locomotive No. 3712', 'BOSTON & JUNIPER BAY R.R. No. 3712 — Pacific type (4-6-2), Baldwin, 1924.\nDriver: Walt Kowalczyk. Fireman: Eddie Ross.\n\nThe railroad has ordered diesels. The men who run 3712 have a pool going on how long she lasts. The stationmaster has put a dollar on "forever."');
+  // platform furniture
+  for (let x = SX0 + 20; x < SX1 - 20; x += 48) {
+    f.prop('bench_station', x, 1, P1[0] + 3, 2, {}); b.playerSeat(x, 1, P1[0] + 3, 2);
+    f.prop('bench_station', x + 24, 1, (P2[0] + P2[1]) / 2, 0, {});
+    f.prop('street_lamp', x + 12, 1, P1[0] + 1.5, 0, {}); f.prop('street_lamp', x + 12, 1, (P2[0] + P2[1]) / 2, 0, {});
+  }
+  f.prop('luggage_cart', SX0 + 100, 1, P1[0] + 5, 1, {}); f.prop('trunk', SX0 + 104, 1, P1[0] + 5, 1, {}); f.prop('suitcase', SX0 + 110, 1, P1[0] + 4, 2, {});
+  f.prop('sack_pile', SX1 - 40, 1, P2[0] + 6, 0, {}); f.prop('milk_bottles', SX1 - 46, 1, P2[0] + 5, 0, {}); f.prop('crate_stack', SX1 - 34, 1, P2[0] + 7, 0, {});
+  f.prop(textSignType('TRACK 1 - BOSTON', { bg: '#1d1d22', fg: '#f0ecdc', scale: 1 / 24 }), cx, 12, P1[0] + 1, 2, {});
+  f.prop(textSignType('TRACK 2 - PORTLAND', { bg: '#1d1d22', fg: '#f0ecdc', scale: 1 / 24 }), cx, 12, (P2[0] + P2[1]) / 2, 0, {});
+  // people waiting on the platforms: 'arrive' spots (the first also serves as the commuters' "out of town")
+  const arrive = [];
+  arrive.push(b.spot('stand', coach1 + 10, 1, P1[1] - 2.5, 2, { room: shed, act: 'wait', tags: ['arrive'], label: 'Meeting the train' }));
+  for (let k = 0; k < 9; k++) arrive.push(b.spot('stand', SX0 + 70 + k * 30 + rng.float(-4, 4), 1, P1[1] - 3 - (k % 2) * 3, 2, { room: shed, act: k % 3 === 0 ? 'look' : 'wait', tags: ['arrive'], label: 'Waiting on the platform' }));
+  for (let k = 0; k < 6; k++) arrive.push(b.spot('stand', SX0 + 90 + k * 40, 1, P2[0] + 3 + (k % 2) * 4, 0, { room: shed, act: 'wait', tags: ['arrive'], label: 'Waiting for the Portland train' }));
+  // nav along the platforms and across the barrow crossing
+  const p1a = b.navPoint(shed, SX0 + 20, 1, P1[0] + 5), p1b = b.navPoint(shed, SX1 - 20, 1, P1[0] + 5);
+  const cr1 = b.navPoint(shed, BX + 4, 1, P1[0] + 5), cr2 = b.navPoint(shed, BX + 4, 1, (P2[0] + P2[1]) / 2);
+  const p2a = b.navPoint(0, SX0 + 20, 1, (P2[0] + P2[1]) / 2), p2b = b.navPoint(0, SX1 - 20, 1, (P2[0] + P2[1]) / 2);
+  ctx.nav.chain([p1a, b.roomCenter(shed), cr1, p1b]); ctx.nav.link(cr1, cr2); ctx.nav.chain([p2a, cr2, p2b]);
+  for (const s0 of b.spots) if (s0.room === 0 || (s0.tags.includes('arrive') && s0.z !== undefined)) { /* linked via room node */ }
+  for (const s0 of arrive.slice(10)) ctx.nav.link(s0.node, p2a);
+  read(b, SX0 + 20, 5, P1[0] + 2, 'Enamel Sign', 'BOSTON & JUNIPER BAY RAILROAD\n\nDO NOT CROSS THE TRACKS.\nUse the barrow crossing at the east end, and only when the Station Agent says so.\n\nPenalty for walking on the tracks: $10 and a talking-to from Mr. Lindqvist.');
+  void GR; void IN;
+  for (const e of b.entrances) linkToSidewalk(ctx, e.node);
+  return b;
+}
+
+// =====================================================================================================
+// HARBOR CANNING CO. (est. 1899) — the whole block on the waterfront: brick works with a sawtooth roof,
+// a square smokestack with the name down its side, loading docks, the canning floor, boiler house, offices
+// =====================================================================================================
+function buildCannery(ctx, lot, spec) {
+  const rng = ctx.rng.fork('cannery' + lot.x + ',' + lot.z);
+  const name = spec.name || 'Harbor Canning Co.';
+  const b = new Building(ctx, { name, kind: 'cannery', lot, address: lot.address, established: spec.est || 1899, hours: [T(6), T(12)],
+    lore: 'Sardines, mackerel and the smell everyone pretends not to notice, since 1899. Still the town\'s biggest employer. In July 1934 its workers struck for nineteen days and won a nickel an hour.' });
+  const f = b.f, W = lot.w, D = lot.d, FH = 16;
+  const sides = streetSides(lot);
+  const BR = MAT.brick_red, BR2 = MAT.brick_dark, IN = MAT.plaster_white;
+  const FZ1 = 44, HZ1 = Math.min(D - 56, 184), BZ1 = D - 4;          // front block, canning hall, back buildings
+  f.box(0, -1, 0, W, 1, D, MAT.concrete);
+  // ---- the front block on Harbor Street: 3 storeys
+  const NF = 3, H = NF * FH;
+  shell(f, 0, 0, 0, W, H, FZ1, BR, IN);
+  for (let i = 0; i < NF; i++) slab(f, 1, i * FH, 1, W - 2, FZ1 - 2, i === 0 ? MAT.floor_concrete : MAT.wood_gray);
+  f.box(0, H, 0, W, 1, FZ1, MAT.roof_tar); f.walls(0, H + 1, 0, W, 3, FZ1, BR, 1);
+  const fcF = facesOf(f, 0, 0, W, FZ1);
+  for (const side of ['front', 'left', 'right']) {
+    const face = fcF[side];
+    const cols = colsIn(face.a, face.b, 5, 12, 4);
+    gridFacade(face, cols, 5, rowsFor(1, NF, FH, 4, 9), { wall: BR, inner: IN, sill: MAT.granite, sashMat: MAT.trim_green });
+    for (let yy = 4; yy < H; yy += FH) face.F.box(face.a, yy + 13, face.zf - 1, face.b - face.a, 1, 1, BR2);
+    for (const x of cols) face.F.archCarve(x - 1, 1 * FH + 12, face.zf - 1, 7, 3, 1, BR2);
+  }
+  // the name, big, and the year
+  f.text('HARBOR CANNING CO.', W / 2, H - 13, -1, MAT.sign_white, { align: 'center', scale: 2, font: 'big' });
+  f.box(W / 2 - 16, FH - 2, -1, 32, 3, 1, MAT.stone_foundation);
+  f.text('EST. 1899', W / 2, H + 5, 0, MAT.sign_white, { align: 'center', font: 'small' });
+  f.box(W / 2 - 18, H + 4, 1, 36, 7, 1, BR);
+  // ground floor: office door, four loading bays onto Harbor Street with a dock platform
+  const OX1 = 56;
+  f.carve(8, 1, 0, 4, 9, 2); f.box(7, 1, -1, 1, 10, 1, MAT.granite); f.box(12, 1, -1, 1, 10, 1, MAT.granite); f.box(7, 10, -1, 6, 1, 1, MAT.granite);
+  f.carve(20, 3, 0, 24, 7, 2); f.box(20, 3, 0, 24, 7, 1, MAT.glass);
+  const bays = colsIn(OX1 + 6, W - 6, 14, 34, 2);
+  for (const x of bays) {
+    f.carve(x, 1, 0, 14, 12, 2);
+    f.box(x - 1, 13, -1, 16, 1, 1, MAT.granite);
+    f.box(x, 12, 0, 14, 1, 1, MAT.wood_gray);
+    f.box(x, 11, 1, 14, 1, 1, MAT.iron);          // rolled-up door
+  }
+  f.box(OX1 + 2, 0, -8, W - OX1 - 4, 3, 8, MAT.concrete);            // loading dock
+  f.box(OX1 + 2, 3, -8, W - OX1 - 4, 1, 1, MAT.iron);
+  for (const x of bays) { f.carve(x + 3, 3, -8, 8, 1, 1); }
+  f.box(OX1 + 2, 0, -9, 1, 3, 9, MAT.wood_dark);
+  f.prop('truck_delivery', bays[0] + 7, 0, -20, 0, { tint: '#8a2a24', cat: 'far' });
+  for (let k = 0; k < 4; k++) f.prop(k % 2 ? 'fish_crate' : 'crate_stack', bays[1] + k * 4, 3, -4, 0, {});
+  f.prop('barrel_stack', bays[bays.length - 1] + 8, 3, -4, 0, {});
+  // the 1938 high-water line along the front
+  f.box(0, 7, -1, W, 1, 1, MAT.trim_dark);
+  f.text('HIGH WATER SEPT 21 1938', 30, 8, -1, MAT.trim_dark, { font: 'small' });
+  read(b, 34, 8, -1.5, 'High-Water Mark', 'Painted by the company carpenter on September 24, 1938, three days after the hurricane, at the height of the brown line the sea left on the bricks: six feet above the sidewalk.\n\nThat night the night watchman, Tadeusz Wojcik, rode out the storm on the third floor with the payroll in a tin box and the office cat in his coat. Both were fine. The cat lived to be nineteen.');
+  // ghost sign on the Mill Street side
+  if (sides.left) {
+    const L = f.faceFrame('left'), zf = LX(f, 0);
+    paint(L, 'JUNIPER BRAND SARDINES', LZ(f, FZ1 / 2 + 60), H - 16, zf, { scale: 1, mat: MAT.sign_cream, bg: MAT.sign_navy, pad: 3 });
+    paint(L, 'IN PURE OLIVE OIL - 10 CENTS', LZ(f, FZ1 / 2 + 60), H - 26, zf, { font: 'small', mat: MAT.sign_cream });
+  }
+  cornerStone(b, f, W - 14, 1, 0, 1899, 'HARBOR CANNING COMPANY\nIncorporated 1899\n\nJ. Whitcomb Crane, President · E. Dunmore Jr., Treasurer\n"From the Bay to Your Table"');
+
+  // ---- canning hall with a sawtooth roof (glazing faces north, toward Mill Street)
+  const HH = 26;
+  f.walls(0, 0, FZ1 - 1, W, HH, HZ1 - FZ1 + 1, BR, 1);
+  f.box(1, 0, FZ1, W - 2, 1, HZ1 - FZ1 - 1, MAT.floor_concrete);
+  const TWt = 20;
+  for (let x0 = 0; x0 < W; x0 += TWt) {
+    const w = Math.min(TWt, W - x0);
+    f.box(x0, HH, FZ1, 1, 10, HZ1 - FZ1, MAT.glass);                 // north-facing glazing
+    for (let k = 0; k < w / 2; k++) f.box(x0 + 1 + 2 * k, HH + 10 - k, FZ1, Math.min(2, w - 1 - 2 * k), 1, HZ1 - FZ1, MAT.roof_tar);
+    f.box(x0, HH, FZ1, 1, 1, HZ1 - FZ1, MAT.iron);
+  }
+  f.box(0, HH, HZ1 - 1, W, 11, 2, BR);                                 // parapet closing the teeth at the back
+  f.box(0, HH - 1, FZ1, W, 1, HZ1 - FZ1, MAT.iron);
+  f.carve(1, HH - 1, FZ1 + 1, W - 2, 1, HZ1 - FZ1 - 3);
+  for (let x = 10; x < W; x += TWt) f.box(x, 0, FZ1 + 1, 1, HH, 1, MAT.iron);
+  // side windows of the hall
+  const fcH = facesOf(f, 0, FZ1 - 1, W, HZ1);
+  for (const side of ['left', 'right']) { const face = fcH[side]; for (const x of colsIn(face.a + 4, face.b - 4, 6, 14, 2)) { face.F.archCarve(x, 6, face.zf, 6, 14, 1); face.F.archCarve(x, 6, face.zf, 6, 14, 1, MAT.glass); } }
+  // ---- back: warehouse and boiler house
+  const BHX0 = Math.round(W * 0.68);
+  shell(f, 0, 0, HZ1, BHX0, 24, BZ1 - HZ1, BR2, IN);
+  shell(f, BHX0 - 1, 0, HZ1, W - BHX0 + 1, 30, BZ1 - HZ1, BR, IN);
+  f.box(0, 24, HZ1, BHX0, 1, BZ1 - HZ1, MAT.roof_tar); f.box(BHX0 - 1, 30, HZ1, W - BHX0 + 1, 1, BZ1 - HZ1, MAT.roof_tar);
+  f.box(1, 0, HZ1 + 1, W - 2, 1, BZ1 - HZ1 - 2, MAT.floor_concrete);
+  const fcB = facesOf(f, 0, HZ1, W, BZ1);
+  gridFacade(fcB.back, colsIn(fcB.back.a, fcB.back.b, 5, 14, 6), 5, [{ y: 8, h: 9 }], { wall: BR2, inner: IN, sill: MAT.granite });
+  // truck doors onto the back street
+  for (const x of [20, 60]) { f.carve(x, 1, BZ1 - 2, 16, 13, 2); b.door(0, null, x + 8, 1, BZ1 - 1, { leaf: false }); }
+  f.prop('truck_delivery', 28, 0, BZ1 + 12, 2, { tint: '#2a4a6a', cat: 'far' });
+  // the smokestack
+  const sx = Math.round((BHX0 + W) / 2), sz = Math.round((HZ1 + BZ1) / 2);
+  const tiers = [[16, 0, 24], [14, 24, 70], [12, 94, 70]];
+  for (const [w, y0, h] of tiers) f.box(sx - w / 2, y0, sz - w / 2, w, h, w, BR);
+  f.box(sx - 8, 164, sz - 8, 16, 3, 16, BR2); f.box(sx - 7, 167, sz - 7, 14, 2, 14, MAT.iron);
+  f.carve(sx - 4, 160, sz - 4, 8, 9, 8);
+  for (let y = 40; y < 160; y += 30) f.walls(sx - 7, y, sz - 7, 14, 1, 14, MAT.iron, 1);
+  {
+    // HARBOR CANNING CO. painted down the west face (toward the harbour) and the north face
+    const Fr = f, zfr = sz - 7;
+    vtext(Fr, 'HARBOR', sx, 158, zfr - 0, MAT.sign_white, { gap: 1 });
+    vtext(Fr, 'CANNING', sx, 158 - 6 * 8 - 4, zfr - 0, MAT.sign_white, { gap: 1 });
+    const L = f.faceFrame('left');
+    vtext(L, 'HARBOR', LZ(f, sz), 158, LX(f, sx - 7), MAT.sign_white, { gap: 1 });
+    vtext(L, 'CANNING', LZ(f, sz), 158 - 6 * 8 - 4, LX(f, sx - 7), MAT.sign_white, { gap: 1 });
+    f.text('CO', sx, 158 - 13 * 8 - 10, zfr, MAT.sign_white, { align: 'center', font: 'big' });
+  }
+  b.light(sx, 170, sz, { color: [1, 0.2, 0.1], radius: 5, mode: 'night' });
+  f.box(sx - 1, 169, sz - 1, 2, 1, 2, MAT.traffic_red);
+
+  // ---- rooms
+  const office = b.room('Front Office', 2, 1, 2, OX1 - 3, FH - 1, FZ1 - 4, { lightMode: 'day', lightColor: [1, 0.92, 0.75] });
+  const recv = b.room('Receiving Room', OX1 + 1, 1, 2, W - OX1 - 3, FH - 1, FZ1 - 4, { lightMode: 'day', kind: 'industrial', ambient: 0.5 });
+  const hall = b.room('Canning Floor', 1, 1, FZ1, W - 2, HH + 8, HZ1 - FZ1 - 1, { lightMode: 'day', kind: 'industrial', ambient: 0.6, lightColor: [0.95, 0.97, 1] });
+  const wh = b.room('Warehouse', 1, 1, HZ1 + 1, BHX0 - 3, 22, BZ1 - HZ1 - 2, { lightMode: 'auto', kind: 'industrial' });
+  const boiler = b.room('Boiler Room', BHX0, 1, HZ1 + 1, W - BHX0 - 1, 28, BZ1 - HZ1 - 2, { lightMode: 'always', lightColor: [1, 0.6, 0.35], kind: 'industrial' });
+  partitionZ(f, 2, FZ1 - 2, 1, OX1, FH - 1, IN, [{ at: 20, w: 4 }]);
+  b.entrance(office, 10, 1, 0, { outZ: -6, outY: 0, leaf: 'door_wood', tint: '#2f4f3a', main: true });
+  bays.forEach((x, k) => { if (k < 2) b.entrance(recv, x + 7, 1, 0, { outZ: -12, outY: 0, leaf: false }); });
+  b.door(office, recv, OX1, 1, 22, { axis: 'z', leaf: 'door_wood' });
+  // openings between the front block, the hall and the back buildings
+  for (const x of [OX1 + 20, W - 40]) { f.carve(x, 1, FZ1 - 2, 10, 12, 2); b.door(recv, hall, x + 5, 1, FZ1 - 1, { leaf: false, width: 10 }); }
+  f.carve(30, 1, HZ1 - 1, 12, 12, 2); b.door(hall, wh, 36, 1, HZ1, { leaf: false, width: 12 });
+  f.carve(BHX0 + 10, 1, HZ1 - 1, 6, 10, 2); b.door(hall, boiler, BHX0 + 13, 1, HZ1, { leaf: 'door_wood', tint: '#4a4a4a' });
+  // canning lines: long conveyors along z with packing tables
+  const lines = [], workSpots = [];
+  const nLines = Math.max(2, Math.min(4, Math.floor(W / 50)));
+  for (let k = 0; k < nLines; k++) {
+    const lx = Math.round(W * (k + 1) / (nLines + 1));
+    const z0 = FZ1 + 12, z1 = HZ1 - 16;
+    f.box(lx - 1, 1, z0, 3, 3, z1 - z0, MAT.stainless);
+    f.box(lx - 1, 4, z0, 3, 1, z1 - z0, MAT.rubber_mat);
+    for (let z = z0; z < z1; z += 6) { f.box(lx - 2, 1, z, 1, 3, 1, MAT.iron); f.box(lx + 2, 1, z, 1, 3, 1, MAT.iron); }
+    f.box(lx - 7, 1, z0 + 4, 4, 3, z1 - z0 - 8, MAT.wood_gray); f.box(lx + 4, 1, z0 + 4, 4, 3, z1 - z0 - 8, MAT.wood_gray);
+    f.box(lx - 3, 1, z1, 7, 7, 8, MAT.steel);                        // the seamer at the end of the line
+    f.box(lx - 2, 8, z1 + 2, 5, 3, 4, MAT.iron);
+    for (let j = 0; j < 3; j++) { f.prop('fish_crate', lx - 10, 1, z0 + 10 + j * 22, 1, {}); f.prop('crate', lx + 10, 1, z0 + 14 + j * 22, 0, {}); }
+    lines.push(lx);
+    for (let j = 0; j < 4; j++) {
+      const zz = z0 + 10 + j * ((z1 - z0 - 20) / 3);
+      workSpots.push(b.spot('stand', lx - 5 - (j % 2 ? 0 : 0), 1, zz, 1, { room: hall, act: 'counter', tags: ['work', 'cannery'], label: 'Packing sardines', lines: ['Tails left, heads right, and don\'t let Novak see you slow down.', 'Half shift today — then the wedding!', 'You get used to the smell. Mostly.'] }));
+      workSpots.push(b.spot('stand', lx + 6, 1, zz + 3, 3, { room: hall, act: j % 2 ? 'carry' : 'counter', tags: ['work', 'cannery'], label: 'On the canning line' }));
+    }
+  }
+  // Saturday half-shift, 6 to noon
+  for (let k = 0; k < 6; k++) b.job('cannery hand', [workSpots[(k * 3) % workSpots.length], workSpots[(k * 3 + 1) % workSpots.length]], { shift: ['6:00', '12:00'], title: 'packer at Harbor Canning', act: k % 3 === 2 ? 'carry' : 'counter', sex: k % 2 ? 'F' : null });
+  const fore = b.spot('stand', lines[0] + 12, 1, FZ1 + 8, 2, { room: hall, act: 'look', tags: ['work'], lines: ['Line two, pick it up!', 'Mr. Novak\'s off today — his Helen\'s getting married. So I\'m the foreman. Heaven help us.'] });
+  b.job('shift foreman', fore, { shift: ['5:45', '12:15'], title: 'shift foreman', sex: 'M' });
+  f.prop('clock_wall', W / 2, 14, FZ1 + 0.6, 2, {});
+  // steam in the boiler room: two boilers, the coal pile, the firemen
+  for (const bx of [BHX0 + 10, BHX0 + 30]) { f.box(bx - 5, 1, HZ1 + 10, 10, 9, 20, MAT.iron); f.box(bx - 4, 10, HZ1 + 12, 8, 2, 16, MAT.rust); f.box(bx - 2, 2, HZ1 + 9, 4, 3, 1, MAT.fire); }
+  f.box(W - 14, 1, BZ1 - 18, 10, 5, 12, MAT.trim_black);
+  const fireman = b.spot('stand', BHX0 + 20, 1, HZ1 + 6, 2, { room: boiler, act: 'shovel', tags: ['work'], lines: ['Keep her at eighty pounds and she\'ll never give you trouble.'] });
+  b.job('boiler man', fireman, { shift: ['5:00', '13:00'], title: 'boiler tender', outfit: 'mechanic', sex: 'M' });
+  b.light(BHX0 + 20, 6, HZ1 + 8, { color: [1, 0.5, 0.2], radius: 7, mode: 'always' });
+  // warehouse: cases of cans stacked to the roof
+  for (let x = 8; x < BHX0 - 10; x += 12) for (let z = HZ1 + 8; z < BZ1 - 10; z += 12) f.prop(rng.chance(0.6) ? 'crate_stack' : 'cargo_pallet', x, 1, z, rng.int(0, 3), {});
+  f.prop('sack_pile', BHX0 - 12, 1, BZ1 - 8, 0, {});
+  b.job('warehouseman', b.spot('stand', 40, 1, HZ1 + 30, 1, { room: wh, act: 'carry', tags: ['work'] }), { shift: ['6:00', '12:00'], title: 'warehouseman', outfit: 'dock', sex: 'M' });
+  // receiving room: fish arriving from the piers
+  for (let k = 0; k < 5; k++) f.prop('fish_crate', OX1 + 12 + k * 10, 1, 12, 0, {});
+  f.prop('scale_grocery', OX1 + 30, 1, 24, 0, {}); f.box(OX1 + 40, 1, 24, 30, 3, 6, MAT.stainless);
+  b.job('receiving clerk', b.spot('stand', OX1 + 30, 1, 27, 0, { room: recv, act: 'write', tags: ['work'] }), { shift: ['6:00', '12:00'], title: 'receiving clerk', outfit: 'dock' });
+  // front office: the time clock and card racks, the framed 1934 front page, the paymaster's window
+  f.box(4, 4, FZ1 - 3, 3, 4, 1, MAT.steel); f.box(5, 6, FZ1 - 4, 1, 1, 1, MAT.clock_face);
+  f.prop('mail_slots', 10, 1, FZ1 - 3.2, 0, {}); f.prop('mail_slots', 16, 1, FZ1 - 3.2, 0, {});
+  read(b, 5, 6, FZ1 - 4, 'Time Clock & Card Rack', 'INTERNATIONAL TIME RECORDING CO., ENDICOTT, N.Y.\n\nPUNCH IN — PUNCH OUT. NO CARD, NO PAY.\n\nSaturday, Sept. 26: HALF SHIFT, 6 A.M. TO NOON.\nThe office will close at noon. Congratulations to Miss Helen Novak (bookkeeping) and Mr. Robert Brennan!\n\nCard No. 1 in the rack, faded and never removed, belongs to C. NOVAK — hired June 3, 1920.');
+  readH(b, 20, 7, 2.5, 'Framed Front Page, 1934', '<div class="plaque"><h1>The Juniper Bay Courier</h1></div><p class="typed" style="text-align:center"><b>Monday, July 30, 1934 · Three Cents</b><br><br><b style="font-size:1.4em">STRIKE ENDS — CANNERY WORKERS WIN NICKEL</b><br><i>Nineteen Days on the City Hall Steps; Company Agrees to 42¢ an Hour; All Hands Back Tuesday</i><br><br>"We stood together, and we stood on the steps, and we stood in the rain," said Casimir Novak, 29, of Maple Street, who spoke for the packers. "Tomorrow we go back to work, and we will pack the best sardines on this coast."<br><br>Mr. J. Whitcomb Crane, president of the company, said only: "The men and women of Harbor Canning have always been its greatest asset. I am glad we have agreed on what that is worth."</p><p style="text-align:center;font-style:italic">Framed and hung here, at the company\'s own expense, in 1935 — by order of Mr. Crane.</p>', 2);
+  for (let k = 0; k < 2; k++) officeDesk(b, office, 14 + k * 16, 1, 20, 0, { act: 'write' });
+  f.prop('safe_small', OX1 - 4, 1, 4, 3, {}); f.prop('filing_cabinet', OX1 - 3, 1, 12, 3, {}); f.prop('adding_machine', 14, 4, 20, 0, {});
+  const pay = b.spot('sit', 30, 1, 23.2, 0, { room: office, act: 'write', tags: ['work'], seat: 0.46, lines: ['Pay envelopes Friday. Today\'s a half day.'] });
+  b.job('paymaster', pay, { shift: ['6:00', '12:00'], title: 'paymaster', sex: 'M' });
+  read(b, 14, 5, 18, 'Nameplate on a Desk', 'MISS H. NOVAK — BOOKKEEPING\n\nThe desk is very tidy. On the blotter: a list in a neat hand — "flowers ✓ · veil ✓ · Aunt Zofia\'s train ✓ · RING — Robert has it (ask him again)". Beside it, a small box wrapped in white paper with a card: "From the girls on Line 2."');
+  // upstairs: can loft & labelling room, reached by a stair at the south end
+  const stX = W - 14, stZ = 4;
+  const loft1 = b.room('Label Room', 2, FH + 1, 2, W - 18, FH - 1, FZ1 - 4, { lightMode: 'auto', kind: 'industrial' });
+  const loft2 = b.room('Can Loft', 2, 2 * FH + 1, 2, W - 18, FH - 1, FZ1 - 4, { lightMode: 'auto', kind: 'industrial' });
+  for (let k = 0; k < 4; k++) { f.box(12 + k * 36, FH + 1, 14, 20, 3, 6, MAT.wood_gray); f.prop('sack_pile', 20 + k * 36, FH + 4, 16, 0, {}); }
+  for (let x = 8; x < W - 24; x += 14) f.prop('crate_stack', x, 2 * FH + 1, 20, 0, {});
+  read(b, 20, FH + 5, 14, 'Can Labels', 'Stacks of lithographed labels, still smelling of ink:\n\nJUNIPER BRAND — Fancy Maine Sardines in Pure Olive Oil\nHARBOR QUEEN — Mackerel in Tomato Sauce\nGULL ROCK — Kippered Herring\n\nOne label has been drawn on in crayon: a lighthouse, a boat, and "PAPA\'S FISH". It is pinned to the wall.');
+  const core = stairCore(b, stX, stZ, FH, 0, NF, { mat: MAT.wood_gray, wall: IN, doorSide: () => 'left' });
+  b.door(recv, core.rooms[0], stX - 1, 1, stZ + 2, { axis: 'z', leaf: 'door_wood' });
+  b.door(loft1, core.rooms[1], stX - 1, FH + 1, stZ + 2, { axis: 'z', leaf: 'door_wood' });
+  b.door(loft2, core.rooms[2], stX - 1, 2 * FH + 1, stZ + 2, { axis: 'z', leaf: 'door_wood' });
+  roofClutter(b, 4, 4, W - 20, FZ1 - 4, H + 1, rng, { towerAt: [W * 0.2, 20], vents: 2, skylights: 0, towerScale: 1.5 });
+  for (const e of b.entrances) linkToSidewalk(ctx, e.node);
+  return b;
+}

@@ -116,11 +116,13 @@ export class Game {
     }
     // ---- mesh the voxel world (workers)
     this.meshes = new WorldMeshes(ctx.world, R.scene, R.worldMat, R.glassMat);
+    if (this.params.get('lod') === '0') this.meshes.lodEnabled = false;
     this.status('Laying bricks…', 0.5);
     let nearReady;
     const near = new Promise((r) => { nearReady = r; });
     const all = this.meshes.build(this.player.focus(), (d, n) => this.status(d < n * 0.5 ? 'Laying bricks and hanging bunting…' : 'Polishing the brass on Old Faithful…', 0.5 + 0.5 * d / n), () => nearReady());
     await near;
+    await all;
     const ttris = this.terrain.build();
     console.log(`terrain: ${Math.round(ttris / 1000)}k tris, ${trees} trees`);
     this.meshPromise = all.then((s) => console.log(`world meshed: ${s.regions} regions, ${Math.round(s.tris / 1000)}k tris in ${Math.round(s.ms)} ms`));
@@ -258,6 +260,10 @@ export class Game {
     const comps = ctx.nav.components();
     const sizes = new Map(); for (const c of comps.comp) sizes.set(c, (sizes.get(c) || 0) + 1);
     const big = [...sizes.entries()].sort((a, b) => b[1] - a[1]);
+    let nan = 0; const nanKinds = new Map();
+    for (let i = 0; i < ctx.nav.count; i++) if (!Number.isFinite(ctx.nav.x[i] + ctx.nav.y[i] + ctx.nav.z[i])) { nan++; const inf = ctx.nav.info[i]; const b = ctx.buildings[inf.building]; const k = (inf.kind || '?') + ':' + (b ? b.name : '-'); nanKinds.set(k, (nanKinds.get(k) || 0) + 1); }
+    let badCost = 0; for (const a of ctx.nav.adj) for (const [, w] of a) if (!Number.isFinite(w)) badCost++;
+    out.push(`NaN nodes: ${nan} ${[...nanKinds.entries()].slice(0, 12).map(([k, v]) => k + '×' + v).join(' | ')} ; bad costs ${badCost}`);
     out.push(`nav: ${ctx.nav.count} nodes, ${comps.count} components; largest ${big[0] && big[0][1]}; next ${big.slice(1, 6).map((b) => b[1]).join(',')}`);
     const main = big[0][0];
     const offBuildings = new Set();
@@ -268,8 +274,25 @@ export class Game {
     const noSched = ctx.people.list.filter((p) => !p.schedule.length).length;
     const jobsOpen = ctx.jobs.filter((j) => !j.person).length;
     out.push(`people ${ctx.people.list.length}, no schedule ${noSched}, jobs ${ctx.jobs.length} (unfilled ${jobsOpen}), homes ${ctx.homes.length}, households ${(ctx.households || []).length}`);
-    let fails = 0; for (const p of ctx.people.list) for (let k = 0; k < p.schedule.length; k++) { const r = ctx.people._path(p, k); if (!r.nodes && p.schedule.length > 1) fails++; }
-    out.push('path failures: ' + fails);
+    let fails = 0; const why = new Map();
+    const node = (e) => e.route ? e.route[0] : e.spot ? e.spot.node : undefined;
+    for (const p of ctx.people.list) for (let k = 0; k < p.schedule.length; k++) {
+      const r = ctx.people._path(p, k);
+      if (r.nodes || p.schedule.length < 2) continue;
+      fails++;
+      const e = p.schedule[k], pr = p.schedule[(k - 1 + p.schedule.length) % p.schedule.length];
+      const a = pr.route ? pr.route[pr.route.length - 1] : pr.spot && pr.spot.node, b = node(e);
+      let reason;
+      if (a === b) { fails--; continue; }
+      if (a === undefined || a < 0) reason = 'bad-from:' + (pr.spot && pr.spot.building ? pr.spot.building.name : pr.spot && pr.spot.tags.join('/'));
+      else if (b === undefined || b < 0) reason = 'bad-to:' + (e.spot && e.spot.building ? e.spot.building.name : e.spot && e.spot.tags.join('/'));
+      else if (comps.comp[a] !== comps.comp[b]) reason = 'disconnected:' + (comps.comp[a] !== main ? (pr.spot && pr.spot.building ? pr.spot.building.name : 'from?') : (e.spot && e.spot.building ? e.spot.building.name : 'to?'));
+      else {
+        reason = 'astar-limit';
+      }
+      why.set(reason, (why.get(reason) || 0) + 1);
+    }
+    out.push('path failures: ' + fails + ' — ' + [...why.entries()].sort((x, y) => y[1] - x[1]).slice(0, 25).map(([k, v]) => `${k}×${v}`).join(' | '));
     console.log('[diag]\n' + out.join('\n'));
   }
 

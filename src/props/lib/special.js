@@ -24,8 +24,8 @@ export function streetSignType(a, b) {
       const bz0 = c - Math.floor((lb + 4) / 2);
       m.box(c - 1, 32, bz0, 3, 7, lb + 4, '#1f4a33');
       // text along z: draw pixel columns manually on both x faces
-      drawZ(m, b, c + 2, 33, bz0 + 2, '#f0ecdc', false);
-      drawZ(m, b, c - 2, 33, bz0 + 2 + lb - 1, '#f0ecdc', true);
+      drawZ(m, b, c + 2, 33, bz0 + 2 + lb - 1, '#f0ecdc', true);
+      drawZ(m, b, c - 2, 33, bz0 + 2, '#f0ecdc', false);
     },
   });
   return name;
