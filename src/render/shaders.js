@@ -343,6 +343,14 @@ void main() {
   float dist = length(vWorld - uCamPos);
   float em; int emode; float spec;
   vec3 albedo = matColor(int(vMat + 0.5), vWorld, n, dist, em, emode, spec);
+  // the underside of an indoor floor slab is a plaster ceiling, not floorboards
+  if (vRoom > 0.5 && n.y < -0.5) {
+    int pt = int(texelFetch(uMatTex, ivec2(int(vMat + 0.5), 1), 0).a * 255.0 + 0.5);
+    if (pt == 2 || pt == 3 || pt == 4 || pt == 8 || pt == 14 || pt == 18 || pt == 22 || pt == 25 || pt == 24) {
+      albedo = vec3(0.8, 0.77, 0.71) * (1.0 + (hash3i(ivec3(floor(vWorld / VSZ))) - 0.5) * 0.02);
+      spec = 0.0;
+    }
+  }
   float ao = vAO * vAO * (3.0 - 2.0 * vAO);
   vec3 col = applyLighting(albedo, n, vWorld, ao, vRoom, vShadow, spec, 1.0);
   col += emissiveColor(albedo, em, emode, vWorld, vRoom);

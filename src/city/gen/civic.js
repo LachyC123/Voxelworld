@@ -1944,9 +1944,10 @@ function buildSchool(ctx, lot, spec) {
   for (let t = 0; t < 4; t++) for (let z = gz0 + 10; z < gz1 - 10; z += 7) b.spot('sit', gx0 + 3.5 + t * 3, 1 + (t + 1) * 2, z, 1, { room: gym, act: t % 2 ? 'clap_sit' : 'talk_sit', tags: ['sockhop_bleachers'], seat: 0.05, label: 'On the bleachers at the Sock Hop' });
   // decorations
   const sw = gx1 - gx0 - 4;
-  f.box(gx1 - 3, 14, gz0 + 8, 1, 8, gz1 - gz0 - 16, MAT.sign_blue);
-  textFace(f, 3, 'CENTENNIAL SOCK HOP', gcz, 17, gx1 - 4, MAT.sign_yellow);
-  textFace(f, 3, 'CLASS OF 1954', gcz, 15.2 - 0.2, gx1 - 4, MAT.sign_white, { font: 'small' });
+  f.box(gx1 - 3, 13, gz0 + 4, 1, 17, gz1 - gz0 - 8, MAT.sign_blue);
+  f.box(gx1 - 3, 12, gz0 + 4, 1, 1, gz1 - gz0 - 8, MAT.sign_red); f.box(gx1 - 3, 30, gz0 + 4, 1, 1, gz1 - gz0 - 8, MAT.sign_red);
+  textFace(f, 3, 'CENTENNIAL', gcz, 23, gx1 - 4, MAT.sign_white, { font: 'small' });
+  textFace(f, 3, 'SOCK HOP', gcz, 14, gx1 - 4, MAT.sign_yellow, { font: 'big' });
   const hop = [MAT.sign_blue, MAT.sign_yellow, MAT.sign_white];
   for (let z = gz0 + 8; z < gz1 - 4; z += 16) bunting(f, [gx0 + 3, GH - 4, z], [gx1 - 3, GH - 4, z], 3, hop);
   for (let x = gx0 + 10; x < gx1 - 6; x += 18) bunting(f, [x, GH - 5, gz0 + 3], [x, GH - 5, gz1 - 3], 3, [MAT.sign_red, MAT.sign_white]);
