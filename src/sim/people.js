@@ -6,6 +6,13 @@ import { hash3 } from '../core/rng.js';
 import { tm } from '../core/util.js';
 
 const DAY = 1440;
+const BRIGHT = ['#e0403a', '#3a7ae0', '#e0c040', '#4ac06a', '#e070b0', '#f09030', '#9a5ae0'];
+function heldTint(name, p) {
+  if (name === 'balloon') return BRIGHT[p.id % BRIGHT.length];
+  if (name === 'handbag') return p.look.accent || p.look.top2 || '#6a3a2a';
+  if (name === 'umbrella') return ['#1c1c20', '#2a3a5a', '#6a2a2a', '#3a4a3a'][p.id % 4];
+  return p.look.top || '#8a6a4a';
+}
 
 export class Person {
   constructor(o) {
@@ -184,7 +191,7 @@ export class People {
       walkPose(P, S.dist * 2.3 / sc, 1, sc);
       P.x = S.x; P.y = S.y; P.z = S.z; P.yaw = S.yaw;
       const held = S.entry.held || p.carry || null;
-      this.chars.setHeld(p.ch, held);
+      this.chars.setHeld(p.ch, held, heldTint(held, p));
       if (held) { P.aRp = -0.25; }
     } else {
       const sp = S.spot;
@@ -197,7 +204,7 @@ export class People {
       P.x = x; P.y = S.y; P.z = z; P.yaw = yaw + (P.yawOffset || 0);
       if (a.song) P.song = true;
       const held = S.entry.held || a.held || null;
-      this.chars.setHeld(p.ch, held);
+      this.chars.setHeld(p.ch, held, heldTint(held, p));
       if (speaking && a.base !== 'sleep' && !a.song && P.mouth === 0) P.mouth = Math.sin(t * 13 + p.ph) > 0.1 ? 1 : 0;
     }
     // glance at the player when they pass close by
