@@ -1650,7 +1650,8 @@ function fenderBender() {
   const lq = person('Loretta', 'Quimby');
   const d1 = lq && avail(lq, t0 - 6, t1) ? lq : visitor({ first: 'Dorothy', last: 'Mayo', sex: 'F', age: 54, from: 'garage' });
   const farm = G.crews && G.crews.get('Farm') && G.crews.get('Farm')[0];
-  const d2 = farm && L.free(farm, t0 - 6, t1 + 2) ? farm : visitor({ first: 'Lyman', last: 'Whitaker', sex: 'M', age: 57, outfit: 'farmer', from: 'garage' });
+  // (if Lyman Whitaker is busy with his apples, it's his neighbour's pickup instead — never two Lymans)
+  const d2 = farm && L.free(farm, t0 - 6, t1 + 2) ? farm : visitor(farm ? { first: 'Harlan', last: 'Tuttle', sex: 'M', age: 61, outfit: 'farmer', from: 'garage' } : { first: 'Lyman', last: 'Whitaker', sex: 'M', age: 57, outfit: 'farmer', from: 'garage' });
   const q1 = P.at(-6.8, 3.2), q2 = P.at(-8.6, 3.0);
   const s1 = spot(q1.x, q1.z, { faceTo: [q2.x, q2.z], act: 'talk' }), s2 = spot(q2.x, q2.z, { faceTo: [q1.x, q1.z], act: 'talk' });
   put(d1, t0, t1, s1, { act: 'talk', label: 'Having it out after a fender-bender on Canal Street', early: 0 });
