@@ -623,7 +623,7 @@ function fKitchen(H, R, o = {}) {
   }
   R.hangAny('clock_wall', ['front', 'right', 'left'], 7.5, { w: 2 });
   if (o.baby) R.wall('highchair', ['right', 'front'], [0.5, 0.3]);
-  if (rng.chance(0.4)) R.wall('wall_telephone', ['front', 'right'], [0.5, 0.2], { fp: [1.2, 0.6] });
+  if (rng.chance(0.4)) R.hangAny('wall_telephone', ['front', 'right', 'left'], 5, { w: 1.5 });
   R.prop('ceiling_lamp', R.U / 2, R.V / 2, 0, {}, R.h - 2);
   return { spots, cook: spots.filter((s) => s.act === 'cook' || s.act === 'wash'), seats: spots.filter((s) => s.tags.includes('kitchen_table')) };
 }
@@ -1959,7 +1959,7 @@ function whitcombExhibit(H, R) {
   if (fh) readAt(R, fh.u, fh.v, 5, docLetter('Figurehead of the JUNIPER', 'Carved pine, painted: a woman holding a sprig of juniper. She rode the bow of Captain Whitcomb\'s schooner from 1846 until the vessel was broken up at Whitcomb\'s wharf in 1874. Found in a barn on Orchard Street in 1931 and restored by the Society. The Pruitt family would like it known that it was their barn.'), 'Read the card');
   const smc = R.wall('ship_model_case', ['front', 'left', 'right'], [0.3, 0.7]);
   if (smc) readAt(R, smc.u, smc.v, 4, docLetter('Model: the Schooner MARY ELLEN', 'Built by her mate\'s son, 1870, from memory. The MARY ELLEN was lost with all eleven hands on Gannet Ledge in the Great Gale of 1867. Her widows raised the memorial stone on the quay by public subscription in 1869.\n\nTHE ELEVEN: Capt. Jonas Lathrop · Amos Pike · William Pike · Thomas Doane · Nathaniel Coffin Jr. · Patrick Fahey · Ebenezer Snow · Henry Beal · Samuel Dunmore · John Hatch · Asa Whitcomb, aged 15.'), 'Read the card');
-  R.wall('harpoons_rack', ['front', 'back', 'left', 'right'], [0.8, 0.2]);
+  R.hangAny('harpoons_rack', ['front', 'back', 'left', 'right'], 6, { w: 10.5 }, [0.5, 0.3, 0.7]);
   R.hangAny('ships_wheel_wall', ['back', 'front'], 5, { w: 4 });
   readHung(R, 'portrait', ['back', 'left', 'right'], 6.5, docLetter('Portrait: Captain Elias Whitcomb', 'CAPTAIN ELIAS WHITCOMB (1809–1889)\nMaster of the schooner JUNIPER · Founder of Juniper Bay · First Selectman 1853–1861\n\nPainted in Boston in 1862. He built the first wharf, the salt house, the chapel and (his granddaughter always added) the first argument at town meeting. He is buried on Juniper Hill, facing the harbor, at his own insistence.'), { w: 2.5 });
   readHung(R, 'painting', ['left', 'right', 'front', 'back'], 6.5, docLetter('The Town Charter, 1853', 'A framed copy of the charter: "...granted by the General Court of the Commonwealth of Massachusetts this Fourth day of March, 1853, unto the two hundred and twelve inhabitants of the cove called Juniper Bay..."\n\nSigned by the first selectmen: Elias Whitcomb, Josiah Pike, Ezra Dunmore. Motto added in 1868, when the Light was lit: STEADFAST IN FAIR WEATHER AND FOUL.'), { po: { tint: '#e8dcb8' }, w: 4 });
@@ -2857,7 +2857,7 @@ function buildFlat(H, q) {
   // documents
   if (q.superFlat) {
     readAt(Rf, Rf.U / 2, Rf.V / 2, 3, docList('Super\'s Work List', 'J. Kowalczyk — Saturday', ['3C — radiator knocking AGAIN', '2B — Mrs. Tremblay\'s faucet (washer)', 'Sweep the roof for tonight — fireworks', 'Brass on the mailboxes', 'Ash cans out by 7', 'Tell 4A no more pigeons on the fire escape']), 'Read the work list');
-    Rf.wall('tools_wall', ['left', 'right', 'back'], [0.3]);
+    Rf.hangAny('tools_wall', ['left', 'right', 'back'], 5, { w: 5 });
   } else if (rng.chance(0.5)) readAt(Rl, Rl.U / 2, Rl.V / 2, 2, rng.pick([DOC.courier(), DOC.postcard(rng), DOC.navyLetter(rng), DOC.programme(), DOC.weddingPhoto(rng)]));
   const home = {
     family: fam, beds: [...bd.beds, ...extraBeds], dine: dn2.seats.length ? dn2.seats : K.seats, lounge: [...lv.lounge, ...(bd.seat ? [bd.seat] : [])], kitchen: K.cook.length ? K.cook : [Rk.spot('stand', Rk.U / 2, 3, 0, { act: 'cook', tags: ['cook'] })],

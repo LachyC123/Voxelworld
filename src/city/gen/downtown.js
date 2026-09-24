@@ -742,7 +742,7 @@ function buildTower(ctx, lot, spec) {
     ];
     elevatorBank(b, cars, elZ, FH, NF, (k) => stops[k].map((i) => ({ i, label: lab(i) })), (i) => RM[i], {});
     // the starter's podium in the lobby
-    f.prop('lectern', cars[1] - 6, 1, elZ - 4, 0, {});
+    f.prop('lectern', cars[0] - 9, 1, elZ - 3, 0, {});
   }
 
   // ---- crown & WJBY mast
@@ -2489,6 +2489,7 @@ function buildStation(ctx, lot, spec) {
   // ---- waiting room
   const wr = b.room('Waiting Room', PX0 + 2, 1, HZ0 + 2, PX1 - PX0 - 4, PH - 4, HD - 4, { lightMode: 'always', lightColor: [1, 0.86, 0.62], lightPower: 1.2, nav: [cx, HZ0 + TW + 8] });
   b.door(vest, wr, cx, 1, HZ0 + TW - 1, { leaf: false, width: 10 });
+  f.walls(PX0 + 1, 1, HZ0 + 1, PX1 - PX0 - 2, 5, HD - 2, MAT.wood_panel, 1); f.walls(PX0 + 1, 6, HZ0 + 1, PX1 - PX0 - 2, 1, HD - 2, MAT.wood_dark, 1);
   f.box(PX0 + 2, PH - 3, HZ0 + 2, PX1 - PX0 - 4, 1, HD - 4, MAT.wood_panel_light);
   for (let x = PX0 + 10; x < PX1 - 4; x += 12) f.box(x, PH - 4, HZ0 + 2, 1, 1, HD - 4, MAT.wood_dark);
   for (const x of [cx - 30, cx + 30]) f.prop('chandelier', x, PH - 12, HZ0 + HD / 2, 0, {});

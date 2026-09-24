@@ -1820,10 +1820,11 @@ function classroom(b, r, rng, board) {
   // chalkboard on the left (x0) wall, desks face -x (rot 3)
   f.box(r.x0, y + 3, r.z0 + 2, 1, 6, d - 4, MAT.chalkboard);
   f.box(r.x0, y + 2, r.z0 + 2, 1, 1, d - 4, MAT.wood_mid);
-  const F = faceF(f, 1);
-  // board text faces +x
-  (board || []).forEach((line, k) => textFace(f, 1, line, r.z0 + d / 2, y + 7 - k * 2.2 - 1, r.x0 + 1, MAT.blackboard_text, { font: 'small' }));
-  void F;
+  // chalk writing: prop-scale lettering on the board, plus half-erased chalk strokes in the slate itself
+  (board || []).forEach((line, k) => signLine(b, line, r.x0 + 1.03, y + 7.4 - k * 1.25, r.z0 + d / 2, 1, { bg: '#2f4a3a', fg: '#e8e8e0', border: '#2f4a3a', scale: 0.5 }));
+  f.box(r.x0, y + 4, r.z0 + 3, 1, 1, 4, MAT.blackboard_text); f.box(r.x0, y + 4, r.z1 - 8, 1, 1, 5, MAT.blackboard_text);
+  f.box(r.x0, y + 3, r.z0 + 4, 1, 1, 2, MAT.blackboard_text);
+  readAt(b, r.x0 + 1, y + 5, r.z0 + d / 2, 1, 'Chalkboard', (board || []).join('\n') + '\n\n(In the corner, small, in a different hand: "Mr. W. is a square." Half erased.)', 2.6);
   b.prop('desk_teacher', r.x0 + 5, y, r.z0 + d / 2, 1, {});
   b.prop('chair_wood', r.x0 + 2.8, y, r.z0 + d / 2, 1, {});
   const teach = b.spot('stand', r.x0 + 3, y, r.z0 + d / 2 - 3, 1, { room: r.id, act: 'teach', tags: ['teacher'] });
@@ -2029,7 +2030,7 @@ function buildHospital(ctx, lot, spec) {
     skipFrontWin: (wx, i) => i === 0 && wx > cx - 14 && wx < cx + 10,
     plan: (i) => ({
       front: { bounds: bf, names: plan[i].front, opts: [{ doorW: 6, leaf: false }, {}, { doorW: 10, leaf: false }, { doorW: 6, leaf: false }, {}] },
-      back: { bounds: bb, names: plan[i].back, opts: [{ doorW: 8, leaf: false }, {}, i === 2 ? { doorW: 4 } : {}, {}, {}] },
+      back: { bounds: bb, names: plan[i].back, opts: [{ doorW: 8, leaf: false }, {}, i === 2 ? { doorW: 4, doorX: bb[2] + 2 } : {}, {}, {}] },
     }),
     corrName: (i) => i === 0 ? 'Main Corridor' : `Floor ${i + 1} Corridor`,
   });
@@ -2132,7 +2133,8 @@ function buildHospital(ctx, lot, spec) {
   b.prop('exam_table', dr.cx, dr.y, dr.cz, 1, {}); b.prop('bassinet', dr.x1 - 3, dr.y, dr.z0 + 3, 3, {});
   const doc1 = b.spot('stand', dr.cx - 3, dr.y, dr.cz, 1, { room: dr.id, act: 'exam', tags: ['doctor'] });
   const nur = R2.Nursery;
-  f.box(nur.x0 + 1, nur.y + 2, 57, nur.x1 - nur.x0 - 2, 6, 1, MAT.glass);    // the viewing window onto the corridor
+  f.box(nur.x0 + 5, nur.y + 2, 58, nur.x1 - nur.x0 - 8, 6, 1, MAT.glass);    // the viewing window onto the corridor
+  f.box(nur.x0 + 5, nur.y + 1, 57, nur.x1 - nur.x0 - 8, 1, 1, MAT.wood_mid);
   f.box(nur.x0, nur.y - 1, nur.z0, nur.x1 - nur.x0, 1, nur.z1 - nur.z0, MAT.tile_pink);
   for (let q = 0; q < 6; q++) b.prop('bassinet', nur.x0 + 5 + q * ((nur.x1 - nur.x0 - 8) / 6), nur.y, nur.z0 + 3 + (q % 2) * 5, 0, { tint: q % 2 ? '#a8c8e8' : '#f0c0c8' });
   b.prop('rocking_chair', nur.x1 - 3, nur.y, nur.z1 - 3, 3, {});

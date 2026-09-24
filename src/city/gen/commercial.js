@@ -1941,7 +1941,8 @@ TRADES.drugstore = {
     vCounter(S, S.doorX - 7, 6, 5, 3, { base: MAT.wood_dark, top: MAT.glass }); P(S, 'cash_register', S.doorX - 5, 5, 7.5, 0);
     const cash = stand(S, S.doorX - 4.5, 11, 0, 'counter', ['work']);
     P(S, 'phone_booth', S.X1 - 3, 1, pz - 4, 3);
-    f.box((fx + 6 + X1 - 4) / 2 | 0, 1, 30, 2, 6, 2, MAT.enamel_white); f.box(((fx + 6 + X1 - 4) / 2 | 0), 7, 30, 2, 2, 1, MAT.clock_face);
+    const psx = (fx + 6 + X1 - 4) / 2 | 0;
+    f.box(psx, 1, 30, 2, 1, 2, MAT.enamel_white); f.box(psx, 2, 31, 2, 4, 1, MAT.enamel_white); f.box(psx, 6, 31, 2, 2, 1, MAT.clock_face);
     shopLamps(S, 'ceiling_lamp', 4);
     job(S, 'pharmacist', [rx], ['9:00', '18:00'], { outfit: 'doctor', title: 'pharmacist', name: 'Theodore Mayhew' });
     job(S, 'soda jerk', [jerk1, jerk2], ['10:00', '21:00'], { outfit: 'cook', title: 'soda jerk', age: [16, 24] });

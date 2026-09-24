@@ -99,7 +99,7 @@ export const HOUSEHOLDS = [
           "That Flanagan girl wrote my Salvatore every week he was gone. Every week! Irish, yes. But every week.",
           "My strawberry-rhubarb is in the pie contest. I don't care if I win. I care if Mildred Hatch's lemon meringue loses.",
         ] },
-      { first: 'Sal', nick: 'Sal Jr.', age: 24, sex: 'M', role: 'soldier', outfit: 'soldier', tags: ['veteran'], look: lk(SK.olive, HC.black, FC.plain, HS.buzz),
+      { first: 'Salvatore', nick: 'Sal Jr.', age: 24, sex: 'M', role: 'soldier', outfit: 'soldier', tags: ['veteran'], look: lk(SK.olive, HC.black, FC.plain, HS.buzz),
         bio: "Private First Class Salvatore Castellano Jr., 24, 7th Infantry Division. Home from Korea since Tuesday on the 4:52 from Boston — the last of the fourteen Juniper Bay boys who served there to come home, and all fourteen did. In the fourth grade he planted the third maple from the corner on Elm Street, after the '38 hurricane took the elms. It is taller than he is now. He doesn't say much about the war, and nobody makes him.",
         lines: [
           "It's quiet here. I forgot how quiet.",
@@ -315,6 +315,14 @@ export const HOUSEHOLDS = [
           "I'm going to the sock hop. Alone. Everybody goes alone. Then you just — end up somewhere. Near somebody.",
           "Mr. Kowalski says a stock boy who whistles is a stock boy who's thinking about a girl. I don't whistle. Much.",
           "My brother Joe would've been an uncle today. He's on the board at City Hall. Stan doesn't talk about it. I think about it every time I see the flag.",
+        ] },
+      { first: 'Rita', last: 'Wojcik', age: 21, sex: 'F', job: { building: 'Harbor Canning Co.', role: 'packer' }, look: lk(SK.fair, HC.blonde, FC.lashes, HS.curly),
+        bio: "Rita Wojcik, 21, labeler at Harbor Canning Co., maid of honor to Helen Novak at two o'clock and — any minute now — aunt to her sister Carol Kaminski's first child. Lives with Carol and Stan, and has been running between St. Brigid's and St. Luke's all day in satin shoes.",
+        lines: [
+          "My sister's having a baby and my best friend's getting married on the same afternoon. I'm going to need a nap until 1954.",
+          "Maid of honor at two, then straight to St. Luke's. In these shoes. I may have to be carried.",
+          "Helen and I labeled sardine tins side by side since we were sixteen. Now she's a bride and I'm still labeling. Don't cry, Rita. Don't cry.",
+          "Grandma Wojcik came in 1908 with a feather bed and a crucifix. If it's a girl, Carol's calling her Rose, after her. I'm already crying.",
         ] },
     ],
   },
@@ -634,8 +642,8 @@ export const NOTABLES = [
       "Skippy Mercer ran my whole route with me Thursday. Just ran it. Didn't carry anything. Just ran.",
     ] },
   // ------------------------------------------------------------------ the Garritys (St. Brigid's, the hardware store)
-  { first: 'Francis', last: 'Garrity', own: true, age: 63, sex: 'M', title: 'Father', role: 'clergy', outfit: 'clergy', home: { name: "St. Brigid's Rectory & Parish Hall" }, job: { building: "St. Brigid's Church", role: 'priest' }, look: lk(SK.fair, HC.white, FC.glasses, HS.short),
-    bio: "Father Francis X. Garrity, 63, pastor of St. Brigid's since 1931. Grew up in the rooms over his father's hardware store on Canal Street; his brother Tom runs it now. Blesses the fleet every June, hears confessions every Saturday at four, and marries Helen Novak and Robert Brennan at two today. Plays checkers with the Reverend Ashby on Tuesdays. Judged the 1949 pie contest, swore never again, and has been talked into judging today by Mrs. Pemberton.",
+  { first: 'Francis', last: 'Garrity', age: 63, sex: 'M', title: 'Father', role: 'clergy', outfit: 'clergy', job: { building: "St. Brigid's Church", role: 'priest' }, look: lk(SK.fair, HC.white, FC.glasses, HS.short),
+    bio: "Father Francis X. Garrity, 63, pastor of St. Brigid's since 1931. Grew up in the rooms over his father's hardware store on Canal Street, and since the rectory roof began leaking in August — the Blessing of the Fleet raised $412.60 toward a new one — has been sleeping in his boyhood room there again, under his brother Tom's roof and his sister-in-law Kathleen's rules. Blesses the fleet every June, hears confessions every Saturday at four, and marries Helen Novak and Robert Brennan at two today. Plays checkers with the Reverend Ashby on Tuesdays. Judged the 1949 pie contest, swore never again, and has been talked into judging today by Mrs. Pemberton.",
     lines: [
       "A wedding at two, confessions at four, and the Castellanos have invited me to supper. God is good.",
       "I judged the pie contest in 1949 and swore never again. Mrs. Pemberton asked. Nobody refuses Mrs. Pemberton. Pray for me.",
@@ -643,6 +651,7 @@ export const NOTABLES = [
       "My brother Tom swears the Halloran boy was out at home. I was there. He was safe. Tom says I need spectacles. I say Tom needs confession.",
       "The bell came from Troy in 1884. It rang for an hour on V-J Day, till the rope broke. It rings at three today for Helen and Robert. We've a new rope.",
       "Every June I bless the fleet. Three Castellano boats and a hundred others. I pray they need it less than I fear.",
+      "The rectory roof leaks, so I'm back in my boyhood room over Tom's store till the new roof's on. Kathleen makes me wipe my feet. Sixty-three years old and a priest, and I wipe my feet.",
     ] },
   { first: 'Tom', last: 'Garrity', age: 60, sex: 'M', role: 'shopkeeper', home: { name: 'Garrity Hardware' }, job: { building: 'Garrity Hardware', role: 'proprietor' }, look: lk(SK.fair, HC.gray, FC.glassesMustache, HS.part),
     bio: "Tom Garrity, 60, proprietor of Garrity Hardware, which his father Michael opened in 1904 with a wagonload of nails for the men rebuilding Market Street after the fire; the first dollar is framed by the register. Father Garrity's younger brother. Coaches the Garrity Hardware Little League nine, which lost 7–6 last Saturday to Castellano Fish Co. on a steal of home Tom maintains to this day was an out. Lost his son Michael in the war.",
@@ -662,8 +671,8 @@ export const NOTABLES = [
       "Pharmacist Mayhew says I'm to take my pills with water, not coffee. I've been taking them with coffee for eleven years and I'm still here.",
     ] },
   // ------------------------------------------------------------------ the Pruitts (the organ, the boarding house) — they don't speak
-  { first: 'Leonard', last: 'Pruitt', age: 58, sex: 'M', role: 'organist', formal: true, job: { building: 'First Congregational Church', role: 'organist' }, look: lk(SK.fair, HC.gray, FC.glasses, HS.part),
-    bio: "Leonard Pruitt, 58, organist and choirmaster of First Congregational for thirty years. The orchard on Orchard Street was his grandfather's; the deed that sold the lower lot to the town in 1911 spares “the three oldest apple trees, which shall stand so long as they bear,” and they still bear. His father Lemuel wrote “The Juniper Bay Quickstep” for the semi-centennial of 1903. His late brother Carl sold the rest of the orchard in 1926, and Leonard has not spoken to Carl's widow Edna, of Mrs. Pruitt's Rooms, since the funeral.",
+  { first: 'Leonard', last: 'Pruitt', age: 58, sex: 'M', role: 'organist', formal: true, home: { name: '190 Orchard Street' }, job: { building: 'First Congregational Church', role: 'organist' }, look: lk(SK.fair, HC.gray, FC.glasses, HS.part),
+    bio: "Leonard Pruitt, 58, organist and choirmaster of First Congregational for thirty years. The orchard on Orchard Street was his grandfather's; the deed that sold the lower lot to the town in 1911 spares “the three oldest apple trees, which shall stand so long as they bear,” and they still bear. His father Lemuel wrote “The Juniper Bay Quickstep” for the semi-centennial of 1903. A bachelor, he lives on Orchard Street in the last of the old orchard houses. His late brother Carl sold the rest of the orchard in 1926, and Leonard has not spoken to Carl's widow Edna, of Mrs. Pruitt's Rooms, since the funeral.",
     lines: [
       "Altos, you are dragging. Again, from the top.",
       "Thirty years at that console. The pedals know my feet better than my shoes do.",
@@ -725,7 +734,7 @@ export const NOTABLES = [
       "Mike Dunn and I walk home together at midnight along the quay. He tips his hat to the MARY ELLEN stone. So do I, now.",
     ] },
   // ------------------------------------------------------------------ the Pikes (the doctor; the bookshop)
-  { first: 'Nathaniel', last: 'Pike', age: 55, sex: 'M', title: 'Dr.', role: 'doctor', outfit: 'doctor', job: { building: "St. Luke's Hospital", role: 'doctor' }, look: lk(SK.fair, HC.salt, FC.glassesMustache, HS.part),
+  { first: 'Nathaniel', last: 'Pike', age: 55, sex: 'M', title: 'Dr.', role: 'doctor', outfit: 'doctor', home: { name: '159 Hillcrest Avenue' }, job: { building: "St. Luke's Hospital", role: 'doctor' }, look: lk(SK.fair, HC.salt, FC.glassesMustache, HS.part),
     bio: "Dr. Nathaniel Pike, 55, has practiced at St. Luke's since it opened in 1920. In the 1918 influenza he was a medical student carrying basins for his father, Dr. Josiah Pike, who with Nurse Honora Duffy never left the council-chamber ward. Between them, the two Dr. Pikes have delivered most of Juniper Bay — the father delivered the Mayor. A widower. His only son, Andrew, is on the World War II honor roll.",
     lines: [
       "First babies take their time. Tell Stanley to sit down before he wears out the linoleum.",
@@ -805,8 +814,8 @@ export const NOTABLES = [
       "Amos talks to the light. I talk to the yarn. After thirty-two years we talk to each other too, mostly at supper.",
     ] },
   // ------------------------------------------------------------------ Union Station
-  { first: 'Otto', last: 'Lindqvist', age: 64, sex: 'M', role: 'conductor', outfit: 'conductor', job: { building: 'Union Station', role: 'stationmaster' }, look: lk(SK.fair, HC.white, FC.glassesMustache, HS.short),
-    bio: "Otto Lindqvist, 64, stationmaster of Union Station since 1924. Came from Göteborg in 1907. Maintains that the station clock has not been wrong since 1911, nor the 4:52 late; Jacob Weiss sets every clock in his window by it at 8:59 each morning. His son Erik is on the World War II honor roll. On Tuesday, when the 4:52 brought Sal Castellano home, he pulled the whistle himself. Not regulation.",
+  { first: 'Otto', last: 'Lindqvist', age: 64, sex: 'M', role: 'conductor', outfit: 'conductor', home: { name: 'The Whitcomb Hotel' }, job: { building: 'Union Station', role: 'stationmaster' }, look: lk(SK.fair, HC.white, FC.glassesMustache, HS.short),
+    bio: "Otto Lindqvist, 64, stationmaster of Union Station since 1924. Came from Göteborg in 1907. Maintains that the station clock has not been wrong since 1911, nor the 4:52 late; Jacob Weiss sets every clock in his window by it at 8:59 each morning. A widower, he has lived in the same room at the Whitcomb Hotel, across Mill Street from his platform, since 1946. His son Erik is on the World War II honor roll. On Tuesday, when the 4:52 brought Sal Castellano home, he pulled the whistle himself. Not regulation.",
     lines: [
       "The 4:52 from Boston is on time. It's always on time.",
       "The station clock has not been wrong since 1911. Jacob Weiss sets his whole window by it at 8:59. If I'm wrong, the whole town's wrong. I'm not wrong.",
@@ -1104,8 +1113,8 @@ export const NOTABLES = [
       "Grandfather came home from the war. Nine didn't. Their names are on the bronze soldier. I read them out loud every Decoration Day, all nine, because he asked me to.",
       "I signed the Centennial Book and under my name I wrote Grandfather's. Moses Washington, 1866. Somebody in 2053 ought to know he was here first.",
     ] },
-  { first: 'Harold', last: 'Thorne', age: 58, sex: 'M', title: 'Mr.', role: 'clerk', formal: true, job: { building: 'Juniper Bay High School', role: 'teacher' }, look: lk(SK.fair, HC.salt, FC.glasses, HS.part),
-    bio: "Harold Thorne, 58, history teacher at Juniper Bay High School since 1921 and author of “A Century by the Bay: Juniper Bay 1853–1953,” four hundred and twelve pages, four dollars, signed — one of three centennial histories for sale this week, and in his opinion the only accurate one. Corrects everyone's dates, including the Mayor's, and is locked in a cordial war with Miss Clara Fairweather, who remembers things differently and was there.",
+  { first: 'Harold', last: 'Thorne', age: 58, sex: 'M', title: 'Mr.', role: 'clerk', formal: true, job: { building: 'Juniper Bay High School', role: 'chaperone' }, look: lk(SK.fair, HC.salt, FC.glasses, HS.part),
+    bio: "Harold Thorne, 58, history teacher at Juniper Bay High School since 1921 and author of “A Century by the Bay: Juniper Bay 1853–1953,” four hundred and twelve pages, four dollars, signed — one of three centennial histories for sale this week, and in his opinion the only accurate one. Corrects everyone's dates, including the Mayor's, and is locked in a cordial war with Miss Clara Fairweather, who remembers things differently and was there. Chaperones the Centennial Sock Hop tonight, as he has every school dance since 1924.",
     lines: [
       "“A Century by the Bay,” four hundred and twelve pages, four dollars at Pike & Daughter. Signed. I've signed them all. Some twice.",
       "There are three centennial histories for sale this week. Miss Whitcomb's is charming. The Society's is illustrated. Mine is correct.",
@@ -1113,6 +1122,7 @@ export const NOTABLES = [
       "Miss Fairweather says I have the date of the first trolley wrong. She was there. I have the documents. She was THERE. It's maddening.",
       "The Mayor said “since 1852” at the Rotary. It's 1853. The charter is dated March 4th, 1853. I sent him a note. On school stationery.",
       "I taught Sal Castellano Jr. and Robert Brennan and Walter Novak, in that order. The Constitution, the Louisiana Purchase, and patience. Mostly patience.",
+      "I'm chaperoning the sock hop tonight. Twenty-nine years of school dances. I've seen the Charleston, the Lindy Hop and the jitterbug, and I still can't do any of them.",
     ] },
   { first: 'Clara', last: 'Fairweather', age: 74, sex: 'F', title: 'Miss', home: { name: 'The Marlowe Apartments' }, look: lk(SK.fair, HC.white, FC.old, HS.updo, { hat: 'hat_cloche', hatTint: '#4a4038' }),
     bio: "Miss Clara Fairweather, 74, taught the primary grades in Juniper Bay for forty-four years, and taught the Mayor, Pat Halloran and Casimir Novak their letters. Her grandfather, Sergeant Ezra Fairweather of the 19th Massachusetts, was one of the forty-three who marched off in 1861; he came home without his left arm and learned to write all over again with his right. She keeps his letters in a cigar box. Rides the trolley to the library every Tuesday at ten, second seat on the right, and corrects Harold Thorne's history on the way.",
@@ -1124,8 +1134,8 @@ export const NOTABLES = [
       "Augusta Whitcomb and I were girls at the Academy together. She was the pretty one. I was the one who remembered things. We've both done all right.",
       "In the Centennial Book I wrote: “Mind your grammar and your neighbors. Everything else follows.”",
     ] },
-  { first: 'Silas', last: 'Dunmore', age: 84, sex: 'M', title: 'Captain', formal: true, look: lk(SK.light, HC.white, FC.beard, HS.bald, { hat: 'hat_homburg', hatTint: '#2e3440' }),
-    bio: "Captain Silas Dunmore, 84, the last master mariner of the age of sail in Juniper Bay. His great-uncle Enoch had the Mill Street sawmill; his grandfather Josiah and his uncle Nathaniel went down with the MARY ELLEN in 1867, two years before he was born. Went to sea at fourteen as ship's boy on a Whitcomb bark to Canton, rounded the Horn nine times, and commanded the four-masted schooner ABIGAIL R. out of this harbor until 1924.",
+  { first: 'Silas', last: 'Dunmore', age: 84, sex: 'M', title: 'Captain', formal: true, home: { name: '43 Hillcrest Avenue' }, look: lk(SK.light, HC.white, FC.beard, HS.bald, { hat: 'hat_homburg', hatTint: '#2e3440' }),
+    bio: "Captain Silas Dunmore, 84, the last master mariner of the age of sail in Juniper Bay. His great-uncle Enoch had the Mill Street sawmill; his grandfather Josiah and his uncle Nathaniel went down with the MARY ELLEN in 1867, two years before he was born. Went to sea at fourteen as ship's boy on a Whitcomb bark to Canton, rounded the Horn nine times, and commanded the four-masted schooner ABIGAIL R. out of this harbor until 1924. Lives alone in his father's captain's house on Hillcrest Avenue, with a widow's walk he still climbs every evening to watch the Point Light come on.",
     lines: [
       "My great-aunt Abigail's goat ate Captain Whitcomb's hat in 1853. It's in the log. I've apologized to Miss Augusta at every Historical Society supper since 1920.",
       "Grandfather Josiah and Uncle Nathaniel are on the MARY ELLEN stone. Father was twelve and home with the measles. That's the only reason there are Dunmores.",
@@ -1151,7 +1161,7 @@ export const NOTABLES = [
       "Thursday nights, Harbor Lanes. I bowl a one-sixty on a good night. Ted Kowalski bowls a two-ten and never smiles.",
       "Everybody says the docks are dying — trucks, Route 128, all that. I say they'll always need somebody to lift the thing.",
     ] },
-  { first: 'Loretta', last: 'Quimby', age: 55, sex: 'F', title: 'Mrs.', look: lk(SK.fair, HC.salt, FC.glassesLipstick, HS.curly, { hat: 'hat_pillbox', hatTint: '#7fa8c9' }),
+  { first: 'Loretta', last: 'Quimby', age: 55, sex: 'F', title: 'Mrs.', home: { name: '148 Orchard Street' }, look: lk(SK.fair, HC.salt, FC.glassesLipstick, HS.curly, { hat: 'hat_pillbox', hatTint: '#7fa8c9' }),
     bio: "Mrs. Loretta Quimby, 55, winner of the Harbor Days pie contest in 1947, 1950 and 1952 (Irene Halloran, second: “robbed”), and loser in 1949, when the judge was Father Garrity. When she saw Father Garrity's name among this year's judges she withdrew her deep-dish Baldwin apple on principle, and has spent the morning telling the fair so.",
     lines: [
       "I withdrew. On principle. A priest, a Greek and the Mayor's wife. Irene Halloran might as well have baked it in the sacristy.",
@@ -1187,7 +1197,7 @@ export const NOTABLES = [
       "My dad was a Marine. He's in a picture on the piano. Mom says I frown like him when I do sums.",
       "Mr. Ferris is taking Mom to the street dance. He gave me a WJBY pencil. I'm thinking about it.",
     ] },
-  { first: 'Everett', last: 'Harlow', age: 66, sex: 'M', title: 'Mr.', formal: true, job: { building: "Harlow's", role: 'manager' }, look: lk(SK.fair, HC.white, FC.glasses, HS.part),
+  { first: 'Everett', last: 'Harlow', age: 66, sex: 'M', title: 'Mr.', formal: true, home: { name: '89 Hillcrest Avenue' }, job: { building: "Harlow's", role: 'store manager' }, look: lk(SK.fair, HC.white, FC.glasses, HS.part),
     bio: "Everett Harlow, 66, president of Harlow's Department Store, grandson of the founder, who opened a one-room dry goods shop on Market Street in 1878. Installed the only escalator in the county in 1949 and still rides it twice a day for the pleasure of it. Was fifteen and sweeping the stockroom the day of the Great Fire, when young Bridget Keane left her post at the ribbon counter to follow a bucket brigade.",
     lines: [
       "Grandfather opened with one room of dry goods in 1878. Five floors now, and the only escalator in the county. I ride it twice a day. For inspection purposes.",
@@ -1212,14 +1222,6 @@ export const NOTABLES = [
       "São Miguel, 1920. I was twelve. The first thing I saw of America was the Point Light. I thought they lit it for me.",
       "Every June I carry Our Lady's banner in the Blessing of the Fleet. Four hundred and twelve dollars this year for St. Brigid's roof. Father Garrity says my singing is a penance. For who, he doesn't say.",
       "Fog's coming by morning. You can smell it. The fireworks better go up quick.",
-    ] },
-  { first: 'Rita', last: 'Wojcik', age: 21, sex: 'F', job: { building: 'Harbor Canning Co.', role: 'packer' }, look: lk(SK.fair, HC.blonde, FC.lashes, HS.curly),
-    bio: "Rita Wojcik, 21, labeler at Harbor Canning Co., maid of honor to Helen Novak at two o'clock and — any minute now — aunt to her sister Carol Kaminski's first child. Has been running between St. Brigid's and St. Luke's all day in satin shoes.",
-    lines: [
-      "My sister's having a baby and my best friend's getting married on the same afternoon. I'm going to need a nap until 1954.",
-      "Maid of honor at two, then straight to St. Luke's. In these shoes. I may have to be carried.",
-      "Helen and I labeled sardine tins side by side since we were sixteen. Now she's a bride and I'm still labeling. Don't cry, Rita. Don't cry.",
-      "Grandma Wojcik came in 1908 with a feather bed and a crucifix. If it's a girl, Carol's calling her Rose, after her. I'm already crying.",
     ] },
   // ------------------------------------------------------------------ the Bower sisters (Bloom & Bower Florist) — not speaking today
   { first: 'Rose', last: 'Bower', age: 57, sex: 'F', title: 'Miss', home: { name: 'Bloom & Bower Florist' }, job: { building: 'Bloom & Bower Florist', role: 'florist' }, look: lk(SK.fair, HC.gray, FC.glassesLipstick, HS.updo),
@@ -1247,6 +1249,14 @@ export const NOTABLES = [
       "Peggy Halloran's going to the sock hop with Joanie. And maybe somebody else. Not me. Somebody. It's fine. It's totally fine.",
       "Shirley Oakes comes in for lime rickeys all the time. She must really like lime.",
       "Mr. Mayhew says root beer floats are up forty percent since I started singing. He doesn't know why. I think it's my voice.",
+    ] },
+  { first: 'Florence', last: 'Keene', age: 46, sex: 'F', title: 'Mrs.', look: lk(SK.fair, HC.blonde, FC.glassesLipstick, HS.curly),
+    bio: "Mrs. Florence Keene, 46, Buddy's mother, operator at the telephone exchange — “Number, please” — for nineteen years. Was trained on the switchboard by Hazel Oakes, whom she regards as a menace to the Republic. Widowed in 1947, when her husband Charlie's ice truck went through the ice on Pruitt's Pond. Knows about Shirley Oakes and the lime rickeys, and has decided not to tell Buddy; he has to work some things out for himself.",
+    lines: [
+      "“Number, please.” Nineteen years. I could connect this whole town in my sleep, and some nights I do.",
+      "Hazel Oakes trained me on the switchboard in 1934. First thing she taught me was how to plug in quietly. I've never used it. Much.",
+      "Buddy sings Eddie Fisher at the soda fountain and the Oakes girl comes in three times a week for lime rickeys. He hasn't noticed. I'm not going to tell him. A boy has to find some things out on his own.",
+      "Charlie drove for Bayside Ice. The truck went through on Pruitt's Pond in the winter of '47. Buddy was eleven. He took the paper route the next week. He's been the man of the house since, bless him, and he still can't boil an egg.",
     ] },
   { first: 'Ernie', last: 'Mercer', age: 38, sex: 'M', role: 'milkman', outfit: 'milkman', look: lk(SK.fair, HC.brown, FC.smile, HS.short),
     bio: "Ernie Mercer, 38, milkman for the Bayside Dairy. His route starts at four in the morning with the empties on Hillcrest Avenue and ends at noon with Mrs. Hatch, who takes one quart of milk and a pint of cream “for the cat, who is not to be fed.” Home by noon, asleep by eight. Father of Skippy, the fastest boy in Juniper Bay.",
@@ -1293,3 +1303,10 @@ export const NOTABLES = [
       "Television will empty the theaters, they say. A twenty-one-inch box against forty feet of Audrey Hepburn? I'll take my chances.",
     ] },
 ];
+
+// Every household member carries an explicit surname (population.js looks members up by first + last).
+for (const hh of HOUSEHOLDS) for (const m of hh.members) if (!m.last) m.last = hh.surname;
+// Notables who asked for a particular home claim it before anyone is placed in whatever's left.
+const groupKey = (n) => (n.own ? n.first + n.last : n.last);
+const wantsHome = new Set(NOTABLES.filter((n) => n.home).map(groupKey));
+NOTABLES.sort((a, b) => (wantsHome.has(groupKey(a)) ? 0 : 1) - (wantsHome.has(groupKey(b)) ? 0 : 1));

@@ -943,7 +943,7 @@ function buildShed(ctx, lot, spec) {
     flatRoof(f, bx, H, bz, bw, bd, { parapetMat: outer, coping: trim, parapetH: 3 });
     f.box(bx + bw / 2 - 30, H + 1, bz - 1, 60, 9, 1, outer); f.box(bx + bw / 2 - 31, H + 10, bz - 2, 62, 1, 2, trim);  // false front for the sign
   } else {
-    lowGable(f, bx, H, bz, bw, bd, roof, outer, 2, 2);
+    lowGable(f, bx, H, bz, bw, bd, roof, outer, 3, 2);
     f.box(bx - 2, H - 1, bz - 2, bw + 4, 1, 1, trim); f.box(bx - 2, H - 1, bz + bd + 1, bw + 4, 1, 1, trim);
     for (let x = bx + 12; x < bx + bw - 10; x += 26) { f.box(x, H + 12, bz + 20, 6, 4, 6, MAT.steel); f.box(x - 1, H + 16, bz + 19, 8, 1, 8, MAT.steel); }   // roof ventilators
   }
@@ -969,6 +969,10 @@ function buildShed(ctx, lot, spec) {
   if (cfg.board) f.box(Math.round(bx + bw / 2 - tw / 2) - 3, dH + 3, bz - 1, tw + 6, 11, 1, MAT[cfg.board]);
   f.text(cfg.title, bx + bw / 2, dH + 5, bz - (cfg.board ? 2 : 1), lt, { align: 'center' });
   if (cfg.sub) f.text(cfg.sub, bx + bw / 2, cfg.flat ? H + 3 : H + 2, bz - 1, cfg.flat ? MAT[cfg.letters] : lt, { align: 'center', font: 'small' });
+  // the same name, big, on the water side for the boats coming in
+  if (cfg.board) Bk.box(Math.round(W - bx - bw / 2 - tw / 2) - 3, dH + 3, D - (bz + bd) - 1, tw + 6, 11, 1, MAT[cfg.board]);
+  Bk.text(cfg.title, W - bx - bw / 2, dH + 5, D - (bz + bd) - (cfg.board ? 2 : 1), lt, { align: 'center' });
+  if (cfg.sub && !cfg.flat) Bk.text(cfg.sub, W - bx - bw / 2, H + 2, D - (bz + bd) - 1, lt, { align: 'center', font: 'small' });
   (cfg.side || []).forEach((t, i) => {
     const big = Rt.textWidth(t, 1, 'big') < bd - 10;
     Rt.text(t, bz + bd / 2, H - 10 - i * 9, W - (bx + bw) - 1, lt, { align: 'center', font: big ? 'big' : 'small' });
