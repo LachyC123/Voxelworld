@@ -25,6 +25,7 @@ export class LifeWorld {
     this.updaters = [];  // (rt) => void                              per-frame hooks (animals…)
     this.interact = [];  // { x, y, z, r, prompt, action(game), when?(m) }  dynamic interactables
     this.scenes = [];    // { id, title, x, z, t0, t1, n }            for diagnostics
+    this.spottables = []; // extra Spotter's Diary items registered by scenes (see L.spottable)
     this.places = buildPlaces(ctx);
   }
 }
@@ -163,6 +164,19 @@ export class LifeKit extends EventKit {
   interactable(o) { this.life.interact.push({ r: 1.8, ...o, t0: o.t0 !== undefined ? tm(o.t0) : null, t1: o.t1 !== undefined ? tm(o.t1) : null }); }
   // register a per-frame hook: fn(rt) with rt = { minutes, abs, t (seconds), dt, cam, props, people, player }
   every(fn) { this.life.updaters.push(fn); }
+  // Add a thing to the Spotter's Diary (the player's list of things to spot). o: { id (unique),
+  //   what ('The milkman and his truck'), hint ('Early — Maple Street, before 7'), cat ('Around town' |
+  //   'Down by the water' | 'Townsfolk' | 'Only at certain times' | 'Dogs, cats & horses'),
+  //   x, y, z (numbers or getters, e.g. { get x() { return h.x; } }) or person (a Person — spotted when
+  //   seen while doing this scene) , t0, t1 (window it can be spotted in), r (target radius, m), range (m) }
+  spottable(o) {
+    // (kept as the same object so x/y/z getters stay live)
+    if (o.cat === undefined) o.cat = 'Around town';
+    if (o.r === undefined) o.r = 1.2;
+    if (o.range === undefined) o.range = 25;
+    o.t0 = o.t0 !== undefined ? tm(o.t0) : null; o.t1 = o.t1 !== undefined ? tm(o.t1) : null; o.by = this.id;
+    this.life.spottables.push(o);
+  }
   // note a scene (diagnostics / almanac)
   scene(title, x, z, t0, t1, n = 0) { this.life.scenes.push({ id: this.id, title, x, z, t0: tm(t0), t1: tm(t1), n }); }
 

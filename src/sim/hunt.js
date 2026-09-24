@@ -108,6 +108,14 @@ export class Hunt {
       if (item.hint && item.hint.includes('{near}')) item.hint = item.hint.replace('{near}', this.nearName(item) || 'somewhere in town');
       this.items.push(item);
     }
+    // things registered by the street-life scenes
+    for (const sp of (ctx.life && ctx.life.spottables) || []) {
+      if (this.items.some((i) => i.id === sp.id)) continue;
+      const win = (m) => sp.t0 === null || (sp.t0 <= sp.t1 ? m >= sp.t0 && m < sp.t1 : m >= sp.t0 || m < sp.t1);
+      this.items.push({ id: sp.id, cat: sp.cat, what: sp.what, hint: sp.hint || '', range: sp.range, when: win, find: sp.person ? { person: (p, s, e) => p === sp.person && (!e || !sp.label || e.label === sp.label) } : { point: sp }, pts: null });
+    }
+    const order = ['Around town', 'Down by the water', 'Townsfolk', 'Dogs, cats & horses', 'Only at certain times'];
+    this.items.sort((a, b) => (order.indexOf(a.cat) + 99) % 99 - (order.indexOf(b.cat) + 99) % 99);
     this.load();
     this.acc = 0;
     this.onSpot = null;

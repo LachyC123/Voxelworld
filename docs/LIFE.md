@@ -169,3 +169,21 @@ a crowd spot — each person gets a random offset; with `faceTo` they all face t
   or `{name, t, goto:'Building', tag:'some_spot_tag', dist}` (stand facing spots with that tag).
   Screens take ~1–2 min each under load: batch views in one file. Use `W=960 H=540`.
 * Every scene must survive a missing place (return quietly) — the town layout may change.
+
+## The Spotter's Diary
+
+The player carries a model-village style "things to spot" list (Tab / I). Register your most
+charming, most specific scenes as diary items so people go looking for them:
+
+```js
+L.spottable({ id: 'milkman', cat: 'Only at certain times', what: 'The milkman and his rattling bottles',
+  hint: 'Early — the Maple Street side of town, before seven', person: milkman, t0: '5:30', t1: '8:00' });
+L.spottable({ id: 'monkey', cat: 'Around town', what: "The organ grinder's monkey, collecting pennies",
+  hint: 'Wherever the crowds are', x: 0, y: 1, z: 0, get x() { return h.x; }, get z() { return h.z; }, r: 0.8, range: 15 });
+```
+
+Categories: 'Around town', 'Down by the water', 'Townsfolk', 'Dogs, cats & horses', 'Only at certain times'.
+Spotting happens when the thing is near the centre of the view, within `range`, and not behind a wall,
+for about half a second. `person` items are spotted by looking at that person (optionally only while
+their schedule entry has `label`). Keep `what` short (≤ 60 chars) and the hint gentle and useful.
+Aim for 4–10 items per module; don't duplicate what's already in `src/sim/hunt.js`.
