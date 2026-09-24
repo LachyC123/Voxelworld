@@ -25,6 +25,7 @@ import { Boats } from './vehicles/boats.js';
 import { Birds } from './sim/birds.js';
 import { Fireworks } from './render/fireworks.js';
 import { LifeRuntime } from './sim/life/runtime.js';
+import { Smoke } from './render/smoke.js';
 import { Audio } from './audio/audio.js';
 import { LighthouseBeam } from './render/beam.js';
 import { LIGHTHOUSE } from './city/layout.js';
@@ -79,6 +80,9 @@ export class Game {
     this.birds = new Birds(ctx.props);
     this.fireworks = new Fireworks(R.scene, ctx.lights);
     this.life = new LifeRuntime(ctx);
+    this.smoke = new Smoke(R.scene, R.common);
+    this.smoke.addChimneys(ctx);
+    this.smoke.addMoving(() => { const h = this.trains.parts[0]; if (!h || h.dummy || !h.visible) return null; return { x: h.x - 4.75, y: 4.9, z: h.z, rate: this.trains.inStation ? 2.5 : 10 }; });
     this.beam = new LighthouseBeam(R.scene, LIGHTHOUSE.x, ctx.lighthouseLampY || 17.5, LIGHTHOUSE.z);
     this.audio = new Audio();
     this.fireworks.onBoom = (x, y, z) => this.audio.boom(x, y, z, this);
@@ -222,6 +226,8 @@ export class Game {
     this.birds.update(dt, this.time, this.player.focus(), tod.night);
     this.fireworks.update(dt, minutes, !this.clock.paused);
     this.life.update(this, dt);
+    this.smoke.points.material.uniforms.uScale.value = R.r.domElement.height / (2 * Math.tan(R.camera.fov * Math.PI / 360));
+    this.smoke.update(this.clock.paused ? 0 : dt, minutes, cam, tod.night);
     this.beam.update(this.time, tod.night);
     this.audio.update(this, dt);
     this.meshes.updateLOD(cam, aerial ? 150 : 190);
