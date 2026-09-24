@@ -266,7 +266,7 @@ export class Game {
     this.beam.update(this.time, tod.night);
     this.audio.update(this, dt);
     mk('audio');
-    this.meshes.updateLOD(cam, aerial ? 150 : 190);
+    this.meshes.updateLOD(cam, aerial ? Math.min(150, Q.worldLod) : Q.worldLod);
     mk('lod');
     const fwd = this._fwd || (this._fwd = new THREE.Vector3());
     R.camera.getWorldDirection(fwd);

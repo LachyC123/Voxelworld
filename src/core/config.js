@@ -13,7 +13,7 @@ export const DATE_LABEL = 'Saturday, September 26, 1953';
 export const TOWN_NAME = 'Juniper Bay';
 
 export const QUALITY = {
-  high:   { label: 'High',   shadowSize: 4096, pixelRatio: 1.5, shadowRange: 90,  interiorRadius: 56, propRadius: 190, lights: 24, peopleRadius: 150 },
-  medium: { label: 'Medium', shadowSize: 2048, pixelRatio: 1.0, shadowRange: 70,  interiorRadius: 44, propRadius: 140, lights: 16, peopleRadius: 110 },
-  low:    { label: 'Low',    post: false, shadowSize: 1024, pixelRatio: 0.75, shadowRange: 55, interiorRadius: 32, propRadius: 100, lights: 8,  peopleRadius: 80 },
+  high:   { label: 'High',   shadowSize: 4096, pixelRatio: 1.5, shadowRange: 90,  interiorRadius: 56, propRadius: 190, lights: 24, peopleRadius: 150, worldLod: 190 },
+  medium: { label: 'Medium', shadowSize: 2048, pixelRatio: 1.0, shadowRange: 70,  interiorRadius: 44, propRadius: 140, lights: 16, peopleRadius: 110, worldLod: 150 },
+  low:    { label: 'Low',    post: false, shadowSize: 1024, pixelRatio: 0.75, shadowRange: 55, interiorRadius: 32, propRadius: 100, lights: 8,  peopleRadius: 80, worldLod: 120 },
 };
