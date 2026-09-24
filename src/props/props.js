@@ -79,6 +79,9 @@ export class Props {
     return i;
   }
 
+  // Remove a static prop before finalize (it is kept in the arrays but never drawn or collided)
+  remove(i) { if (i < 0 || i >= this.n || this.tCat[i] === 250) return; this.types[this.tType[i]].count--; this.tCat[i] = 250; }
+
   // Dynamic prop handle (moved every frame by its owner)
   addDynamic(type, o = {}) {
     if (!PROP_DEFS.has(type)) { this._missing = this._missing || new Set(); if (!this._missing.has(type)) { this._missing.add(type); console.warn('missing prop type:', type); } return { visible: false, dummy: true }; }
@@ -95,6 +98,7 @@ export class Props {
     // rooms + categories + lights + colliders
     const lights = this.ctx.lights;
     for (let i = 0; i < this.n; i++) {
+      if (this.tCat[i] === 250) continue;
       const t = this.types[this.tType[i]];
       const px = this.tPos[i * 3], py = this.tPos[i * 3 + 1], pz = this.tPos[i * 3 + 2];
       if (this.tRoom[i] === 0xffff) this.tRoom[i] = world.roomAt(Math.floor(px / VS), Math.floor((py + 0.3) / VS), Math.floor(pz / VS));
@@ -110,6 +114,7 @@ export class Props {
     // spatial cells
     this.cells = new Map();
     for (let i = 0; i < this.n; i++) {
+      if (this.tCat[i] === 250) continue;
       const k = Math.floor(this.tPos[i * 3] / CELL) + ',' + Math.floor(this.tPos[i * 3 + 2] / CELL);
       let a = this.cells.get(k); if (!a) { a = []; this.cells.set(k, a); }
       a.push(i);

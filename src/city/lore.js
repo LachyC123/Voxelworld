@@ -101,7 +101,7 @@ export const INSTITUTIONS = [
   { name: 'Harbor Canning Co.', est: 1899, note: 'Still the town\'s biggest employer.' },
   { name: 'Harlow\'s Department Store', est: 1878, note: 'Five floors and the only escalator in the county (1949).' },
   { name: 'The Rialto Theatre', est: 1927, note: 'Now showing: "Shane" (7:30) and "Roman Holiday" (2:00 matinee).' },
-  { name: 'The Whitcomb Hotel', est: 1896, note: 'Seventy rooms, a palm court, and a bellhop named Earl who has worked there 31 years.' },
+  { name: 'The Whitcomb Hotel', est: 1896, note: 'Seventy rooms, a palm court, and a bellhop named Clarence Ives who has worked there 31 years.' },
   { name: 'Harbor Light Diner', est: 1924, note: 'Open 5 a.m. to midnight. Chowder on Fridays, pie always.' },
 ];
 

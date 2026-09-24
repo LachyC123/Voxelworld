@@ -292,9 +292,10 @@ export const HOUSEHOLDS = [
     surname: 'Kaminski', home: { family: 'Kaminski' },
     members: [
       { first: 'Stan', age: 27, sex: 'M', look: lk(SK.fair, HC.brown, FC.plain, HS.short),
-        bio: "Stanley Kaminski, 27, lineman for the telephone company — climbed every pole on Church Street in the ice storm of '51. His wife Carol's pains started at 11:20 last night; he left a note on the kitchen table in capital letters, took the suitcase, and forgot his hat. He has been pacing the waiting room at St. Luke's ever since and has asked the nurses for news roughly every four minutes.",
+        bio: "Stanley Kaminski, 27, lineman for the telephone company — climbed every pole on Church Street in the ice storm of '51. His wife Carol's pains started at 11:20 last night; he left a note on the kitchen table in capital letters, took the suitcase, and forgot his hat. He paced the St. Luke's waiting room until dawn, asking the nurses for news every four minutes, until Dr. Pike sent him home to sleep. He has not slept. He is going back at one.",
         lines: [
           "Any minute now. Any minute.",
+          "Dr. Pike sent me home at dawn to get some sleep. Sleep! I've shaved twice. I'm going back at one o'clock sharp.",
           "Dr. Pike says first babies take their time. How much time? He didn't say how much time.",
           "If it's a boy, Joseph, for my brother. He's on the honor roll at City Hall. If it's a girl, Carol says Rose, after her grandmother. I say whatever Carol says.",
           "Opal Fisk already knitted a sweater. Yellow. She says she's hedging.",

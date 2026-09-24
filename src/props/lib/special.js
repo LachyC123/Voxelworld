@@ -40,7 +40,7 @@ function drawZ(m, str, x, y, z0, col, flip) {
 // Generic flat sign board with text, for shop fronts at prop scale.
 export function textSignType(text, o = {}) {
   const bg = o.bg || '#1f4a33', fg = o.fg || '#f0e2b0', border = o.border || '#c9a24a';
-  const name = `sign:${text}:${bg}:${fg}`;
+  const name = `sign:${text}:${bg}:${fg}:${border}:${o.scale || 16}`;
   if (PROP_DEFS.has(name)) return name;
   const L = text.length * 4 + 5, H = 11;
   defineProp(name, {

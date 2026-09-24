@@ -1098,8 +1098,9 @@ function fishHouse(b, f, hall, office, g) {
   const Bk = f.faceFrame('back'), W = b.lot.w, D = b.lot.d;
   Bk.box(W - dx - dW / 2 - 1, dH + 3, D - (bz + bd) - 6, 2, 2, 8, MAT.wood_dark); Bk.box(W - dx - dW / 2, dH - 1, D - (bz + bd) - 5, 1, 4, 1, MAT.iron); Bk.box(W - dx - dW / 2 - 1, dH - 2, D - (bz + bd) - 6, 3, 1, 3, MAT.steel);
   // the welcome-home banner on the back wall
-  f.box(dx - 4, dH + 3, Z0 + ID - 1, dW + 8, 7, 1, MAT.canvas_white);
-  f.faceFrame('back').text('WELCOME HOME SAL', W - (dx + dW / 2), dH + 4, D - (Z0 + ID - 1) - 1, MAT.sign_red, { align: 'center', font: 'small' });
+  const btw = f.textWidth('WELCOME HOME SAL!', 1, 'small');
+  f.box(Math.round(dx + dW / 2 - btw / 2) - 3, dH + 3, Z0 + ID - 1, btw + 6, 7, 1, MAT.canvas_white);
+  f.text('WELCOME HOME SAL!', dx + dW / 2, dH + 4, Z0 + ID - 2, MAT.sign_red, { align: 'center', font: 'small' });
   // dock_work spots for the fleet (6 at the tables, 2 at the water door) and the regular hands
   const dw = [];
   for (const tx of tables) for (const zz of [Z0 + 28, Z0 + 38, Z0 + 46]) dw.push(b.spot('stand', tx === tables[0] ? tx - 1.2 : tx + 5.2, 1, zz, tx === tables[0] ? 1 : 3, { room: hall, act: 'counter', tags: ['dock_work'], label: 'Unloading & packing the catch', lines: ['Haddock! Watch your backs!', 'Ice! More ice on number two!', 'Sal Jr.\'s home — his mother cried all through Mass.'] }));

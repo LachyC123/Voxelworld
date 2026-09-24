@@ -34,7 +34,7 @@ export function populate(ctx) {
     if (!home) continue;
     claimed.add(home);
     home.building.name = hh.homeName || (home.building.name.match(/^\d/) ? `${hh.surname} Residence` : home.building.name);
-    const members = hh.members.map((m) => make({ ...m, last: m.last || hh.surname }, home));
+    const members = hh.members.map((m) => { const p = make({ ...m, last: m.last || hh.surname }, home); p.jobSpec = m.job || null; return p; });
     usedSurnames.add(hh.surname);
     households.push({ home, members, surname: hh.surname, named: true });
   }
@@ -93,10 +93,10 @@ export function populate(ctx) {
   }
   // assign named household members their jobs
   for (const h of households) for (const m of h.members) {
-    const spec = HOUSEHOLDS.flatMap((hh) => hh.members).find((q) => q.first === m.first && (q.last || h.surname) === m.last);
-    if (spec && spec.job) {
-      const c = byBuilding(spec.job.building);
-      const j = c.find((q) => q.role === spec.job.role) || c[0];
+    const spec = m.jobSpec;
+    if (spec && !m.job) {
+      const c = byBuilding(spec.building);
+      const j = c.find((q) => q.role === spec.role) || c[0];
       if (j) { j.person = m; m.job = j; }
     }
   }

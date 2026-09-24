@@ -21,7 +21,7 @@ export async function buildCity(onStatus = () => {}) {
   onStatus('Surveying the streets…', 0.02); await tick();
   ctx.streets = buildStreets(ctx);
   const sites = SITES.slice().sort((a, b) => (a.order ?? 50) - (b.order ?? 50));
-  for (const s of sites.filter((q) => (q.order ?? 50) < 50)) { onStatus(`Building ${s.name}…`, 0.05); await tick(); s.build(ctx); }
+  for (const s of sites.filter((q) => (q.order ?? 50) < 50)) { onStatus(`Building ${s.name}…`, 0.05); await tick(); try { s.build(ctx); } catch (e) { console.error('Site failed:', s.name, e); } }
   const total = PLAN.length;
   let i = 0;
   for (const l of PLAN) {
@@ -46,7 +46,7 @@ export async function buildCity(onStatus = () => {}) {
     }
     if (++i % 6 === 0) { onStatus(`Raising ${l.spec.name || 'houses on ' + street}…`, 0.05 + 0.4 * i / total); await tick(); }
   }
-  for (const s of sites.filter((q) => (q.order ?? 50) >= 50)) { onStatus(`Building ${s.name}…`, 0.46); await tick(); s.build(ctx); }
+  for (const s of sites.filter((q) => (q.order ?? 50) >= 50)) { onStatus(`Building ${s.name}…`, 0.46); await tick(); try { s.build(ctx); } catch (e) { console.error('Site failed:', s.name, e); } }
   // connect every spot to its room / building graph
   for (const s of ctx.spots.list) {
     if (!s.pendingLink) continue;
@@ -54,9 +54,35 @@ export async function buildCity(onStatus = () => {}) {
     if (n >= 0) ctx.nav.link(s.node, n);
     else linkToSidewalk(ctx, s.node, 40);
   }
+  clearDoorways(ctx);
   onStatus('Waking the townsfolk…', 0.48); await tick();
   ctx.world.finalize();
   populate(ctx);
   setupEvents(ctx);
   return ctx;
+}
+
+// Keep street furniture (lamps, trees, hydrants, meters…) out of the path in front of every entrance.
+const STREET_CLUTTER = /^(street_lamp|tree_|fire_hydrant|trash_basket|parking_meter|mailbox_usps|newspaper_box|fire_alarm_box|street_sign:|bench_bus|bus_stop_sign)/;
+function clearDoorways(ctx) {
+  const P = ctx.props, nav = ctx.nav;
+  const doors = [];
+  for (const b of ctx.buildings) for (const e of b.entrances) {
+    if (e.door === undefined || e.node === undefined) continue;
+    const [dx, , dz] = nav.pos(e.door), [ox, , oz] = nav.pos(e.node);
+    const L = Math.hypot(ox - dx, oz - dz) || 1;
+    doors.push([dx, dz, (ox - dx) / L, (oz - dz) / L]);
+  }
+  let removed = 0;
+  for (let i = 0; i < P.n; i++) {
+    const t = P.types[P.tType[i]];
+    if (!t || !STREET_CLUTTER.test(t.name)) continue;
+    const x = P.tPos[i * 3], z = P.tPos[i * 3 + 2];
+    for (const [dx, dz, ux, uz] of doors) {
+      const rx = x - dx, rz = z - dz;
+      const along = rx * ux + rz * uz, across = Math.abs(rx * uz - rz * ux);
+      if (along > -0.5 && along < 7 && across < 1.4) { P.remove(i); removed++; break; }
+    }
+  }
+  if (removed) console.log(`cleared ${removed} street props from doorways`);
 }

@@ -2302,10 +2302,10 @@ function buildPolice(ctx, lot, spec) {
   doorway(f, cx - 3, 1, 0, 6, 10, { frame: MAT.granite, t: 2, transom: true });
   f.box(cx - 5, 0, -5, 10, 1, 4, MAT.granite);
   f.text('POLICE', cx, FH + 4, -1, MAT.trim_gold, { align: 'center', font: 'big' });
-  f.text('HEADQUARTERS', cx, 12, -1, MAT.granite, { align: 'center', font: 'small' });
+  f.text('HEADQUARTERS', cx, FH - 1, -1, MAT.granite, { align: 'center', font: 'small' });
   for (const x of [cx - 6, cx + 5]) { f.box(x, 6, -2, 1, 1, 2, MAT.iron); f.sphere(x + 0.5, 7.5, -2.5, 1.2, MAT.traffic_green); }
   b.light(cx, 8, -3, { color: [0.4, 1, 0.5], radius: 4, mode: 'night' });
-  for (const x of [6, 14, W - 20, W - 12]) { win(f, x, 5, 0, 4, 7, { t: 2, frame: MAT.granite }); win(f, x, FH + 4, 0, 4, 7, { t: 2, frame: MAT.granite }); }
+  for (const x of [6, 14, W - 20, W - 12]) { win(f, x, 4, 0, 4, 7, { t: 2, frame: MAT.granite }); if (x < cx - 20 || x > cx + 18) win(f, x, FH + 4, 0, 4, 7, { t: 2, frame: MAT.granite }); }
   const IX0 = 2, IX1 = W - 2, Z1 = 24, Z2 = 48;
   partitionX(f, IX0, IX1, 1, Z1, FH - 1, MAT.plaster_green, [{ at: IX0 + 6, w: 4 }, { at: IX1 - 12, w: 4 }]);
   partitionX(f, IX0, IX1, 1, Z2, FH - 1, MAT.plaster_green, [{ at: IX0 + 6, w: 4 }]);

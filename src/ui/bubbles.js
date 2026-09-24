@@ -43,7 +43,7 @@ export class Bubbles {
       return this.timed(p, t, e.lines, e.song ? 'song' : '', 5.5);
     }
     // entry lines, then activity chatter (only now and then)
-    const lines = (S.entry && S.entry.lines) || activityLines(S.mode === 'walk' ? null : S.act);
+    const lines = (S.entry && S.entry.lines) || activityLines(S.mode === 'walk' ? null : S.act, minutes);
     if (!lines || !lines.length) return null;
     return this.timed(p, t, lines, '', 11 + hash3(p.id, 1, 1) * 10);
   }

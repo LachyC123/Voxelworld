@@ -530,7 +530,7 @@ function roofline(S) {
     f.box(0, H - 3, -1, W, 1, 1, st.trim);
     f.walls(0, H + 1, 0, W, 2, bd, st.outer, 1);
     f.box(0, H + 3, -1, W, 1, 2, st.trim);
-    const BLOCKS = ['PHOENIX BLOCK', 'A.D. ' + S.built, 'CROWELL BLOCK', 'MERCHANTS BLOCK', 'UNION BLOCK', 'KELLEY BLOCK', 'ODD FELLOWS', 'NYE BLOCK'];
+    const BLOCKS = [S.lot.street === 'Market Street' ? 'PHOENIX BLOCK' : 'BEAL BLOCK', 'A.D. ' + S.built, 'CROWELL BLOCK', 'MERCHANTS BLOCK', 'UNION BLOCK', 'KELLEY BLOCK', 'ODD FELLOWS', 'NYE BLOCK'];
     let txt = S.T.panel ? S.T.panel(S) : (rng.chance(0.35) ? rng.pick(BLOCKS) : String(S.built));
     if (f.textWidth(txt, 1, 'small') > W - 8) txt = String(S.built);
     const tw = f.textWidth(txt, 1, 'small');
@@ -843,6 +843,9 @@ function shopFinish(S) {
     read(S, S.X0 + 4, 7, S.Zb - 1.2, 'High Water — September 21, 1938', 'A thin black line, painted at the height the water reached in this room during the Great Hurricane.\n\nSix feet on Harbor Street. Pier 3 went out to sea; three people were lost.\n\nUnderneath, in smaller letters: "We opened again on the 28th."');
   }
   if (S.T.readables) S.T.readables(S);
+  // the clock over the stockroom door and this month's calendar from the Courier
+  P(S, 'clock_wall', S.W - 8, 13.2, S.Zb - 0.3, 0);
+  sign(S, rng.pick(['SEPTEMBER 1953', 'SEPT. 1953', 'SEPTEMBER']), S.W - 14, 10.5, S.Zb - 0.2, 0, { bg: '#f0ecdc', fg: '#b3302a', border: '#6a5a44', scale: 0.45 });
   // Harbor Days posters in some windows
   if (S.windows.length && rng.chance(0.5)) { const [a, c] = S.windows[S.windows.length - 1]; sign(S, 'HARBOR DAYS 1853-1953', c - 3.5, 3.2, 1.4, 0, { bg: '#1f2f5f', fg: '#f0ecdc', border: '#b3302a', scale: 0.55 }); }
   if (S.hasUp && (S.flats || S.offices)) read(S, 5.5, 5, -0.4, 'Directory', `${S.lot.address}\n\n${S.name}\n${(S.offices || []).map((o) => o + ' — upstairs').join('\n')}${S.flats ? `\n${S.flats} apartment${S.flats > 1 ? 's' : ''} above — ring bell` : ''}`, { prompt: 'Read the doorbell plate' });
@@ -1139,8 +1142,8 @@ TRADES.pawn = {
   fit(S) {
     const { f, Zb, X0, X1, W } = S;
     // the three golden balls
-    f.box(W - 6, 19, -1, 1, 1, 4, MAT.iron); f.box(W - 6, 18, -4, 1, 1, 1, MAT.iron);
-    f.sphere(W - 7, 16.5, -4, 1.1, MAT.trim_gold); f.sphere(W - 5, 16.5, -4, 1.1, MAT.trim_gold); f.sphere(W - 6, 14.6, -4, 1.1, MAT.trim_gold);
+    f.box(W - 2, 26, -6, 1, 1, 5, MAT.iron); f.box(W - 2, 24, -6, 1, 2, 1, MAT.iron); f.box(W - 2, 24, -1, 1, 2, 1, MAT.iron);
+    f.sphere(W - 1.5, 22.6, -7.2, 1.1, MAT.trim_gold); f.sphere(W - 1.5, 22.6, -4.8, 1.1, MAT.trim_gold); f.sphere(W - 1.5, 20.5, -6, 1.1, MAT.trim_gold);
     // a caged counter across the back of the shop
     const cz = Zb - 10;
     vCounter(S, X0 + 2, cz, X1 - X0 - 12, 2, { base: MAT.wood_dark, top: MAT.wood_light });
@@ -2808,7 +2811,8 @@ function buildClub(ctx, lot, spec) {
   wallX(f, 2, W - 2, 1, fz1, 12, MAT.wood_panel, [{ at: dx - 2, w: 8, h: 10 }]);
   wallX(f, 2, W - 2, 1, backZ, H - 2, MAT.velvet_blue, [{ at: 6, w: 4 }, { at: W - 10, w: 4 }]);
   const foyer = b.room('Foyer', 2, 1, 3, W - 4, 11, fz1 - 3, { lightMode: 'always', kind: 'shop', lightColor: [1, 0.8, 0.55], nav: [dx + 2, 6] });
-  const room = b.room('Club Room', 2, 1, fz1 + 1, W - 4, H - 2, backZ - fz1 - 1, { lightMode: 'always', kind: 'shop', lightColor: [0.55, 0.62, 1.0], lightPower: 0.8, nav: [dx + 2, 30] });
+  const room = b.room('Club Room', 2, 1, fz1 + 1, W - 4, H - 2, backZ - fz1 - 1, { lightMode: 'always', kind: 'shop', lightColor: [0.85, 0.8, 1.0], lightPower: 1.25, nav: [dx + 2, 30] });
+  for (let z = fz1 + 6; z < 52; z += 12) for (const x of [W - 2.3]) { f.box(x < W / 2 ? 2 : W - 3, 9, Math.round(z), 1, 2, 1, MAT.lamp_glass); b.light(x < W / 2 ? 3 : W - 4, 9.5, z, { color: [1, 0.72, 0.45], radius: 6, mode: 'room', room }); }
   S.sales = room;
   b.entrance(foyer, dx + 2, 1, 3, { outZ: -5, leaf: 'door_wood', tint: '#1f2f5f', main: true });
   b.door(foyer, room, dx + 2, 1, fz1, { leaf: false });

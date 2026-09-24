@@ -929,7 +929,7 @@ function houseRoof(H) {
     }
   } else if (style === 'queenanne') {
     // steep main hip + front cross gable over the dining side with fish-scale shingles
-    top = y + f.hip(hx, y, hz, hw, hd, pal.roof, { overhang: 2, rise: 2, fill });
+    top = y + f.hip(hx, y, hz, hw, hd, pal.roof, { overhang: 2, rise: 1, fill });
     const gw = 18, gx = H.livingSide === 'L' ? hx + hw - gw - 2 : hx + 2;
     const gh = profileRoof(f, gx, y, hz - 1, gw, 16, pal.roof, MAT.shingle_wall, 'z', (j) => (j <= gw / 2 ? Math.floor(j / 2) * 1 + Math.floor(j / 2) : -1), 1);
     void gh;
@@ -1635,6 +1635,25 @@ function yardHouse(H) {
     H.garage = { gx, gz };
   } else if (H.drive && rng.chance(0.7)) {
     f.prop(rng.pick(['car_sedan', 'car_coupe', 'car_wagon']), H.dx0 + 5.5, 0, Math.max(hz + 4, 10), 2, { tint: rng.pick(CAR_COLORS), tint2: '#e8e4d8', cat: 'far' });
+  }
+  // ---- carriage house on the big old lots
+  if (!H.garage && yardD > 44) {
+    const cw = 22, cd = 16, cx0 = Math.round(W / 2 - cw / 2), cz0 = D - cd - 4;
+    const cm = rng.pick([MAT.siding_red, MAT.siding_red, pal.siding, MAT.wood_gray]);
+    f.box(cx0, -1, cz0, cw, 1, cd, MAT.concrete);
+    f.walls(cx0, 0, cz0, cw, 11, cd, cm, 1);
+    f.box(cx0 + 1, 0, cz0 + 1, cw - 2, 1, cd - 2, MAT.wood_gray);
+    const rt = f.gable(cx0, 11, cz0, cw, cd, pal.roof, { axis: 'x', overhang: 1, gableMat: cm });
+    for (const dx of [3, 12]) { f.carve(cx0 + dx, 1, cz0, 7, 8, 1); f.box(cx0 + dx, 1, cz0, 7, 8, 1, MAT.wood_dark); f.box(cx0 + dx + 3, 1, cz0 - 1, 1, 8, 1, MAT.trim_white); f.box(cx0 + dx, 9, cz0 - 1, 7, 1, 1, MAT.trim_white); }
+    f.carve(cx0 + 12, 1, cz0, 7, 8, 1);
+    f.box(cx0 + cw / 2 - 2, 11 + rt, cz0 + cd / 2 - 2, 4, 4, 4, MAT.trim_white); f.hip(cx0 + cw / 2 - 2, 15 + rt, cz0 + cd / 2 - 2, 4, 4, pal.roof, { overhang: 1 });
+    f.box(cx0 + cw / 2, 17 + rt, cz0 + cd / 2, 1, 3, 1, MAT.iron); f.box(cx0 + cw / 2 - 1, 19 + rt, cz0 + cd / 2, 3, 1, 1, MAT.iron);
+    win(f, cx0 + cw / 2 - 2, 13, cz0, 4, 3, { t: 1, frame: MAT.trim_white, sill: false, lintel: false, innerSill: false });
+    b.room('Carriage House', cx0 + 1, 1, cz0 + 1, cw - 2, 10, cd - 2, { kind: 'garage', ambient: 0.45 });
+    f.prop(rng.pick(['car_sedan', 'car_convertible', 'car_wagon']), cx0 + 15.5, 1, cz0 + 7, 0, { tint: rng.pick(CAR_COLORS), tint2: '#e8e4d8', cat: 'far' });
+    f.prop('hay_bale', cx0 + 4, 1, cz0 + cd - 3, 0, {}); f.prop('workbench', cx0 + 6, 1, cz0 + cd - 2.5, 0, {});
+    f.prop(rng.pick(['tree_oak', 'tree_maple_orange', 'tree_apple']), cx0 - 8, 0, cz0 + 4, rng.float(0, 4), { cat: 'far' });
+    f.box(cx0 + 10, -1, back + 4, 4, 1, cz0 - back - 4, MAT.gravel);
   }
   // ---- rear fence
   if (rng.chance(0.7)) f.box(0, 0, D - 1, W, rng.chance(0.5) ? 5 : 3, 1, rng.pick([MAT.wood_gray, MAT.fence_white, MAT.wood_pale]));
@@ -2599,7 +2618,7 @@ function castellanoDress(H, R, halls) {
 }
 
 // ================================================================ The Marlowe Apartments (1926)
-const TENANTS = ['O\'Connell', 'Doyle', 'Silva', 'Medeiros', 'Kowalczyk', 'Lindgren', 'Russo', 'Goldberg', 'Tremblay', 'Sullivan', 'Pappas', 'Beaulieu', 'Fitzgerald', 'Marino', 'Wojcik', 'Kelley', 'Costa', 'Levesque', 'Nolan', 'Bianchi'];
+const TENANTS = ['O\'Connell', 'Doyle', 'Silva', 'Medeiros', 'Lindgren', 'Russo', 'Goldberg', 'Tremblay', 'Sullivan', 'Pappas', 'Beaulieu', 'Fitzgerald', 'Marino', 'Wojcik', 'Kelley', 'Costa', 'Levesque', 'Nolan', 'Bianchi'];
 export function buildApartment(ctx, lot, spec) {
   const rng = ctx.rng.fork('apt' + lot.x + ',' + lot.z);
   const name = spec.name || 'The Marlowe Apartments';
@@ -2681,17 +2700,26 @@ export function buildApartment(ctx, lot, spec) {
     for (const [side, cx0, cx1] of sides) for (const [band, cz0, cz1] of bands) {
       const label = `${k + 1}${letters[li++]}`;
       const superFlat = k === 0 && side === 'L' && band === 'front';
-      const fam = fams[fi++ % fams.length];
+      const fam = superFlat ? 'Kowalczyk' : fams[fi++ % fams.length];
       flats.push(buildFlat(H, { k, side, band, cx0, cx1, cz0, cz1, y: A(k), FH, label, fam, superFlat, hall: halls[k], nav: navP[k], passX: side === 'L' ? passL : passR, hallEdge: side === 'L' ? hA : hB }));
     }
   }
   H.lite = false;
+  for (const q of rng.shuffle(flats.filter((q) => !q.superFlat)).concat(flats.filter((q) => q.superFlat))) b.home(q.home);
   // ---- lobby: mailboxes, directory, bench, palm, notices
   const L = halls[0];
   L.setBack('+z');
   const mb = L.hang(null, 'left', 5, 3, { w: 6 });
   if (mb) { L.box(0, 2, 1, 6, 3, 4, MAT.trim_gold); L.box(0, 2.5, 1, 5, 4, 1, MAT.brass ?? MAT.trim_gold); }
-  readAt(L, 1.2, 5, 4, docList('Tenants — The Marlowe', 'Brass mailboxes, polished every Friday by the super', flats.map((q) => `${q.label} ........ ${q.fam.toUpperCase()}${q.superFlat ? '  (SUPT.)' : ''}`)), 'Read the mailboxes');
+  const dir = {
+    title: 'Tenants — The Marlowe',
+    get html() {
+      const hh = (ctx.households || []).filter((x) => x.home.building === b);
+      const who = (q) => { const h = hh.find((x) => x.home === q.home || x.home.flat === q.label); if (!h) return q.fam.toUpperCase(); const m = h.members[0]; const sn = (h.surname || (m && m.last) || q.fam).toUpperCase(); return h.members.length === 1 && m && m.title ? `${m.title.toUpperCase()} ${sn}` : sn; };
+      return docList('Tenants — The Marlowe', 'Brass mailboxes, polished every Friday by the super', flats.map((q) => `${q.label} ........ ${who(q)}${q.superFlat ? '  (SUPT.)' : ''}`)).html;
+    },
+  };
+  readAt(L, 1.2, 5, 4, dir, 'Read the mailboxes');
   L.wall('garden_bench', 'right', [0.25], { fp: [6, 2.5] });
   const bs = L.spot('sit', L.U - 1.6, L.V * 0.25, 3, { act: 'read', tags: ['bench'], seat: 0.45, public: true });
   void bs;
@@ -2710,12 +2738,13 @@ export function buildApartment(ctx, lot, spec) {
   // canopy on iron rods
   f.box(dcx - 6, A0 + 11, z0 - 7, 12, 1, 6, MAT.awning_solid_navy); f.box(dcx - 6, A0 + 10, z0 - 7, 12, 1, 1, MAT.trim_gold);
   f.box(dcx - 6, A0 + 11, z0 - 7, 1, 3, 1, MAT.iron); f.box(dcx + 5, A0 + 11, z0 - 7, 1, 3, 1, MAT.iron);
-  f.text('THE MARLOWE', dcx, A(1) - 7 + 2, z0 - 2, MAT.sign_navy, { align: 'center', font: 'small' });
-  f.box(dcx - 24, A(1) - 7 + 1, z0 - 1, 48, 7, 1, stone);
-  f.text('THE MARLOWE', dcx, A(1) - 7 + 2, z0 - 2, MAT.trim_dark, { align: 'center', font: 'small' });
-  f.text('1926', dcx, A(2) - 6, z0 - 2, MAT.trim_dark, { align: 'center', font: 'small' });
-  f.box(dcx - 5, A(2) - 7, z0 - 1, 10, 7, 1, stone);
-  f.text('1926', dcx, A(2) - 6, z0 - 2, MAT.trim_dark, { align: 'center', font: 'small' });
+  // name plate in the parapet, above the top floor
+  f.box(dcx - 26, topY + 1, z0 - 1, 52, 12, 1, stone);
+  f.box(dcx - 27, topY + 13, z0 - 2, 54, 1, 2, stone);
+  f.text('THE MARLOWE', dcx, topY + 6, z0 - 2, MAT.trim_dark, { align: 'center', font: 'small' });
+  f.text('1926', dcx, topY + 1, z0 - 2, MAT.trim_dark, { align: 'center', font: 'small' });
+  // canopy lettering
+  f.box(dcx - 6, A0 + 9, z0 - 7, 12, 1, 1, MAT.awning_solid_navy);
   const out = b.entrance(L.id, dcx, A0, z0 + 1, { outZ: -3, outY: 0, leaf: 'door_glass', width: 4, tint: '#2a3a2a', main: true });
   L.markDoor(dcx, z0 + 1, 6);
   void out;
@@ -2825,7 +2854,7 @@ function buildFlat(H, q) {
   const pp = b.navPoint(0, q.passX, y, dz, [...(side === 'L' ? q.nav.L : q.nav.R)]);
   ctx.nav.link(dn, pp);
   // door plate with the flat number on the hall side
-  const plate = textSignType(`${label} ${fam.toUpperCase()}`.slice(0, 18), { bg: '#c9a24a', fg: '#2a2012', border: '#8a6a2a', scale: 1 / 40 });
+  const plate = textSignType(`APT ${label}`, { bg: '#c9a24a', fg: '#2a2012', border: '#8a6a2a', scale: 1 / 32 });
   b.f.prop(plate, q.hallEdge + (side === 'L' ? 0.1 : -0.1), y + 6, dz + 3.2, side === 'L' ? 1 : 3, {});
   const bandEdge = band === 'front' ? winBand[1] : winBand[0];
   connect(H, Rf, Rb, Math.round((Math.max(fx0, bx0) + Math.min(fx1, bx1)) / 2), bandEdge, 'x');
@@ -2864,6 +2893,5 @@ function buildFlat(H, q) {
     bath: [bt.spot], yard: [], porch: [], desk: bd.desk ? [bd.desk] : [], special: 'flat', flat: label,
   };
   if (!home.lounge.length) home.lounge.push(...home.dine);
-  b.home({ ...home, size: home.beds.length });
-  return { label, fam, superFlat: q.superFlat };
+  return { label, fam, superFlat: q.superFlat, home: { ...home, size: home.beds.length } };
 }
