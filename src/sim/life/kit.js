@@ -94,6 +94,22 @@ function buildPlaces(ctx) {
   return out;
 }
 
+// the minutes a person is spoken for (asleep, at work, in an event or another scene), cached
+// until their schedule changes: [a0, b0, a1, b1, …]
+const WORK = /^(Working|Back at work)/;
+const blocking = (e) => e.act === 'sleep' || e.event || e.life || (e.label && WORK.test(e.label));
+function blockedTimes(p) {
+  const s = p.schedule, nb = p.busy ? p.busy.length : 0, c = p._lifeBlk;
+  if (c && c.s === s && c.n === s.length && c.b === nb) return c.v;
+  for (let k = 1; k < s.length; k++) if (s[k].t < s[k - 1].t) { s.sort((a, b) => a.t - b.t); break; }
+  const v = [];
+  for (let k = 0; k < s.length; k++) if (blocking(s[k])) v.push(s[k].t, k + 1 < s.length ? s[k + 1].t : 1440);
+  if (s.length && s[0].t > 0 && blocking(s[s.length - 1])) v.push(0, s[0].t);
+  if (p.busy) for (const [a, b] of p.busy) v.push(a, b);
+  p._lifeBlk = { s, n: s.length, b: nb, v };
+  return v;
+}
+
 // ------------------------------------------------------------------ the kit
 export class LifeKit extends EventKit {
   constructor(ctx, id, title = '') {
@@ -183,33 +199,30 @@ export class LifeKit extends EventKit {
   // ---------------------------------------------------------------- people
   // awake, not at work, not already in an event or scene, and a townsperson (not a commuter)
   idle(p, t0, t1) {
+    if (p.commuter || p.visitor || !p.schedule.length) return false;
     t0 = tm(t0); t1 = tm(t1);
-    if (p.commuter || p.visitor || !this.free(p, t0, t1)) return false;
-    const s = p.schedule;
-    if (!s.length) return false;
-    for (let k = 0; k < s.length; k++) {
-      const a = s[k].t, b = k + 1 < s.length ? s[k + 1].t : 1440;
-      if (b <= t0 || a >= t1) continue;
-      const e = s[k];
-      if (e.act === 'sleep' || e.event || e.life || (e.label && /^(Working|Back at work)/.test(e.label))) return false;
-    }
-    // the entry in force when the window opens
-    let cur = null; for (const e of s) if (e.t <= t0) cur = e;
-    if (cur && (cur.act === 'sleep' || cur.event || cur.life || (cur.label && /^(Working|Back at work)/.test(cur.label)))) return false;
+    const v = blockedTimes(p);
+    for (let i = 0; i < v.length; i += 2) if (v[i] < t1 && v[i + 1] > t0) return false;
     return true;
   }
   recruit(n, t0, t1, filter = () => true, prefer = null) {
-    const pool = this.ctx.people.list.filter((p) => this.idle(p, t0, t1) && filter(p));
+    t0 = tm(t0); t1 = tm(t1);
+    const pool = this.ctx.people.list.filter((p) => filter(p) && this.idle(p, t0, t1));
     this.rng.shuffle(pool);
     if (prefer) pool.sort((a, b) => (prefer(b) ? 1 : 0) - (prefer(a) ? 1 : 0));
     return pool.slice(0, n);
   }
   // idle people who live closest to (x, z)
   neighbours(x, z, n, t0, t1, filter = () => true) {
-    const pool = this.ctx.people.list.filter((p) => p.home && this.idle(p, t0, t1) && filter(p));
-    const d = (p) => { const P = this.homePlace(p); return P ? Math.hypot(P.door.x - x, P.door.z - z) : 1e9; };
-    pool.sort((a, b) => d(a) - d(b) || a.id - b.id);
-    return pool.slice(0, n);
+    t0 = tm(t0); t1 = tm(t1);
+    const out = [];
+    for (const p of this.ctx.people.list) {
+      if (!p.home || !filter(p) || !this.idle(p, t0, t1)) continue;
+      const P = this.homePlace(p);
+      out.push([P ? Math.hypot(P.door.x - x, P.door.z - z) : 1e9, p]);
+    }
+    out.sort((a, b) => a[0] - b[0] || a[1].id - b[1].id);
+    return out.slice(0, n).map((q) => q[1]);
   }
   homePlace(p) { return p.home && p.home.building ? this.places.byName.get(p.home.building.name) || null : null; }
   // the nav node a person is at (or heading to) at minute t
@@ -248,9 +261,9 @@ export class LifeKit extends EventKit {
     const entries = [];
     for (const s of stops) {
       if (!s) continue;
-      const path = prev >= 0 ? nav.path(prev, s.node) : null;
-      let d = 40;
-      if (path) { d = 0; for (let i = 1; i < path.length; i++) d += Math.hypot(nav.x[path[i]] - nav.x[path[i - 1]], nav.z[path[i]] - nav.z[path[i - 1]]); }
+      // city-block distance is a good walking estimate on a street grid (the real route is found
+      // lazily at run time; A* for every stop here made big rounds slow to build)
+      const d = prev >= 0 ? (Math.abs(nav.x[s.node] - nav.x[prev]) + Math.abs(nav.z[s.node] - nav.z[prev])) * 1.08 + 4 : 40;
       entries.push({ t, spot: s, act: o.act || s.act, label: o.label, held: o.held });
       t += d / speed + (s.dwell ?? o.dwell ?? 1);
       prev = s.node;
