@@ -479,7 +479,7 @@ export function filler(W) {
   const people = rng.shuffle(L.ctx.people.list.filter((p) => !p.commuter && !p.visitor && p.age >= 13 && p.home));
   let n = 0;
   for (const p of people) {
-    for (const [a, b] of W.windows(p, '7:15', '21:40', 30)) {
+    for (const [a, b] of W.windows(p, '7:15', '21:40', 22)) {
       // the evening: not everybody goes out again
       if (a >= T('18:15') && !rng.chance(0.85)) continue;
       if (fillWindow(W, p, a, b)) n++;
@@ -830,6 +830,36 @@ export function confession(W) {
   W.tally('Confessions', n);
   if (n >= 3) W.diary.confession = { x: box.x, y: box.y + 1, z: box.z };
   L.scene("Saturday confession at St. Brigid's", box.x, box.z, '15:20', '17:10', n);
+}
+
+// the eight o'clock Mass at St. Brigid's, then home by way of the bakery or the paper
+export function morningMass(W) {
+  const L = W.L, rng = W.rng;
+  const pews = W.spotsIn("St. Brigid's Church", 'pew');
+  if (!pews.length) return;
+  const people = rng.shuffle(L.ctx.people.list.filter((p) => p.age >= 45 && catholic(p) && !p.commuter && W.home(p)));
+  let n = 0;
+  for (const p of people) {
+    if (n >= 16) break;
+    const home = W.homeSpot(p); if (!home) continue;
+    const pos = W.posAt(p, T('7:35'));
+    const speed = p.speed * (p.age >= 66 ? 0.7 : 0.82);
+    let t0 = T('7:57') - walkMin(pos, pews[0], speed) - rng.int(0, 5); t0 = W.settle(p, t0);
+    const win = W.windowAround(p, t0, T('8:36'));
+    if (!win || !W.free(p, t0, Math.min(win[1], T('9:40')))) continue;
+    const trip = new Trip(W, [p], t0, { from: pos, speed });
+    const pw = W.pickFree(pews, T('7:55'), T('8:32'), rng);
+    trip.to(pw, 0, { label: "At the eight o'clock Mass at St. Brigid's", act: rng.pick(['listen_sit', 'pray_sit']), held: p.sex === 'F' ? 'handbag' : p.age >= 70 ? 'cane' : null });
+    trip.t = Math.max(trip.t, T('8:32') + rng.int(0, 3));
+    const end = Math.min(win[1], T('9:50'));
+    const keys = p.sex === 'F' ? ['bakery', 'bakery', 'grocer', 'butcher'] : ['bakery', 'tobacco', 'tobacco'];
+    trip.to(W.gather(W.place("St. Brigid's Church")) || pw, rng.int(2, 6), { label: 'Chatting on the church steps after Mass', act: 'talk', held: p.sex === 'F' ? 'handbag' : null });
+    if (!errands(W, p, trip, end, keys, { n: 1, carried: p.sex === 'F' ? 'handbag' : null, project: false })) homeAfter(W, p, trip, "Walking home from Mass");
+    if (trip.t > end || !W.free(p, t0, trip.t)) continue;
+    trip.commit(); n++;
+  }
+  W.tally("Eight o'clock Mass", n);
+  if (n) L.scene("Eight o'clock Mass at St. Brigid's", 83, 100, '7:50', '9:30', n);
 }
 
 // casseroles and pies: a baby on the way, a boy home from Korea, a fright with the cat

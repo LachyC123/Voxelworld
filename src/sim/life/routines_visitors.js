@@ -315,7 +315,9 @@ function wander(V, mins, nf) {
   const s = W.nodeSpot(nd);
   const metres = mins * trip.speed * 0.8 * 60 * 0.95;
   const near = nf && nf.k === 'fireworks' ? [{ x: 30, z: 200 }, { x: 40, z: 60 }, { x: 40, z: -60 }] : nf && (nf.k === 'speech' || nf.k === 'dance') ? [{ x: 200, z: -35 }, { x: 214, z: -110 }, { x: 150, z: 20 }] : nf && nf.k === 'lunch' ? [{ x: 70, z: 0 }, { x: 150, z: -150 }, { x: 45, z: 125 }] : [];
-  const sights = [{ x: 50, z: -150 }, { x: 50, z: 0 }, { x: 50, z: 150 }, { x: 380, z: -150 }, { x: 380, z: 0 }, { x: 380, z: 150 }, { x: 214, z: -200 }, { x: 134, z: -100 }, { x: 294, z: -100 }, { x: 134, z: 200 }, { x: 294, z: 200 }, { x: 214, z: 120 }, { x: 294, z: 40 }];
+  // mostly downtown and the waterfront, now and then up among the houses
+  const sights = [{ x: 50, z: -150 }, { x: 50, z: -20 }, { x: 50, z: 120 }, { x: 134, z: -100 }, { x: 214, z: -160 }, { x: 294, z: -100 }, { x: 180, z: 4 }, { x: 270, z: 4 }, { x: 214, z: -62 }, { x: 150, z: -140 }, { x: 110, z: 4 }, { x: 340, z: 4 },
+    ...(r.chance(0.3) ? [{ x: 380, z: 0 }, { x: 294, z: 150 }, { x: 214, z: 200 }, { x: 380, z: -150 }] : [])];
   // somewhere roughly a walk's length away (the next fixed point first, if there is one)
   const fit = (a) => Math.abs(Math.abs(a.x - x0) + Math.abs(a.z - z0) - metres * 0.9);
   const aims = [...near.filter((a) => Math.hypot(a.x - x0, a.z - z0) > 60), ...r.shuffle(sights.filter((a) => Math.hypot(a.x - x0, a.z - z0) > 70)).sort((a, b) => fit(a) - fit(b)).slice(0, 4)];

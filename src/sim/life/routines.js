@@ -12,6 +12,7 @@ export function run(L) {
   // each pass gets its own random stream, so changing one doesn't reshuffle the others
   const step = (name, fn) => { const t0 = Date.now(); W.rng = L.rng.fork(name); try { fn(W); } catch (e) { console.error('routines: ' + name + ' failed', e); } W.timing = W.timing || {}; W.timing[name] = Date.now() - t0; };
   step('visitors', visitors);
+  step('mass', town.morningMass);
   step('confession', town.confession);
   step('casseroles', town.casseroles);
   step('beauty', town.beautyKitchens);

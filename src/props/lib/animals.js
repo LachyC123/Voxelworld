@@ -42,6 +42,7 @@ class Sculpt {
     const x0 = Math.floor(Math.min(ax, bx) - R), x1 = Math.ceil(Math.max(ax, bx) + R);
     const y0 = Math.floor(Math.min(ay, by) - R), y1 = Math.ceil(Math.max(ay, by) + R);
     const z0 = Math.floor(Math.min(az, bz) - R), z1 = Math.ceil(Math.max(az, bz) + R);
+    if (this.m.bounds) { this.m.set(x0 + 1, y0 + 1, z0 + 1); this.m.set(x1 - 1, y1 - 1, z1 - 1); return; }
     const fn = typeof col === 'function';
     for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
       const px = x + 0.5 - ax, py = y + 0.5 - ay, pz = z + 0.5 - az;
@@ -63,6 +64,7 @@ class Sculpt {
     const V = this.V;
     const cx = this.ox + c[0] * V, cy = this.oy + c[1] * V, cz = this.oz + c[2] * V;
     const rx = Math.max(0.72, r[0] * V), ry = Math.max(0.72, r[1] * V), rz = Math.max(0.72, r[2] * V);
+    if (this.m.bounds) { this.m.set(Math.floor(cx - rx), Math.floor(cy - ry), Math.floor(cz - rz)); this.m.set(Math.ceil(cx + rx), Math.ceil(cy + ry), Math.ceil(cz + rz)); return; }
     const fn = typeof col === 'function';
     for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let z = Math.floor(cz - rz); z <= Math.ceil(cz + rz); z++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
       const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry, nz = (z + 0.5 - cz) / rz;
@@ -88,7 +90,7 @@ class Sculpt {
 
 // records the voxel bounds a set of frames touches, so every frame of an animal shares one grid and origin
 class Bounds {
-  constructor() { this.x0 = Infinity; this.y0 = Infinity; this.z0 = Infinity; this.x1 = -Infinity; this.y1 = -Infinity; this.z1 = -Infinity; }
+  constructor() { this.bounds = true; this.x0 = Infinity; this.y0 = Infinity; this.z0 = Infinity; this.x1 = -Infinity; this.y1 = -Infinity; this.z1 = -Infinity; }
   set(x, y, z) { if (x < this.x0) this.x0 = x; if (x > this.x1) this.x1 = x; if (y < this.y0) this.y0 = y; if (y > this.y1) this.y1 = y; if (z < this.z0) this.z0 = z; if (z > this.z1) this.z1 = z; }
 }
 
