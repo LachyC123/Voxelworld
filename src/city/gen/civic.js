@@ -1090,14 +1090,667 @@ function buildCityHall(ctx, lot, spec) {
   return b;
 }
 
+
+// Hollow the inside of a solid f.gable(axis:'z') roof, leaving a 1-voxel shell lined with `lining`.
+function vaultZ(f, x, y, z, sx, sz, lining, rise = 1) {
+  const steps = Math.ceil(sx / 2);
+  for (let i = 0; i < steps; i++) for (let r = 0; r < rise; r++) {
+    const w = sx - 2 * i - 2;
+    if (w <= 0) continue;
+    f.box(x + i + 1, y + i * rise + r, z + 1, w, 1, sz - 2, lining);
+    if (w > 2) f.carve(x + i + 2, y + i * rise + r, z + 1, w - 2, 1, sz - 2);
+  }
+}
+// Stained-glass lancet on a wall facing dir: pointed window with coloured bands.
+function lancet(f, dir, a0, y, face, w, h, pal, o = {}) {
+  const [F, x, z] = onWall(f, dir, a0, w, face);
+  win(F, x, y, z, w, h, { t: o.t ?? 2, style: 'arch', glass: pal[0], frame: o.frame ?? MAT.granite, sill: true });
+  const straight = Math.max(0, h - Math.ceil(w / 2));
+  const gz = z + 1;
+  for (let yy = 1; yy < straight; yy += 2) F.box(x, y + yy, gz, w, 1, 1, pal[(yy >> 1) % pal.length]);
+  if (w >= 4) F.box(x + Math.floor(w / 2) - (w % 2 ? 0 : 1) + (w % 2 ? 0 : 1) - 1 + 1, y, gz, 1, straight, 1, MAT.iron);
+}
+function rose(f, dir, c, cy, layer, r) {
+  const out = dir === 0 || dir === 3 ? -1 : 1;
+  discOn(f, dir, c, cy, layer, r + 1, MAT.limestone);
+  const inL = layer - out; // carve through the wall behind
+  discOn(f, dir, c, cy, inL, r, MAT.glass_stained_blue);
+  discOn(f, dir, c, cy, inL + (-out), r, MAT.glass_stained_blue);
+  discOn(f, dir, c, cy, layer, r, MAT.glass_stained_blue);
+  discOn(f, dir, c, cy, layer, r * 0.72, MAT.glass_stained_red);
+  discOn(f, dir, c, cy, layer, r * 0.45, MAT.glass_stained_gold);
+  discOn(f, dir, c, cy, layer, r * 0.18, MAT.glass_stained_green);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * 2 * PI; const px = c + Math.cos(a) * r * 0.62, py = cy + Math.sin(a) * r * 0.62; if (dir === 0 || dir === 2) f.box(Math.round(px), Math.round(py), layer, 1, 1, 1, MAT.limestone); else f.box(layer, Math.round(py), Math.round(px), 1, 1, 1, MAT.limestone); }
+}
+// Row of pews (prop) with 3 sit spots each, facing rot (2 = toward the back of the lot / the altar).
+function pewRow(b, room, x, y, z, rot, tags, o = {}) {
+  b.prop(o.type || 'pew', x, y, z, rot, { tint: o.tint });
+  const out = [];
+  const v = R4[rot], rt = [v[1], -v[0]];
+  for (const k of o.seats || [-4, 0, 4]) out.push(b.spot('sit', x + rt[0] * k, y, z + rt[1] * k, rot, { room, act: o.act || 'listen_sit', tags, seat: 0.45, label: o.label }));
+  if (o.player !== false) b.playerSeat(x, y, z, rot, 0.45);
+  return out;
+}
+
+// =====================================================================================
+// ST. BRIGID'S CHURCH (1882) — granite Gothic; the Novak-Brennan wedding at 2 o'clock
+// =====================================================================================
+function buildStBrigid(ctx, lot, spec) {
+  const b = new Building(ctx, { name: spec.name || "St. Brigid's Church", kind: 'church_catholic', lot, address: lot.address, established: spec.est || 1882,
+    lore: 'Built by the Irish families who laid the railroad. Granite, with a bell cast in Troy, New York, in 1884.', hours: [6 * 60 + 30, 20 * 60] });
+  const f = b.f, W = lot.w, D = lot.d;
+  const rng = ctx.rng.fork('brigid' + lot.x);
+  const FY = 3;
+  const NX0 = Math.max(8, Math.round(W * 0.15)), NX1 = Math.min(W - 32, NX0 + 84), NW = NX1 - NX0, cxm = Math.round((NX0 + NX1) / 2);
+  const FZ = 30, BZ = Math.min(D - 30, 170), WH = 36, wallTop = FY + WH;
+  const TX0 = NX1, TX1 = Math.min(W - 4, NX1 + 24), TZ0 = FZ - 12, TZ1 = TZ0 + (TX1 - TX0);
+  // grounds
+  f.box(0, -1, 0, W, 1, D, MAT.grass_lawn);
+  f.box(NX0 + 8, -1, 0, NW - 16, 1, FZ, MAT.sidewalk);
+  f.box(4, -1, 0, 6, 1, D - 4, MAT.gravel);
+  // plinth & steps
+  f.box(NX0 - 2, 0, FZ - 2, NW + 4, FY, BZ - FZ + 26, MAT.granite);
+  for (let k = 0; k < FY; k++) f.box(NX0 + 8, 0, FZ - 2 - 2 * (FY - k), NW - 16, k + 1, 2, MAT.granite);
+  // nave shell, apse, roof
+  shell(f, NX0, FY, FZ, NW, WH, BZ - FZ, MAT.granite, MAT.plaster_white, 2);
+  f.cylinder(cxm, FY, BZ, NW / 2 - 16, WH - 6, MAT.granite, 2);
+  f.cylinder(cxm, FY - 1, BZ, NW / 2 - 16, 1, MAT.marble);
+  f.dome(cxm, FY + WH - 6, BZ, NW / 2 - 15, MAT.roof_slate, { heightScale: 0.9 });
+  f.carve(NX0 + 2, FY, FZ + 2, NW - 4, WH, BZ - FZ - 2);          // open the nave into the apse
+  f.cylinder(cxm, FY, BZ, NW / 2 - 18, WH - 7, MAT.plaster_blue);
+  f.cylinder(cxm, FY, BZ, NW / 2 - 18, WH - 7, 0);
+  f.box(NX0 - 1, wallTop, FZ - 1, NW + 2, 1, BZ - FZ + 2, MAT.granite);
+  const rise = f.gable(NX0, wallTop + 1, FZ, NW, BZ - FZ, MAT.roof_slate, { axis: 'z', overhang: 2, gableMat: MAT.granite });
+  vaultZ(f, NX0, wallTop + 1, FZ, NW, BZ - FZ, MAT.plaster_blue);
+  for (let i = 4; i < rise - 2; i += 6) for (let z = FZ + 8; z < BZ - 4; z += 14) f.box(NX0 + i + 1 + ((z >> 2) % 5), wallTop + 1 + i, z, 1, 1, 1, MAT.trim_gold);
+  for (let z = FZ + 14; z < BZ; z += 14) for (let i = 0; i < rise - 1; i++) { f.box(NX0 + i + 1, wallTop + 1 + i, z, 1, 1, 1, MAT.wood_dark); f.box(NX1 - i - 2, wallTop + 1 + i, z, 1, 1, 1, MAT.wood_dark); }
+  // buttresses along the sides
+  for (let z = FZ + 12; z < BZ; z += 14) for (const x of [NX0 - 3, NX1]) { f.box(x, FY, z, 3, WH - 6, 3, MAT.granite); f.box(x + (x < NX0 ? 1 : 0), FY + WH - 6, z, 2, 4, 3, MAT.granite); }
+  // cross on the front gable
+  f.box(cxm, wallTop + rise + 1, FZ - 1, 1, 8, 1, MAT.trim_gold); f.box(cxm - 2, wallTop + rise + 5, FZ - 1, 5, 1, 1, MAT.trim_gold);
+  // ---- facade: portal, side doors, rose window, lancets
+  doorway(f, cxm - 4, FY, FZ, 8, 14, { frame: false, t: 2, step: false });
+  f.archCarve(cxm - 4, FY, FZ, 8, 17, 2);
+  f.archCarve(cxm - 6, FY, FZ - 1, 12, 19, 1, MAT.limestone); f.archCarve(cxm - 5, FY, FZ - 1, 10, 18, 1);
+  f.box(cxm - 4, FY + 14, FZ, 8, 3, 1, MAT.glass_stained_gold); f.archCarve(cxm - 4, FY + 14, FZ, 8, 3, 1, MAT.glass_stained_gold);
+  for (const dx of [NX0 + 12, NX1 - 16]) { f.archCarve(dx, FY, FZ, 4, 11, 2); f.archCarve(dx - 1, FY, FZ - 1, 6, 12, 1, MAT.limestone); f.archCarve(dx, FY, FZ - 1, 4, 11, 1); }
+  rose(f, 0, cxm, FY + 27, FZ - 1, 8);
+  for (const dx of [NX0 + 11, NX1 - 17]) lancet(f, 0, dx, FY + 16, FZ, 6, 16, [MAT.glass_stained_blue, MAT.glass_stained_red, MAT.glass_stained_gold]);
+  f.text('ST. BRIGID', cxm, FY + 38, FZ - 1, MAT.trim_gold, { align: 'center', font: 'small' });
+  // side lancets: dedication windows
+  const pals = [[MAT.glass_stained_blue, MAT.glass_stained_red, MAT.glass_stained_gold], [MAT.glass_stained_red, MAT.glass_stained_gold, MAT.glass_stained_green], [MAT.glass_stained_purple, MAT.glass_stained_blue, MAT.glass_stained_gold], [MAT.glass_stained_green, MAT.glass_stained_gold, MAT.glass_stained_red]];
+  let wi = 0;
+  for (let z = FZ + 17; z < BZ - 8; z += 14) {
+    lancet(f, 3, z, FY + 8, NX0, 6, 22, pals[wi % 4]);
+    lancet(f, 1, z, FY + 8, NX1, 6, 22, pals[(wi + 2) % 4]);
+    wi++;
+  }
+  // ---- the bell tower & spire (front right)
+  shell(f, TX0, 0, TZ0, TX1 - TX0, 90, TZ1 - TZ0, MAT.granite, null, 2);
+  const tcx = (TX0 + TX1) / 2, tcz = (TZ0 + TZ1) / 2, tw = TX1 - TX0;
+  for (const [x, z] of [[TX0 - 1, TZ0 - 1], [TX1 - 2, TZ0 - 1]]) for (let y = 0; y < 90; y += 18) f.box(x, y, z, 3, 12, 3, MAT.granite);
+  f.box(TX0, FY - 1, TZ0 + 2, tw, 1, TZ1 - TZ0 - 4, MAT.floor_concrete);
+  for (let y = 20; y < 80; y += 18) { lancet(f, 0, Math.round(tcx) - 2, y, TZ0, 4, 10, [MAT.glass_dark]); }
+  f.box(TX0 - 1, 90, TZ0 - 1, tw + 2, 1, tw + 2, MAT.limestone);
+  const belY = 91;
+  for (const [x, z] of [[TX0, TZ0], [TX1 - 4, TZ0], [TX0, TZ1 - 4], [TX1 - 4, TZ1 - 4]]) f.box(x, belY, z, 4, 16, 4, MAT.granite);
+  f.box(TX0, belY + 13, TZ0, tw, 3, TZ1 - TZ0, MAT.granite);
+  f.archCarve(TX0 + 5, belY, TZ0, tw - 10, 13, TZ1 - TZ0);
+  f.faceFrame('left').archCarve(D - TZ1 + 5, belY, TX0, tw - 10, 13, tw);
+  f.box(TX0, belY - 1, TZ0, tw, 1, TZ1 - TZ0, MAT.wood_dark);
+  f.box(TX0, belY, TZ0, tw, 2, 1, MAT.granite); f.box(TX0, belY, TZ1 - 1, tw, 2, 1, MAT.granite);
+  // the bell (Meneely, Troy N.Y., 1884)
+  f.box(Math.round(tcx) - 4, belY + 11, Math.round(tcz) - 1, 8, 1, 2, MAT.wood_dark);
+  f.cylinder(tcx, belY + 6, tcz, 3.2, 5, MAT.trim_gold, 1);
+  f.cylinder(tcx, belY + 5, tcz, 4, 1, MAT.trim_gold, 1);
+  f.box(Math.round(tcx) - 1, belY + 4, Math.round(tcz) - 1, 1, 2, 1, MAT.iron);
+  b.prop('bell_brass', tcx, belY, tcz, 0, {});
+  const spireBase = belY + 16;
+  f.box(TX0 - 1, spireBase, TZ0 - 1, tw + 2, 1, tw + 2, MAT.limestone);
+  for (const [x, z] of [[TX0, TZ0], [TX1 - 3, TZ0], [TX0, TZ1 - 3], [TX1 - 3, TZ1 - 3]]) { f.box(x, spireBase + 1, z, 3, 6, 3, MAT.granite); f.box(x + 1, spireBase + 7, z + 1, 1, 3, 1, MAT.granite); }
+  const sp = f.hip(TX0 + 2, spireBase + 1, TZ0 + 2, tw - 4, TZ1 - TZ0 - 4, MAT.roof_slate, { overhang: 0, rise: 6 });
+  f.box(Math.round(tcx), spireBase + sp, Math.round(tcz), 1, 10, 1, MAT.trim_gold);
+  f.box(Math.round(tcx) - 2, spireBase + sp + 6, Math.round(tcz), 5, 1, 1, MAT.trim_gold);
+  clockOn(f, 0, tcx, 72, TZ0 - 1, 5);
+  // tower base doorway into the narthex
+  f.carve(TX0, FY, FZ + 4, 2, 9, 4);
+  // ---- interior
+  const IX0 = NX0 + 2, IX1 = NX1 - 2, IZ0 = FZ + 2;
+  const NZ = IZ0 + 13;           // narthex back wall
+  const LY = FY + 14;            // organ loft slab
+  const SZ = BZ - 24;            // sanctuary front (altar rail)
+  f.box(IX0, FY - 1, IZ0, IX1 - IX0, 1, BZ - IZ0 + 20, MAT.floor_terrazzo);
+  f.box(IX0, FY - 1, NZ, 12, 1, SZ - NZ, MAT.floor_checker_red);
+  f.box(IX1 - 12, FY - 1, NZ, 12, 1, SZ - NZ, MAT.floor_checker_red);
+  f.box(cxm - 3, FY - 1, NZ, 6, 1, SZ - NZ, MAT.carpet_red);
+  f.box(cxm - 2, FY - 1, NZ + 1, 4, 1, SZ - NZ - 1, MAT.canvas_white);     // the white aisle runner for the wedding
+  // narthex wall with three openings, organ loft above
+  partitionX(f, IX0, IX1, FY, NZ, LY - FY, MAT.plaster_white, [{ at: cxm - 4, w: 8, h: 11 }, { at: NX0 + 12, w: 4 }, { at: NX1 - 16, w: 4 }]);
+  f.box(IX0, LY, IZ0, IX1 - IX0, 1, NZ - IZ0 + 4, MAT.wood_dark);
+  for (let x = IX0; x < IX1; x += 2) f.box(x, LY + 1, NZ + 3, 1, 3, 1, MAT.wood_mid);
+  f.box(IX0, LY + 4, NZ + 3, IX1 - IX0, 1, 1, MAT.wood_dark);
+  // arcade columns
+  const colXs = [IX0 + 12, IX1 - 12];
+  for (let z = NZ + 8; z < SZ; z += 13) for (const x of colXs) { f.cylinder(x, FY, z, 1.6, WH - 2, MAT.granite); f.cylinder(x, FY, z, 2.4, 1, MAT.granite); f.cylinder(x, FY + WH - 4, z, 2.4, 2, MAT.limestone); }
+  // sanctuary: raised floor, altar rail, high altar & reredos in the apse
+  f.box(IX0, FY, SZ, IX1 - IX0, 2, BZ - SZ + 18, MAT.marble);
+  f.box(IX0, FY, SZ - 2, IX1 - IX0, 1, 2, MAT.marble);
+  f.box(IX0 + 14, FY + 1, SZ, IX1 - IX0 - 28, 1, BZ - SZ + 18, MAT.carpet_red);
+  for (let x = IX0 + 14; x < IX1 - 14; x += 2) if (Math.abs(x + 0.5 - cxm) > 3) f.box(x, FY + 2, SZ + 1, 1, 3, 1, MAT.marble);
+  f.box(IX0 + 14, FY + 5, SZ + 1, cxm - 3 - IX0 - 14, 1, 1, MAT.marble); f.box(cxm + 3, FY + 5, SZ + 1, IX1 - 14 - cxm - 3, 1, 1, MAT.marble);
+  const altZ = BZ + 8;
+  f.box(cxm - 12, FY + 2, altZ - 6, 24, 2, 10, MAT.marble);
+  b.prop('altar', cxm, FY + 4, altZ - 2, 0, {});
+  // reredos: gilded Gothic screen with a crucifix
+  f.box(cxm - 10, FY + 4, altZ + 2, 20, 16, 1, MAT.trim_white);
+  for (const dx of [-10, -5, 4, 9]) { f.box(cxm + dx, FY + 4, altZ + 1, 1, 18 + (Math.abs(dx) < 6 ? 4 : 0), 1, MAT.trim_gold); f.box(cxm + dx, FY + 22 + (Math.abs(dx) < 6 ? 4 : 0), altZ + 1, 1, 2, 1, MAT.trim_gold); }
+  f.box(cxm - 1, FY + 8, altZ + 1, 2, 14, 1, MAT.wood_dark); f.box(cxm - 4, FY + 17, altZ + 1, 8, 2, 1, MAT.wood_dark);
+  f.box(cxm - 1, FY + 14, altZ, 2, 3, 1, MAT.plaster_pink);
+  f.box(cxm - 2, FY + 6, altZ, 4, 3, 1, MAT.trim_gold);                  // tabernacle
+  b.prop('candles_pair', cxm - 5, FY + 7, altZ - 2, 0, {}); b.prop('candles_pair', cxm + 5, FY + 7, altZ - 2, 0, {});
+  for (const dx of [-9, 9]) { b.prop('vase_flowers', cxm + dx, FY + 4, altZ - 5, 0, { tint: '#f4f0e8', scale: 1.4 }); b.prop('flower_buckets', cxm + dx * 1.6, FY + 2, SZ + 3, 0, { tint: '#f4f0e8' }); }
+  b.prop('lectern', IX0 + 16, FY + 2, SZ + 6, 1, {});
+  b.prop('candle_stand', IX1 - 16, FY + 2, SZ + 6, 3, {});
+  // wedding: the kneeler for the couple and the priest's place
+  b.prop('piano_bench', cxm, FY + 2, SZ + 9, 0, { tint: '#f4f0e8' });
+  const sanctRoom = b.room('Sanctuary', IX0, FY + 2, SZ, IX1 - IX0, WH - 2, BZ - SZ + 16, { lightMode: 'always', kind: 'hall', nav: [cxm, SZ + 6] });
+  b.spot('stand', cxm, FY + 2, SZ + 13, 0, { room: sanctRoom, act: 'speech', tags: ['altar_priest'], label: 'Officiating' });
+  b.spot('stand', cxm - 1.6, FY + 2, SZ + 7.5, 2, { room: sanctRoom, act: 'stand', tags: ['altar_couple'], label: 'At the altar' });
+  b.spot('stand', cxm + 1.6, FY + 2, SZ + 7.5, 2, { room: sanctRoom, act: 'stand', tags: ['altar_couple'], label: 'At the altar' });
+  for (const dx of [-8, 8]) b.spot('stand', cxm + dx, FY + 2, SZ + 9, 2, { room: sanctRoom, act: 'stand', tags: ['wedding_party'], label: 'In the wedding party' });
+  // rooms
+  const narthex = b.room('Narthex', IX0, FY, IZ0, IX1 - IX0, LY - FY, NZ - IZ0, { lightMode: 'always', nav: [cxm, IZ0 + 6] });
+  const nave = b.room('Nave', IX0, FY, NZ + 1, IX1 - IX0, WH + rise - 2, SZ - NZ - 1, { lightMode: 'always', kind: 'hall', nav: [cxm, NZ + 6] });
+  const loft = b.room('Organ Loft', IX0, LY + 1, IZ0, IX1 - IX0, WH - LY, NZ - IZ0 + 3, { lightMode: 'auto' });
+  const tower = b.room('Bell Tower', TX0 + 2, FY, TZ0 + 2, tw - 4, 14, TZ1 - TZ0 - 4, { lightMode: 'auto', ambient: 0.2 });
+  const ent = b.entrance(narthex, cxm - 2, FY, FZ, { outZ: FZ - 12, outY: 0, leaf: 'door_wood', tint: '#7a2a24', main: true });
+  b.door(null, null, cxm + 2, FY, FZ, { leaf: 'door_wood', tint: '#7a2a24' });
+  const e2 = b.entrance(narthex, NX0 + 14, FY, FZ, { outZ: FZ - 10, outY: 0, leaf: 'door_wood', tint: '#7a2a24' });
+  const e3 = b.entrance(narthex, NX1 - 14, FY, FZ, { outZ: FZ - 10, outY: 0, leaf: 'door_wood', tint: '#7a2a24' });
+  b.door(narthex, nave, cxm, FY, NZ, { leaf: false });
+  b.door(narthex, nave, NX0 + 14, FY, NZ, { leaf: false });
+  b.door(narthex, nave, NX1 - 14, FY, NZ, { leaf: false });
+  b.door(narthex, tower, TX0 + 1, FY, FZ + 6, { axis: 'z', leaf: 'door_wood' });
+  const railGap = b.door(nave, sanctRoom, cxm, FY + 2, SZ + 1, { leaf: false });
+  void railGap;
+  // stair to the organ loft along the narthex's left end
+  stairs(f, IX0 + 1, FY, NZ - 5, '+x', LY + 1 - FY, { w: 4, run: 2, mat: MAT.wood_mid, rail: false });
+  b.stairs(narthex, [IX0 + 1, FY, NZ - 3], loft, [IX0 + 1 + (LY + 1 - FY) * 2 + 1, LY + 1, NZ - 3]);
+  // organ loft
+  b.prop('organ_pipes', cxm, LY + 1, IZ0 + 1.2, 2, {});
+  b.prop('organ_console', cxm, LY + 1, IZ0 + 7, 0, {});
+  const organ = b.spot('sit', cxm, LY + 1, IZ0 + 9.4, 0, { room: loft, act: 'organ', tags: ['organ'], seat: 0.55, label: 'At the organ' });
+  b.job('organist', organ, { shift: ['13:15', '15:15'], title: 'organist at St. Brigid\'s' });
+  for (let i = 0; i < 6; i++) { const x = IX0 + 34 + i * 4 + (i >= 3 ? 20 : 0); b.prop('choir_chair', x, LY + 1, NZ, 0, {}); b.spot('sit', x, LY + 1, NZ, 0, { room: loft, act: 'sing', tags: ['choir_catholic'], seat: 0.45 }); }
+  // pews with white ribbons and bows for the wedding
+  const pews = [];
+  const pewXL = (IX0 + 13 + cxm - 3) / 2, pewXR = (cxm + 3 + IX1 - 13) / 2;
+  for (let r = 0, z = SZ - 8; z > NZ + 5; z -= 4.5, r++) {
+    for (const x of [pewXL, pewXR]) pews.push(...pewRow(b, nave, x, FY, z, 2, ['pew'], { tint: '#5a3a24', label: 'At Mass' }));
+    if (r < 12) for (const x of [cxm - 4, cxm + 3]) { f.box(x, FY + 2, Math.round(z), 1, 2, 1, MAT.canvas_white); f.box(x, FY + 4, Math.round(z), 1, 1, 1, MAT.flowerbed_red); }
+  }
+  // side aisles: confessionals, side altars, votive candles, Stations of the Cross
+  for (const [x0, dir] of [[IX0, 1], [IX1 - 10, 3]]) {
+    const mid = x0 + 5;
+    // side altar with a statue (St. Brigid on the left, Our Lady on the right)
+    f.box(x0, FY, SZ - 10, 10, 3, 6, MAT.marble);
+    figure(f, mid, FY + 3, SZ - 7, 0, dir === 1 ? MAT.plaster_white : MAT.plaster_blue, 'captain', dir === 1 ? MAT.plaster_cream : MAT.plaster_white);
+    b.prop('candle_stand', mid, FY, SZ - 14, 0, {});
+    b.prop('vase_flowers', mid - 3, FY + 3, SZ - 8, 0, { tint: '#f4f0e8' });
+    b.spot('kneel', mid, FY, SZ - 17, 2, { room: nave, act: 'pray', tags: ['pray'] });
+  }
+  readAt(b, IX0 + 5, FY + 5, SZ - 10, 0, 'Shrine of St. Brigid', 'SAINT BRIGID OF KILDARE\nPatroness of Ireland, of dairymaids, of travelers and of mariners.\n\nThis statue came from County Clare in 1882 in the hold of the barque\nNORA CREINA, packed in straw and prayed over the whole way.\nThe Halloran and Doyle families paid for its passage.\n\nThe votive lights are lit today for the Novak-Brennan wedding,\nfor Sal Castellano\'s safe return, and for Carol Kaminski.', 2.4);
+  // confessionals on the left aisle
+  for (const cz0 of [NZ + 30, NZ + 58]) {
+    f.box(IX0, FY, cz0, 5, 12, 14, MAT.wood_dark);
+    f.carve(IX0 + 1, FY, cz0 + 1, 4, 10, 3); f.carve(IX0 + 1, FY, cz0 + 5, 4, 10, 4); f.carve(IX0 + 1, FY, cz0 + 10, 4, 10, 3);
+    f.box(IX0 + 4, FY + 1, cz0 + 1, 1, 9, 3, MAT.velvet_red); f.box(IX0 + 4, FY + 1, cz0 + 10, 1, 9, 3, MAT.velvet_red);
+    f.box(IX0 + 5, FY + 12, cz0 + 4, 1, 3, 6, MAT.wood_dark);
+    f.box(IX0 + 5, FY + 13, cz0 + 6, 1, 1, 2, MAT.trim_gold);
+  }
+  const confess = b.spot('sit', IX0 + 2.5, FY, NZ + 37, 1, { room: nave, act: 'listen_sit', tags: ['confession'], seat: 0.45 });
+  b.spot('kneel', IX0 + 2.5, FY, NZ + 32, 1, { room: nave, act: 'pray', tags: ['pray'] });
+  readAt(b, IX0 + 6, FY + 6, NZ + 37, 1, 'Confessions', 'CONFESSIONS\nSaturdays 4:00 - 5:30 and 7:30 - 8:30 P.M.\nand by appointment at the Rectory.\n\nFr. Francis X. Garrity, Pastor', 2.2);
+  const stations = ['I. Jesus is condemned to death', 'II. Jesus takes up His Cross', 'III. Jesus falls the first time', 'IV. Jesus meets His Mother', 'V. Simon helps carry the Cross', 'VI. Veronica wipes His face', 'VII. Jesus falls the second time', 'VIII. Jesus meets the women of Jerusalem', 'IX. Jesus falls the third time', 'X. Jesus is stripped', 'XI. Jesus is nailed to the Cross', 'XII. Jesus dies on the Cross', 'XIII. Jesus is taken down', 'XIV. Jesus is laid in the tomb'];
+  for (let i = 0; i < 14; i++) {
+    const left = i < 7, k = left ? i : 13 - i;
+    const z = NZ + 10 + k * ((SZ - NZ - 24) / 6);
+    const x = left ? IX0 + 0.6 : IX1 - 0.6;
+    b.prop('painting', x, FY + 10, z, left ? 1 : 3, { tint: '#8a6a3a', scale: 0.55 });
+    f.box(left ? IX0 : IX1 - 1, FY + 14, Math.round(z), 1, 2, 1, MAT.wood_dark);
+    if (i === 0 || i === 13) readAt(b, x, FY + 9, z, left ? 1 : 3, 'Stations of the Cross', 'THE STATIONS OF THE CROSS\n\n' + stations.join('\n') + '\n\nCarved in Oberammergau, 1893. Given by the Cannery Workers of St. Brigid\'s Parish,\n"a penny a week for four years."', 2.2);
+  }
+  // window dedications
+  readAt(b, IX0 + 1, FY + 8, FZ + 20, 1, 'Memorial windows', 'MEMORIAL WINDOWS (north aisle, from the door)\n\n1. In memory of Patrick Doyle, seaman, lost with the schooner MARY ELLEN, October 1867.\n2. In memory of Pvt. Michael Kearney, 28th Mass. (Irish Brigade), Petersburg, 1864.\n3. Given by the Ancient Order of Hibernians, Div. 4, 1890.\n4. In memory of Nurse Mary Catherine Doyle, Army Nurse Corps, 1918.\n5. The Blessing of the Fleet window, given by the Portuguese Holy Ghost Society, 1924.', 2.4);
+  // narthex: holy water fonts, notices, the pastors' board
+  for (const x of [cxm - 7, cxm + 7]) b.prop('baptismal_font', x, FY, NZ - 2, 0, { scale: 0.7 });
+  b.prop('baptismal_font', IX1 - 6, FY, IZ0 + 4, 3, {});
+  readAt(b, IX1 - 3, FY + 5, IZ0 + 8, 3, 'Parish notice board', 'ST. BRIGID\'S PARISH - NOTICES\n\nMASSES: Sunday 7, 8:30, 10 (High Mass) and 11:30. Weekdays 7 A.M.\nCONFESSIONS: Saturday 4 - 5:30 and 7:30 - 8:30 P.M.\n\nTODAY at 2 o\'clock: the Nuptial Mass of\nHELEN STELLA NOVAK and ROBERT JOSEPH BRENNAN.\nReception to follow in the Parish Hall. All parishioners welcome to the church.\n\nThe Altar Society bake sale is at the Centennial fair (Founders Square) until 5.\nC.Y.O. dance postponed on account of the Sock Hop. You know who you are.\nThe Blessing of the Fleet raised $412.60 for the new roof. God bless you all.', 2.6);
+  f.box(NX0 + 2, FY, FZ - 1, 10, 4, 1, MAT.granite_pink);
+  signLine(b, 'A.D. 1882', NX0 + 7, FY + 1.4, FZ - 1.05, 0, { bg: '#b39488', fg: '#3a2a22', border: '#b39488', scale: 0.4 });
+  readAt(b, NX0 + 7, FY + 2, FZ - 1, 0, 'Cornerstone', 'ST. BRIGID\'S CHURCH\nCORNER STONE LAID AUGUST 15, 1882\nRt. Rev. John J. Williams, Bishop of Boston, officiating.\nBuilt by the Irish families of Juniper Bay, who came to lay the railroad\nand stayed to work the wharves.', 2.4);
+  readAt(b, tcx, FY + 4, TZ0 + 4, 2, 'The bell', 'THE BELL\nCast by Meneely & Kimberly, Troy, New York, 1884. 2,100 pounds.\nInscription: "SANCTA BRIGIDA ORA PRO NOBIS - JUNIPER BAY 1884"\n\nIt rang for an hour on V-J Day, 1945, until the rope broke.\nIt will ring today at three o\'clock for Helen and Robert.', 2.4);
+  // sacristy & rectory path: priest's job spots, sexton
+  const priestA = b.spot('kneel', cxm, FY + 2, altZ - 8, 2, { room: sanctRoom, act: 'pray', tags: ['priest'] });
+  const priestB = b.spot('stand', cxm + 6, FY, IZ0 + 6, 0, { room: narthex, act: 'talk', tags: ['priest'] });
+  b.job('priest', [priestA, confess, priestB], { shift: ['7:00', '20:30'], title: 'pastor of St. Brigid\'s', outfit: 'clergy', sex: 'M', age: [45, 75] });
+  const sexton = b.spot('stand', cxm - 10, FY, NZ + 20, 2, { room: nave, act: 'sweep', tags: ['work'] });
+  b.job('sexton', [sexton, b.spot('stand', IX1 - 18, FY + 2, SZ + 8, 3, { room: sanctRoom, act: 'stand', tags: ['work'] })], { shift: ['8:00', '18:00'], title: 'sexton', sex: 'M' });
+  // lights
+  for (let z = NZ + 16; z < SZ; z += 26) { b.prop('chandelier', cxm, wallTop - 6, z, 0, {}); }
+  b.light(cxm, FY + 14, (NZ + SZ) / 2, { mode: 'room', room: nave, radius: 18, color: [1, 0.85, 0.6] });
+  b.light(cxm, FY + 12, SZ + 10, { mode: 'room', room: sanctRoom, radius: 12, color: [1, 0.9, 0.7] });
+  // churchyard: a Celtic cross, trees, the wedding car waiting
+  const gx = Math.round(NX0 / 2) + 1;
+  if (NX0 > 10) { f.box(gx - 2, 0, FZ + 40, 4, 1, 4, MAT.granite); f.box(gx - 1, 1, FZ + 41, 2, 10, 2, MAT.granite); f.box(gx - 3, 7, FZ + 41, 6, 2, 2, MAT.granite); f.cylinder(gx, 6, FZ + 42, 2.5, 1, MAT.granite, 1); }
+  b.prop('tree_maple_red', gx, 0, FZ + 12, 0, { cat: 'far' });
+  b.prop('tree_oak', gx, 0, BZ - 10, 0, { cat: 'far' });
+  b.prop('car_sedan', NX0 + NW / 2 + 22, 0, -8, 1, { tint: '#1c1c20', cat: 'far' });
+  for (const e of [ent, e2, e3]) linkToSidewalk(ctx, e);
+  void rng; void pews; void tower;
+  return b;
+}
+
+
+// Long banquet table (world voxels) along z with white cloth, folding chairs & sit spots on both sides.
+function banquetZ(b, room, x, y, z0, len, tags, o = {}) {
+  const f = b.f;
+  f.box(x - 3, y + 2, z0, 6, 1, len, MAT.canvas_white);
+  f.box(x - 3, y + 1, z0, 6, 1, 1, MAT.canvas_white); f.box(x - 3, y + 1, z0 + len - 1, 6, 1, 1, MAT.canvas_white);
+  for (const zz of [z0 + 1, z0 + len - 2]) for (const xx of [x - 3, x + 2]) f.box(xx, y, zz, 1, 2, 1, MAT.wood_dark);
+  const seats = [];
+  for (let z = z0 + 2; z <= z0 + len - 2; z += 3.2) {
+    for (const [dx, rot] of [[-4.6, 1], [4.6, 3]]) {
+      b.prop(o.chair || 'chair_folding', x + dx, y, z, rot, { tint: o.chairTint });
+      seats.push(b.spot('sit', x + dx, y, z, rot, { room, act: o.act || 'eat', tags, seat: 0.45, label: o.label }));
+      b.prop('table_setting', x + dx * 0.55, y + 3, z, (rot + 2) % 4, {});
+    }
+  }
+  for (let z = z0 + 4; z < z0 + len - 2; z += 10) b.prop(o.centre || 'vase_flowers', x, y + 3, z, 0, { tint: o.centreTint || '#f4f0e8' });
+  return seats;
+}
+
+// =====================================================================================
+// ST. BRIGID'S RECTORY & PARISH HALL — the Novak-Brennan wedding reception
+// =====================================================================================
+function buildRectory(ctx, lot, spec) {
+  const b = new Building(ctx, { name: spec.name || "St. Brigid's Rectory & Parish Hall", kind: 'rectory', lot, address: lot.address, established: 1884,
+    lore: 'The priests\' house (1884) and the parish hall (1925), where half the town has had its wedding breakfast.', hours: [8 * 60, 22 * 60] });
+  const f = b.f, W = lot.w, D = lot.d;
+  const rng = ctx.rng.fork('rectory' + lot.x);
+  f.box(0, -1, 0, W, 1, D, MAT.grass_lawn);
+  // side path from the street to the parish hall
+  const PX = 3;
+  f.box(PX - 2, -1, 0, 6, 1, D - 10, MAT.sidewalk);
+  // ---------------------------------------------------------------- the rectory (priests' house)
+  const hx0 = PX + 8, hx1 = Math.min(W - 10, hx0 + 60), hz0 = 16, hz1 = 58, FH = 13;
+  const hw = hx1 - hx0, hd = hz1 - hz0;
+  f.box(hx0, 0, hz0, hw, 1, hd, MAT.floor_oak);
+  shell(f, hx0, 0, hz0, hw, FH * 2, hd, MAT.brick_red, MAT.wallpaper_cream, 2);
+  f.box(hx0, FH, hz0 + 1, hw - 1, 1, hd - 2, MAT.floor_oak);
+  f.box(hx0, FH * 2, hz0, hw, 1, hd, MAT.ceiling);
+  f.hip(hx0, FH * 2 + 1, hz0, hw, hd, MAT.roof_slate, { overhang: 2, rise: 1 });
+  chimney(f, hx0 + 6, 0, hz0 + 20, 4, 4, FH * 2 + 16, MAT.brick_red);
+  chimney(f, hx1 - 10, 0, hz0 + 20, 4, 4, FH * 2 + 16, MAT.brick_red);
+  f.box(hx0 - 1, FH * 2 - 1, hz0 - 1, hw + 2, 1, hd + 2, MAT.limestone);
+  const dX = hx0 + Math.round(hw / 2) - 2;
+  doorway(f, dX, 1, hz0, 4, 9, { frame: MAT.limestone, t: 2, transom: true, step: false });
+  f.box(dX - 4, 0, hz0 - 5, 12, 1, 5, MAT.granite);
+  f.box(dX - 4, 11, hz0 - 5, 12, 1, 5, MAT.roof_slate);
+  for (const x of [dX - 4, dX + 7]) f.box(x, 1, hz0 - 5, 1, 10, 1, MAT.trim_white);
+  const wo = { t: 2, frame: MAT.limestone, lintelWide: true, shutters: MAT.trim_green };
+  for (const x of [hx0 + 5, hx0 + 14, dX + 10, dX + 19]) if (x + 4 < hx1 - 2) { win(f, x, 4, hz0, 4, 7, wo); win(f, x, FH + 3, hz0, 4, 7, wo); }
+  win(f, dX, FH + 3, hz0, 4, 7, wo);
+  f.box(hx0 + 1, 1, hz0 + 1, 1, 1, 1, MAT.floor_oak);
+  const midX = dX - 3, midX2 = dX + 7, midZ = hz0 + 22;
+  partitionZ(f, hz0 + 2, hz1 - 2, 1, midX, FH - 1, MAT.wallpaper_cream, [{ at: hz0 + 6, w: 4 }, { at: midZ + 4, w: 4 }]);
+  partitionZ(f, hz0 + 2, hz1 - 2, 1, midX2, FH - 1, MAT.wallpaper_cream, [{ at: hz0 + 6, w: 4 }, { at: midZ + 4, w: 4 }]);
+  partitionX(f, hx0 + 2, midX, 1, midZ, FH - 1, MAT.wallpaper_cream, [{ at: hx0 + 6, w: 4 }]);
+  partitionX(f, midX2 + 1, hx1 - 2, 1, midZ, FH - 1, MAT.wallpaper_cream, [{ at: hx1 - 10, w: 4 }]);
+  const hall = b.room('Rectory Hall', midX + 1, 1, hz0 + 2, midX2 - midX - 1, FH - 1, hd - 4, { lightMode: 'auto' });
+  const parlor = b.room('Rectory Parlor', hx0 + 2, 1, hz0 + 2, midX - hx0 - 2, FH - 1, midZ - hz0 - 2, { lightMode: 'auto' });
+  const study = b.room("Father Garrity's Study", midX2 + 1, 1, hz0 + 2, hx1 - midX2 - 3, FH - 1, midZ - hz0 - 2, { lightMode: 'auto' });
+  const dining = b.room('Rectory Dining Room', hx0 + 2, 1, midZ + 1, midX - hx0 - 2, FH - 1, hz1 - midZ - 3, { lightMode: 'auto' });
+  const kitchen = b.room('Rectory Kitchen', midX2 + 1, 1, midZ + 1, hx1 - midX2 - 3, FH - 1, hz1 - midZ - 3, { lightMode: 'auto' });
+  const eR = b.entrance(hall, dX + 2, 1, hz0, { outZ: hz0 - 8, leaf: 'door_wood', tint: '#2a3a2a', main: true });
+  b.door(hall, parlor, midX, 1, hz0 + 8, { axis: 'z', leaf: 'door_wood' });
+  b.door(hall, study, midX2, 1, hz0 + 8, { axis: 'z', leaf: 'door_wood' });
+  b.door(hall, dining, midX, 1, midZ + 6, { axis: 'z', leaf: false });
+  b.door(hall, kitchen, midX2, 1, midZ + 6, { axis: 'z', leaf: 'door_wood' });
+  // parlor: where couples come to post the banns
+  b.prop('rug_oval', (hx0 + midX) / 2, 1, (hz0 + midZ) / 2, 0, { tint: '#6a2a2a' });
+  b.prop('sofa', (hx0 + midX) / 2, 1, midZ - 3, 0, { tint: '#5a3a3a' });
+  b.prop('armchair', hx0 + 4, 1, hz0 + 10, 1, { tint: '#6a5a3a' }); b.prop('armchair', midX - 3, 1, hz0 + 10, 3, { tint: '#6a5a3a' });
+  b.prop('piano_upright', hx0 + 4, 1, midZ - 3, 1, {});
+  framed(b, 'portrait', (hx0 + midX) / 2, 7, hz0 + 2.6, 2, 'Portrait of Pope Pius XII', 'His Holiness Pope Pius XII. The frame is from the parlor of the first pastor, Fr. Dennis Mahoney (1882 - 1906).');
+  f.box(midX - 1, 6, hz0 + 14, 1, 5, 1, MAT.wood_dark); f.box(midX - 1, 9, hz0 + 13, 1, 1, 3, MAT.wood_dark);
+  // study
+  const gx0 = midX2 + 1, gw = hx1 - midX2 - 3;
+  b.prop('desk_rolltop', gx0 + gw / 2, 1, hz0 + 3.5, 2, {});
+  b.prop('chair_office', gx0 + gw / 2, 1, hz0 + 6.5, 0, {});
+  const studySeat = b.spot('sit', gx0 + gw / 2, 1, hz0 + 6.5, 0, { room: study, act: 'write', tags: ['priest'], seat: 0.46 });
+  b.prop('bookshelf', gx0 + 1.2, 1, hz0 + 12, 1, {}); b.prop('bookshelf', gx0 + 1.2, 1, hz0 + 17, 1, {});
+  b.prop('armchair', gx0 + gw - 3, 1, midZ - 4, 3, { tint: '#4a3a2a' });
+  b.prop('radio_table', gx0 + gw - 2, 1, hz0 + 4, 3, {});
+  readAt(b, gx0 + gw / 2, 5, hz0 + 3.5, 2, 'Father Garrity\'s desk', 'On the blotter, in Father Garrity\'s hand:\n\nSAT. 26th\n- 11: Castellano boat? (No - blessed in June. Tell Sal Sr. it\'s still blessed.)\n- 2:00 NOVAK / BRENNAN. Nuptial Mass. Rings - ask Walter N. (usher) NOT Joe B.\n- 3:00 bell. Tell Mickey to ring it till his arms fall off.\n- Reception: say grace, one polka with Stella Novak, leave before the Mayor starts.\n- 4:00 confessions.\n- 6:30 supper at the Castellanos\'. Bring the good wine. Home safe, thanks be to God.\n\nAnd underneath: "Kaminski - St. Luke\'s - visit Sunday."', 2);
+  // dining & kitchen (the housekeeper, Mrs. Doyle)
+  const din = [];
+  b.prop('table_dining', (hx0 + midX) / 2, 1, (midZ + hz1) / 2, 0, { tint: '#e8e0d0' });
+  for (const [dx, rot] of [[-2.6, 2], [2.6, 0]]) { b.prop('chair_wood', (hx0 + midX) / 2, 1, (midZ + hz1) / 2 + dx, rot, {}); din.push(b.spot('sit', (hx0 + midX) / 2, 1, (midZ + hz1) / 2 + dx, rot, { room: dining, act: 'eat', tags: ['rectory'], seat: 0.45 })); }
+  b.prop('sideboard', hx0 + 3, 1, (midZ + hz1) / 2, 1, {});
+  const kit = kitchenRun(b, kitchen, midX2 + 1, 1, hz1 - 2, hx1 - midX2 - 4, { counterTint: '#e8e0c8' });
+  b.job('housekeeper', [...kit.spots, b.spot('stand', midX2 + 6, 1, midZ + 5, 1, { room: kitchen, act: 'sweep', tags: ['work'] })], { shift: ['7:00', '19:00'], title: 'rectory housekeeper', sex: 'F', age: [45, 70] });
+  b.prop('table_kitchen', midX2 + gw / 2 + 1, 1, midZ + 8, 0, { tint: '#e0e0d0' });
+  // upstairs bedrooms (the pastor and the curate)
+  const up = b.room('Rectory Upstairs', hx0 + 2, FH + 1, hz0 + 2, hw - 4, FH - 1, hd - 4, { lightMode: 'auto' });
+  stairs(f, midX + 1, 1, midZ + 3, '+z', FH, { w: 4, run: 1, mat: MAT.wood_mid, rail: false });
+  b.stairs(hall, [midX + 3, 1, midZ + 1], up, [midX + 3, FH + 1, midZ + 3 + FH + 1]);
+  b.prop('bed_single', hx0 + 6, FH + 1, hz0 + 8, 0, { tint: '#e8e4d8' }); b.prop('bed_single', hx1 - 8, FH + 1, hz0 + 8, 0, { tint: '#e8e4d8' });
+  b.prop('dresser', hx0 + 4, FH + 1, hz1 - 4, 0, {}); b.prop('wardrobe', hx1 - 5, FH + 1, hz1 - 4, 0, {});
+  // ---------------------------------------------------------------- the parish hall (1925)
+  const px0 = PX + 6, px1 = W - 3, pz0 = Math.max(hz1 + 12, 72), pz1 = D - 8, HH = 22;
+  const pw = px1 - px0, pd = pz1 - pz0;
+  f.box(px0, 0, pz0, pw, 1, pd, MAT.floor_oak_z);
+  shell(f, px0, 0, pz0, pw, HH, pd, MAT.brick_brown, MAT.plaster_cream, 2);
+  f.box(px0, HH, pz0, pw, 1, pd, MAT.ceiling);
+  f.gable(px0, HH + 1, pz0, pw, pd, MAT.roof_shingle_gray, { axis: 'z', overhang: 1, gableMat: MAT.brick_brown });
+  f.box(px0 + 2, HH - 1, pz0 + 2, pw - 4, 1, pd - 4, MAT.ceiling_tin);
+  f.text('PARISH HALL', px0 + pw / 2, HH - 7, pz0 - 1, MAT.limestone, { align: 'center', font: 'small' });
+  f.text('1925', px0 + pw / 2, HH - 13, pz0 - 1, MAT.limestone, { align: 'center', font: 'small' });
+  const hdX = px0 + Math.round(pw / 2) - 4;
+  doorway(f, hdX, 1, pz0, 8, 10, { frame: MAT.limestone, t: 2, transom: true });
+  for (let x = px0 + 6; x < px1 - 6; x += 12) if (Math.abs(x + 2 - (hdX + 4)) > 8) win(f, x, 5, pz0, 4, 9, { t: 2, frame: MAT.trim_white });
+  for (let z = pz0 + 10; z < pz1 - 8; z += 14) { winSide(f, 3, z, 5, px0, 4, 10, { t: 2, frame: MAT.trim_white }); winSide(f, 1, z, 5, px1, 4, 10, { t: 2, frame: MAT.trim_white }); }
+  const IX0 = px0 + 2, IX1 = px1 - 2, IZ0 = pz0 + 2, IZ1 = pz1 - 2, cxh = (IX0 + IX1) / 2;
+  const KZ = IZ1 - 18;       // kitchen partition (back)
+  partitionX(f, IX0, IX1, 1, KZ, HH - 2, MAT.plaster_cream, [{ at: IX0 + 6, w: 4 }, { at: IX1 - 22, w: 12, h: 6 }]);
+  f.box(IX1 - 22, 1, KZ, 12, 4, 1, MAT.counter_formica);     // pass-through counter
+  const phall = b.room('Parish Hall', IX0, 1, IZ0, IX1 - IX0, HH - 2, KZ - IZ0, { lightMode: 'always', kind: 'hall', nav: [cxh, IZ0 + 6] });
+  const pkit = b.room('Parish Hall Kitchen', IX0, 1, KZ + 1, IX1 - IX0, HH - 2, IZ1 - KZ - 1, { lightMode: 'always' });
+  const eH = b.entrance(phall, hdX + 2, 1, pz0, { outZ: pz0 - 6, leaf: 'door_wood', tint: '#5a3a24' });
+  b.door(null, null, hdX + 6, 1, pz0, { leaf: 'door_wood', tint: '#5a3a24' });
+  b.door(phall, pkit, IX0 + 8, 1, KZ, { leaf: 'door_wood' });
+  // path: hall door -> side walk -> street (around the rectory)
+  const n1 = b.navPoint(0, PX, 0, pz0 - 6), n2 = b.navPoint(0, PX, 0, hz0 - 4), n3 = b.navPoint(0, PX, 0, 2);
+  ctx.nav.chain([eH, n1, n2, n3]);
+  ctx.nav.link(eR, n2);
+  for (const n of [n1, n2, n3]) ctx.nav.info[n].kind = 'path';
+  linkToSidewalk(ctx, eR); linkToSidewalk(ctx, n3);
+  // the head table on the stage end, the long tables, dance floor & band corner
+  const stageZ = KZ - 14;
+  f.box(IX0, 1, stageZ, IX1 - IX0, 2, KZ - stageZ, MAT.stage_wood);
+  f.box(IX0 + 4, 1, stageZ - 2, IX1 - IX0 - 8, 1, 2, MAT.stage_wood);
+  const recSeats = [];
+  // head table (bride & groom in the middle)
+  f.box(cxh - 16, 5, stageZ + 5, 32, 1, 5, MAT.canvas_white); f.box(cxh - 16, 3, stageZ + 5, 32, 2, 1, MAT.canvas_white);
+  for (let i = 0; i < 8; i++) {
+    const x = cxh - 14 + i * 4;
+    b.prop('chair_wood', x, 3, stageZ + 11.5, 0, { tint: '#e8e4d8' });
+    recSeats.push(b.spot('sit', x, 3, stageZ + 11.5, 0, { room: phall, act: 'eat', tags: ['reception', 'head_table'], seat: 0.45, label: 'At the head table' }));
+    b.prop('table_setting', x, 6, stageZ + 7.5, 2, {});
+  }
+  b.prop('vase_flowers', cxh - 8, 6, stageZ + 7, 0, { tint: '#f4f0e8', scale: 1.3 }); b.prop('vase_flowers', cxh + 8, 6, stageZ + 7, 0, { tint: '#f4f0e8', scale: 1.3 });
+  b.prop('candles_pair', cxh, 6, stageZ + 7.5, 0, {});
+  const stageNode = b.navPoint(phall, cxh, 3, stageZ + 3);
+  // two long tables
+  const tlen = Math.min(56, stageZ - IZ0 - 26);
+  for (const x of [IX0 + 14, IX1 - 14]) recSeats.push(...banquetZ(b, phall, x, 1, IZ0 + 6, tlen, ['reception'], { label: 'At the wedding reception', centreTint: '#f4d0d8' }));
+  // dance floor between the long tables and the stage
+  const dz0 = IZ0 + 6 + tlen + 3, dz1 = stageZ - 3;
+  f.box(cxh - 18, 0, dz0, 36, 1, dz1 - dz0, MAT.floor_checker);
+  const danceSpots = [];
+  for (let z = dz0 + 3; z < dz1 - 1; z += 4) for (let x = cxh - 14; x <= cxh + 14; x += 5) { const s = b.spot('stand', x, 1, z, rng.int(0, 3), { room: phall, act: 'dance', tags: ['reception_dance'], label: 'Dancing at the reception' }); s.spread = 0.8; danceSpots.push(s); }
+  for (let z = IZ0 + 8; z < IZ0 + 6 + tlen; z += 8) { const s = b.spot('stand', cxh, 1, z, rng.int(0, 3), { room: phall, act: 'dance', tags: ['reception_dance'], label: 'Dancing at the reception' }); s.spread = 0.8; danceSpots.push(s); }
+  // the band corner: the Kowalski Polka Boys
+  const bx = IX1 - 10, bzz = stageZ + 2;
+  b.prop('piano_upright', IX1 - 2.5, 3, bzz + 3, 3, {});
+  b.prop('drum_kit', bx - 2, 3, bzz + 8, 0, {});
+  b.prop('upright_bass_stand', bx + 3, 3, bzz + 8, 0, {});
+  b.prop('music_stand', bx, 3, bzz + 2.5, 2, {});
+  const bandActs = ['piano', 'drum_sit', 'bass', 'trumpet'];
+  const bandSpots = [[IX1 - 4.5, bzz + 3, 1, 'sit'], [bx - 2, bzz + 10, 0, 'sit'], [bx + 3, bzz + 10, 0, 'stand'], [bx, bzz + 5, 0, 'stand']].map(([x, z, rot, pose], i) => b.spot(pose, x, 3, z, i === 0 ? 1 : rot, { room: phall, act: bandActs[i], tags: ['reception_band'], seat: pose === 'sit' ? 0.5 : 0, label: 'Playing polkas at the reception' }));
+  for (const s of bandSpots) { ctx.nav.link(s.node, stageNode); }
+  b.job('musician', bandSpots, { shift: ['15:15', '18:45'], title: 'musician, the Kowalski Polka Boys' });
+  signLine(b, 'THE KOWALSKI POLKA BOYS', IX1 - 0.6, 9, bzz + 6, 3, { bg: '#8a1f24', fg: '#f0ece0', border: '#e8c870', scale: 0.4 });
+  // the wedding cake, the gift table, the punch
+  f.box(IX0 + 3, 1, stageZ - 10, 6, 3, 6, MAT.canvas_white);
+  b.prop('birthday_cake', IX0 + 6, 4, stageZ - 7, 0, { scale: 2.2, tint: '#f4f0e8' });
+  b.prop('birthday_cake', IX0 + 6, 5.6, stageZ - 7, 0, { scale: 1.5, tint: '#f4f0e8' });
+  b.prop('birthday_cake', IX0 + 6, 6.7, stageZ - 7, 0, { scale: 0.9, tint: '#f4f0e8' });
+  readAt(b, IX0 + 6, 5, stageZ - 7, 1, 'The wedding cake', 'THE WEDDING CAKE\nThree tiers, white fondant, sugar lilies-of-the-valley.\nBaked by Halloran & Sons (Pat Halloran would not take a penny:\n"Casimir Novak got my father a nickel an hour in \'34.")\nThe top tier goes in the Novaks\' freezer until the first anniversary.', 2.2);
+  f.box(IX0 + 3, 1, IZ0 + 3, 12, 3, 5, MAT.canvas_white);
+  const giftCols = [MAT.sign_white, MAT.sign_blue, MAT.tile_pink, MAT.sign_yellow, MAT.plaster_mint, MAT.sign_white];
+  giftCols.forEach((m, i) => { f.box(IX0 + 4 + i * 2, 4, IZ0 + 4 + (i % 2) * 2, 1 + (i % 2), 1 + (i % 3 === 0 ? 1 : 0), 1, m); });
+  readAt(b, IX0 + 9, 5, IZ0 + 5, 1, 'The gift table', 'THE GIFT TABLE\nA Sunbeam toaster (the Brennans). A set of Fiesta ware, turquoise (the Kowalskis).\nA quilt pieced by Grandma Novak from her mother\'s linens, Krakow, 1908.\nA savings bond from Local 1188. A copper saucepan from Garrity Hardware.\nAn envelope from Father Garrity marked "For the rent, not for the races."\nAnd a card, in a child\'s hand: "Dear Helen I hope you are Happy. Love Susie Moreau (7)."', 2.2);
+  f.box(IX1 - 12, 1, IZ0 + 3, 8, 3, 5, MAT.canvas_white);
+  b.prop('coffee_urn', IX1 - 10, 4, IZ0 + 5, 0, {}); b.prop('fruit_bowl', IX1 - 6, 4, IZ0 + 5, 0, {});
+  // decorations: white & gold streamers, wedding bells, the banner
+  const streamers = [MAT.canvas_white, MAT.trim_gold, MAT.canvas_white, MAT.tile_pink];
+  for (let z = IZ0 + 10; z < KZ - 4; z += 14) bunting(f, [IX0 + 1, HH - 3, z], [IX1 - 1, HH - 3, z], 2.5, streamers);
+  bunting(f, [cxh, HH - 2, IZ0 + 2], [cxh, HH - 2, KZ - 2], 2.5, streamers);
+  f.text('HELEN & ROBERT', cxh, stageZ + 20 - 3, KZ - 1, MAT.trim_gold, { align: 'center', font: 'small' });
+  textFace(f, 2, 'HELEN & ROBERT', cxh, 13, KZ - 1, MAT.trim_gold);
+  textFace(f, 2, 'SEPT. 26, 1953', cxh, 7, KZ - 1, MAT.sign_blue);
+  for (const x of [cxh - 34, cxh + 34]) { f.cylinder(x, 11, KZ - 2, 1.6, 3, MAT.sign_white, 1); f.box(Math.round(x), 14, KZ - 2, 1, 1, 1, MAT.trim_gold); }
+  for (const z of [IZ0 + 18, IZ0 + 42]) b.prop('ceiling_lamp', cxh, HH - 4, z, 0, {});
+  b.light(cxh, HH - 5, (IZ0 + KZ) / 2, { mode: 'room', room: phall, radius: 16, color: [1, 0.85, 0.65] });
+  readAt(b, cxh, 6, IZ0 + 2, 0, 'Parish Hall notices', 'ST. BRIGID\'S PARISH HALL\nBuilt 1925 by the men of the parish, "on Saturdays and after Mass."\n\nTODAY: Reception for Mr. & Mrs. Robert Brennan, from 3:15.\nMusic by the Kowalski Polka Boys. Buffet by the Altar Society:\nham, pierogi, kielbasa, Mrs. Castellano\'s ziti, Irish soda bread,\nand a great deal of potato salad.\n\nBINGO resumes Tuesday. Please return all folding chairs to the stage closet.', 2.4);
+  // kitchen: the Altar Society ladies
+  const kk = kitchenRun(b, pkit, IX0 + 16, 1, IZ1, IX1 - IX0 - 20, { counterTint: '#e8e0c8', items: ['stove', 'kitchen_counter', 'stove', 'kitchen_sink', 'kitchen_counter', 'fridge', 'kitchen_counter', 'kitchen_sink'] });
+  b.prop('table_kitchen', cxh, 1, KZ + 8, 0, { tint: '#e8e0d0' });
+  b.prop('food_roast', cxh - 2, 4, KZ + 8, 0, {}); b.prop('food_casserole', cxh + 2, 4, KZ + 8, 0, {}); b.prop('food_bread', cxh, 4, KZ + 7, 0, {});
+  b.job('cook', kk.spots.slice(0, 2), { shift: ['11:00', '19:30'], title: 'Altar Society cook', sex: 'F', age: [35, 75] });
+  b.job('cook', kk.spots.slice(2).concat([b.spot('stand', IX1 - 16, 1, KZ + 3, 0, { room: pkit, act: 'counter', tags: ['work'] })]), { shift: ['12:00', '19:30'], title: 'Altar Society cook', sex: 'F', age: [30, 75] });
+  b.prop('coffee_urn', IX1 - 16, 5, KZ, 0, {});
+  // yard
+  b.prop('tree_maple_orange', W - 10, 0, hz0 + 10, 0, { cat: 'far' });
+  f.box(PX + 5, 0, hz0 + 25, 3, 2, 3, MAT.granite); figure(f, PX + 6, 2, hz0 + 26, 1, MAT.marble, 'captain', MAT.plaster_white);
+  b.prop('garden_bench', W - 12, 0, hz1 + 4, 0, {});
+  void din; void studySeat; void recSeats; void danceSpots;
+  return b;
+}
+
+// =====================================================================================
+// FIRST CONGREGATIONAL CHURCH (1871 meetinghouse) — choir practice at four
+// =====================================================================================
+function buildCongregational(ctx, lot, spec) {
+  const b = new Building(ctx, { name: spec.name || 'First Congregational Church', kind: 'church_congregational', lot, address: lot.address, established: spec.est || 1853,
+    lore: 'The oldest congregation in town (gathered 1853). The meetinghouse was raised in 1871 by fifty men in one day.', hours: [8 * 60, 19 * 60] });
+  const f = b.f, W = lot.w, D = lot.d;
+  const rng = ctx.rng.fork('congo' + lot.x);
+  const FY = 3;
+  const NW = Math.min(68, W - 40), NX0 = Math.round((W - NW) / 2), NX1 = NX0 + NW, cxm = Math.round(W / 2);
+  const FZ = 44, BZ = Math.min(D - 60, 140), WH = 30, wallTop = FY + WH;
+  // lawn, walk, fence
+  f.box(0, -1, 0, W, 1, D, MAT.grass_lawn);
+  f.box(cxm - 5, -1, 0, 10, 1, FZ, MAT.sidewalk);
+  for (let x = 4; x < W - 4; x += 8) if (Math.abs(x + 4 - cxm) > 8) b.prop('picket_fence', x + 4, 0, 1, 0, {});
+  // plinth, steps
+  f.box(NX0 - 1, 0, FZ - 16, NW + 2, FY, BZ - FZ + 17, MAT.granite);
+  for (let k = 0; k < FY; k++) f.box(cxm - 12, 0, FZ - 16 - 2 * (FY - k), 24, k + 1, 2, MAT.granite);
+  // the meetinghouse
+  shell(f, NX0, FY, FZ, NW, WH, BZ - FZ, MAT.siding_white, MAT.plaster_white, 2);
+  for (const x of [NX0, NX1 - 1]) f.box(x, FY, FZ - 1, 1, WH, 1, MAT.trim_white);
+  f.box(NX0 - 1, wallTop - 1, FZ - 1, NW + 2, 2, BZ - FZ + 2, MAT.trim_white);
+  const rise = f.gable(NX0, wallTop + 1, FZ, NW, BZ - FZ, MAT.roof_shingle_black, { axis: 'z', overhang: 2, gableMat: MAT.siding_white });
+  vaultZ(f, NX0, wallTop + 1, FZ, NW, BZ - FZ, MAT.plaster_white);
+  f.box(NX0 + 2, wallTop + 1, FZ + 2, NW - 4, 1, BZ - FZ - 4, MAT.plaster_white);
+  f.carve(NX0 + 3, wallTop + 1, FZ + 2, NW - 6, 1, BZ - FZ - 4);
+  // pediment trim on the front gable & the portico
+  for (let i = 0; i < rise - 1; i++) { f.box(NX0 + i, wallTop + 1 + i, FZ - 1, 1, 1, 1, MAT.trim_white); f.box(NX1 - 1 - i, wallTop + 1 + i, FZ - 1, 1, 1, 1, MAT.trim_white); }
+  const PZ = FZ - 14;
+  for (const x of [cxm - 18, cxm - 7, cxm + 6, cxm + 17]) { f.box(x, FY, PZ + 1, 2, WH - 2, 2, MAT.trim_white); f.box(x - 1, FY, PZ, 4, 1, 4, MAT.trim_white); }
+  f.box(cxm - 20, wallTop - 2, PZ, 40, 3, FZ - PZ, MAT.trim_white);
+  for (let i = 0; i < 8; i++) f.box(cxm - 20 + 2 * i, wallTop + 1 + i, PZ, 40 - 4 * i, 1, FZ - PZ, MAT.siding_white);
+  for (let i = 0; i < 8; i++) { f.box(cxm - 21 + 2 * i, wallTop + 1 + i, PZ - 1, 3, 1, 1, MAT.trim_white); f.box(cxm + 18 - 2 * i, wallTop + 1 + i, PZ - 1, 3, 1, 1, MAT.trim_white); }
+  f.box(cxm - 20, FY - 1, PZ, 40, 1, FZ - PZ, MAT.wood_gray);
+  f.text('FIRST CHURCH', cxm, wallTop - 2, PZ - 1, MAT.trim_black, { align: 'center', font: 'small' });
+  f.text('1853', cxm, wallTop + 3, PZ - 1, MAT.trim_black, { align: 'center', font: 'small' });
+  // the steeple (rises from behind the portico): tower, belfry, clock, lantern, spire, codfish weathervane
+  const SX0 = cxm - 10, SZ0 = FZ + 2, SW = 20;
+  const sy0 = wallTop + rise - 16;
+  f.box(SX0, sy0, SZ0, SW, 20, SW, MAT.siding_white);
+  for (const [x, z] of [[SX0, SZ0], [SX0 + SW - 1, SZ0], [SX0, SZ0 + SW - 1], [SX0 + SW - 1, SZ0 + SW - 1]]) f.box(x, sy0, z, 1, 20, 1, MAT.trim_white);
+  const by0 = sy0 + 20;
+  f.box(SX0 - 1, by0, SZ0 - 1, SW + 2, 1, SW + 2, MAT.trim_white);
+  // belfry with louvred arches
+  f.walls(SX0 + 1, by0 + 1, SZ0 + 1, SW - 2, 14, SW - 2, MAT.siding_white, 1);
+  for (const dir of [0, 1, 2, 3]) {
+    const [F, x, z] = onWall(f, dir, (dir === 0 || dir === 2 ? SX0 : SZ0) + 5, 8, dir === 0 ? SZ0 + 1 : dir === 2 ? SZ0 + SW - 1 : dir === 3 ? SX0 + 1 : SX0 + SW - 1);
+    F.archCarve(x, by0 + 2, z, 8, 11, 1);
+    for (let yy = by0 + 2; yy < by0 + 9; yy += 2) F.box(x, yy, z, 8, 1, 1, MAT.trim_white);
+  }
+  f.cylinder(cxm, by0 + 5, SZ0 + SW / 2, 2.6, 4, MAT.trim_gold, 1);
+  f.box(cxm - 1, by0 + 9, SZ0 + SW / 2 - 1, 2, 1, 2, MAT.wood_dark);
+  const cy0 = by0 + 15;
+  f.box(SX0, cy0, SZ0, SW, 12, SW, MAT.siding_white);
+  f.box(SX0 - 1, cy0, SZ0 - 1, SW + 2, 1, SW + 2, MAT.trim_white); f.box(SX0 - 1, cy0 + 12, SZ0 - 1, SW + 2, 1, SW + 2, MAT.trim_white);
+  clockOn(f, 0, cxm, cy0 + 6, SZ0 - 1, 4.5);
+  clockOn(f, 2, cxm, cy0 + 6, SZ0 + SW, 4.5);
+  clockOn(f, 3, SZ0 + SW / 2, cy0 + 6, SX0 - 1, 4.5);
+  clockOn(f, 1, SZ0 + SW / 2, cy0 + 6, SX0 + SW, 4.5);
+  const ly0 = cy0 + 13;
+  f.cylinder(cxm, ly0, SZ0 + SW / 2, 7, 10, MAT.siding_white, 1);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * 2 * PI; f.box(Math.floor(cxm + Math.cos(a) * 6.5), ly0 + 2, Math.floor(SZ0 + SW / 2 + Math.sin(a) * 6.5), 1, 6, 1, MAT.glass_dark); }
+  f.cylinder(cxm, ly0 + 10, SZ0 + SW / 2, 8, 1, MAT.trim_white);
+  let sr = 7, sy = ly0 + 11;
+  while (sr > 0.8) { f.cylinder(cxm, sy, SZ0 + SW / 2, sr, 3, MAT.roof_shingle_black); sy += 3; sr -= 0.55; }
+  f.box(cxm, sy, SZ0 + SW / 2, 1, 6, 1, MAT.trim_gold);
+  f.box(cxm - 2, sy + 5, SZ0 + SW / 2, 5, 1, 1, MAT.trim_gold); f.box(cxm + 2, sy + 6, SZ0 + SW / 2, 1, 1, 1, MAT.trim_gold); f.box(cxm - 3, sy + 4, SZ0 + SW / 2, 1, 3, 1, MAT.trim_gold);
+  b.light(cxm, cy0 + 6, SZ0 - 3, { color: [1, 0.95, 0.8], radius: 5, mode: 'night' });
+  // facade: doors & windows
+  doorway(f, cxm - 3, FY, FZ, 6, 11, { frame: MAT.trim_white, t: 2, transom: true, step: false });
+  for (const x of [cxm - 16, cxm + 12]) doorway(f, x, FY, FZ, 4, 10, { frame: MAT.trim_white, t: 2, step: false });
+  win(f, cxm - 3, FY + 17, FZ, 6, 8, { t: 2, frame: MAT.trim_white, style: 'arch' });
+  const wo = { t: 2, frame: MAT.trim_white, shutters: MAT.trim_black, lintelWide: true };
+  for (const x of [NX0 + 5, NX1 - 10]) { win(f, x, FY + 4, FZ, 5, 12, wo); win(f, x, FY + 19, FZ, 5, 7, wo); }
+  for (let z = FZ + 22; z < BZ - 6; z += 13) { winSide(f, 3, z, FY + 6, NX0, 6, 17, wo); winSide(f, 1, z, FY + 6, NX1, 6, 17, wo); }
+  // ---- interior
+  const IX0 = NX0 + 2, IX1 = NX1 - 2, IZ0 = FZ + 2, IZ1 = BZ - 2;
+  const VZ = IZ0 + 12, GY = FY + 13, CZ = IZ1 - 26;
+  f.box(IX0, FY - 1, IZ0, IX1 - IX0, 1, IZ1 - IZ0, MAT.floor_pine_z);
+  f.box(cxm - 2, FY - 1, VZ, 4, 1, CZ - VZ, MAT.carpet_red);
+  partitionX(f, IX0, IX1, FY, VZ, GY - FY, MAT.plaster_white, [{ at: cxm - 3, w: 6 }, { at: cxm - 16, w: 4 }, { at: cxm + 12, w: 4 }]);
+  f.box(IX0, GY, IZ0, IX1 - IX0, 1, VZ - IZ0 + 6, MAT.floor_pine);
+  for (let x = IX0; x < IX1; x += 2) f.box(x, GY + 1, VZ + 5, 1, 3, 1, MAT.trim_white);
+  f.box(IX0, GY + 4, VZ + 5, IX1 - IX0, 1, 1, MAT.wood_mid);
+  for (const x of [IX0 + 10, IX1 - 11]) f.box(x, FY, VZ + 5, 1, GY - FY, 1, MAT.trim_white);
+  const vest = b.room('Vestibule', IX0, FY, IZ0, IX1 - IX0, GY - FY, VZ - IZ0, { lightMode: 'always', nav: [cxm, IZ0 + 5] });
+  const sanct = b.room('Meeting Room', IX0, FY, VZ + 1, IX1 - IX0, WH + rise - 2, IZ1 - VZ - 1, { lightMode: 'always', kind: 'hall', nav: [cxm, VZ + 5] });
+  const gallery = b.room('Gallery', IX0, GY + 1, IZ0, IX1 - IX0, WH - GY + FY, VZ - IZ0 + 6, { lightMode: 'auto' });
+  const eM = b.entrance(vest, cxm - 1.5, FY, FZ, { outZ: PZ - 8, outY: 0, leaf: 'door_wood', tint: '#2a2a2e', main: true });
+  b.door(null, null, cxm + 1.5, FY, FZ, { leaf: 'door_wood', tint: '#2a2a2e', width: 3 });
+  const eL = b.entrance(vest, cxm - 14, FY, FZ, { outZ: PZ - 6, outY: 0, leaf: 'door_wood', tint: '#2a2a2e' });
+  const eRr = b.entrance(vest, cxm + 14, FY, FZ, { outZ: PZ - 6, outY: 0, leaf: 'door_wood', tint: '#2a2a2e' });
+  b.door(vest, sanct, cxm, FY, VZ, { leaf: false });
+  b.door(vest, sanct, cxm - 14, FY, VZ, { leaf: false });
+  b.door(vest, sanct, cxm + 14, FY, VZ, { leaf: false });
+  stairs(f, IX1 - 5, FY, IZ0 + 1, '+z', GY + 1 - FY, { w: 4, run: 1, mat: MAT.wood_mid, rail: false });
+  b.stairs(vest, [IX1 - 3, FY, IZ0 + 1], gallery, [IX1 - 3, GY + 1, IZ0 + 2 + GY + 1 - FY]);
+  // box pews (world voxels, painted white with mahogany rails) in two blocks
+  const pews = [];
+  const pewW = Math.floor((IX1 - IX0 - 10) / 2) - 3;
+  for (let z = VZ + 4; z + 5 < CZ - 3; z += 6) {
+    for (const [x0, doorSide] of [[IX0 + 2, 1], [cxm + 3, 0]]) {
+      f.walls(x0, FY, z, pewW, 4, 6, MAT.trim_white, 1);
+      f.box(x0, FY + 4, z, pewW, 1, 1, MAT.wood_dark); f.box(x0, FY + 4, z + 5, pewW, 1, 1, MAT.wood_dark);
+      f.carve(doorSide ? x0 + pewW - 1 : x0, FY, z + 2, 1, 4, 2);
+      f.box(doorSide ? x0 + pewW - 1 : x0, FY, z + 2, 1, 4, 1, MAT.wood_mid);
+      f.box(x0 + 1, FY, z + 1, pewW - 2, 2, 1, MAT.wood_mid);
+      f.box(x0 + 1, FY + 2, z + 1, pewW - 2, 1, 1, MAT.wood_dark);
+      const n = Math.max(2, Math.floor((pewW - 2) / 4));
+      for (let k = 0; k < n; k++) {
+        const x = x0 + 1 + (pewW - 2) * (k + 0.5) / n;
+        pews.push(b.spot('sit', x, FY, z + 2.3, 2, { room: sanct, act: 'listen_sit', tags: ['pew'], seat: 0.5, label: 'In a box pew' }));
+      }
+      b.playerSeat(x0 + pewW / 2, FY, z + 2.3, 2, 0.5);
+    }
+  }
+  // gallery pews
+  for (const x of [IX0 + 10, cxm, IX1 - 12]) pews.push(...pewRow(b, gallery, x, GY + 1, VZ + 1, 2, ['pew'], { tint: '#6a4a30', label: 'In the gallery' }));
+  // the chancel: platform, choir risers (world voxel steps), organ, pulpit
+  f.box(IX0, FY, CZ, IX1 - IX0, 2, IZ1 - CZ, MAT.floor_oak);
+  f.box(IX0 + 6, FY, CZ - 2, IX1 - IX0 - 12, 1, 2, MAT.floor_oak);
+  const RZ0 = IZ1 - 12;
+  for (let t = 0; t < 3; t++) f.box(cxm - 16, FY + 2, RZ0 + t * 4, 32, t + 1, 12 - t * 4, MAT.wood_mid);
+  for (let t = 0; t < 3; t++) f.box(cxm - 16, FY + 2 + t, RZ0 + t * 4, 32, 1, 1, MAT.wood_dark);
+  const choirRoom = sanct;
+  const choir = [];
+  for (let t = 0; t < 3; t++) for (let k = 0; k < 6; k++) {
+    const x = cxm - 13 + k * 5.2 + (t % 2) * 1.2;
+    choir.push(b.spot('stand', x, FY + 3 + t, RZ0 + t * 4 + 2, 0, { room: choirRoom, act: 'sing', tags: ['choir'], label: 'Choir practice' }));
+  }
+  b.spot('stand', cxm, FY + 2, RZ0 - 5, 2, { room: sanct, act: 'conduct', tags: ['choir_director'], label: 'Directing the choir' });
+  b.prop('music_stand', cxm, FY + 2, RZ0 - 3, 0, {});
+  b.prop('organ_pipes', cxm, FY + 5, IZ1 - 0.9, 0, { scale: 1.2 });
+  b.prop('organ_console', IX0 + 7, FY + 2, CZ + 7, 1, {});
+  const organ = b.spot('sit', IX0 + 4.6, FY + 2, CZ + 7, 1, { room: sanct, act: 'organ', tags: ['organ'], seat: 0.55, label: 'At the organ' });
+  b.job('organist', organ, { shift: ['13:30', '18:00'], title: 'organist & choirmaster', sex: 'M' });
+  f.box(IX1 - 14, FY + 2, CZ + 1, 10, 3, 8, MAT.wood_dark);
+  b.prop('pulpit', IX1 - 9, FY + 5, CZ + 4, 0, {});
+  b.prop('lectern', cxm, FY, CZ - 5, 0, {});
+  b.prop('baptismal_font', IX0 + 12, FY, CZ - 5, 0, {});
+  b.prop('hymn_board', IX1 - 0.4, FY + 7, CZ - 6, 3, {});
+  b.prop('hymn_board', IX0 + 0.4, FY + 7, CZ - 6, 1, {});
+  b.prop('vase_flowers', cxm - 18, FY + 2, CZ + 3, 0, { tint: '#e0a030', scale: 1.4 });
+  b.prop('vase_flowers', cxm + 18, FY + 2, CZ + 3, 0, { tint: '#b3302a', scale: 1.4 });
+  for (const z of [VZ + 20, VZ + 44]) b.prop('chandelier', cxm, wallTop - 2, z, 0, {});
+  b.light(cxm, FY + 14, (VZ + CZ) / 2, { mode: 'room', room: sanct, radius: 16, color: [1, 0.9, 0.72] });
+  readAt(b, IX1 - 1, FY + 7, CZ - 6, 3, 'Hymn board', 'HYMNS FOR THE CENTENNIAL SERVICE\nSunday, September 27, 1953\n\n  12   "Now Thank We All Our God"\n 410   "O God, Our Help in Ages Past"\n 285   "Eternal Father, Strong to Save"\n 316   "Blest Be the Tie That Binds"\n\nAnthem: "Shall We Gather at the River" - soloist, Mrs. Ruth Freeman', 2.2);
+  // readable history
+  readAt(b, cxm - 14, FY + 5, VZ - 1, 0, 'Choir notice', 'CHOIR PRACTICE SAT 4 PM\nCENTENNIAL SERVICE SUN 10 AM\n\nAll voices welcome. Altos, please come.\nWe are singing "Now Thank We All Our God" (the Pachelbel setting)\nand "Shall We Gather at the River," Mrs. Freeman, solo.\nRobes will be pressed by the Ladies\' Aid - leave them on the rail.\n\n- L. Pruitt, Organist & Choirmaster (since 1923)', 2.4);
+  b.prop('display_case_museum', cxm + 12, FY, IZ0 + 5, 0, {});
+  readAt(b, cxm + 12, FY + 4, IZ0 + 5, 0, 'The founding ledger, 1853', 'THE RECORDS OF THE FIRST CHURCH IN JUNIPER BAY\nVolume I, 1853 - 1880. Open to the first page:\n\n"On this fourth day of March 1853, being the day the Town was made,\nwe whose names are underwritten did covenant together to walk with God\nand one with another. Meeting held in Beal\'s salt house for want of a better."\n\nSigned: Elias Whitcomb, Mercy Whitcomb, Obadiah Crowell, Hannah Crowell,\nJonas Beal, Enoch Dunmore, Josiah Tuttle (minister), and fourteen others.\n\nA later page: "June 12, 1871. The new meeting house raised this day\nby fifty men between sunrise and dusk. Voted a vote of thanks to the women,\nwithout whose dinners it could not have been done."', 2.4);
+  readAt(b, IX0 + 1, FY + 6, IZ0 + 6, 1, 'Pastors of this church', 'MINISTERS OF THE FIRST CHURCH\n\nRev. Josiah Tuttle, 1853 - 1870\nRev. Amos Pruitt, 1870 - 1898\nRev. Charles H. Endicott, 1898 - 1926\nRev. Samuel P. Gould, 1926 - 1946\nRev. Theodore Ashby, 1946 -', 2.2);
+  f.box(NX0 + 2, FY, FZ - 1, 10, 4, 1, MAT.granite);
+  signLine(b, '1853 - 1871', NX0 + 7, FY + 1.4, FZ - 1.05, 0, { bg: '#8e8b87', fg: '#1c1c20', border: '#8e8b87', scale: 0.4 });
+  // sexton & minister's spots
+  const sext = b.spot('stand', IX0 + 6, FY, VZ + 10, 1, { room: sanct, act: 'sweep', tags: ['work'] });
+  b.job('sexton', [sext, b.spot('stand', cxm - 6, FY, IZ0 + 4, 0, { room: vest, act: 'stand', tags: ['work'] })], { shift: ['9:00', '17:30'], title: 'sexton', sex: 'M' });
+  // ---- the front lawn: signboard; the old burying ground behind
+  {
+    const sx = W - 22, sz = 10;
+    f.box(sx - 8, 0, sz, 1, 10, 1, MAT.trim_white); f.box(sx + 7, 0, sz, 1, 10, 1, MAT.trim_white);
+    f.box(sx - 8, 4, sz, 16, 6, 1, MAT.sign_black); f.box(sx - 9, 10, sz - 1, 18, 1, 3, MAT.trim_white);
+    tablet(b, ['FIRST CONGREGATIONAL CHURCH', 'GATHERED 1853', 'REV. THEODORE ASHBY, PASTOR', 'CHOIR PRACTICE SAT 4 PM', 'CENTENNIAL SERVICE SUN 10 AM'], sx, 4.5, sz - 0.05, 0, { scale: 0.32, bg: '#1d1d22', fg: '#f0ece0', border: '#1d1d22' });
+    readAt(b, sx, 6, sz, 0, 'Church signboard', 'FIRST CONGREGATIONAL CHURCH\nGathered March 4, 1853 - Meetinghouse raised 1871\nRev. Theodore Ashby, Pastor\n\nCHOIR PRACTICE SAT 4 PM\nCENTENNIAL SERVICE SUN 10 AM\nSermon: "The Lines Are Fallen Unto Me in Pleasant Places" (Psalm 16)\n\nAll are welcome.', 2.6);
+  }
+  b.prop('tree_elm_yellow', 14, 0, 20, 0, { cat: 'far', scale: 1.15 });
+  b.prop('tree_maple_red', W - 14, 0, 30, 0, { cat: 'far' });
+  const gz0 = BZ + 8, gz1 = D - 4, gx0 = 6, gx1 = W - 6;
+  f.box(gx0, 0, gz0, gx1 - gx0, 2, 1, MAT.stone_foundation); f.box(gx0, 0, gz1 - 1, gx1 - gx0, 2, 1, MAT.stone_foundation);
+  f.box(gx0, 0, gz0, 1, 2, gz1 - gz0, MAT.stone_foundation); f.box(gx1 - 1, 0, gz0, 1, 2, gz1 - gz0, MAT.stone_foundation);
+  f.carve(cxm - 2, 0, gz0, 4, 2, 1);
+  f.box(cxm - 3, 0, gz0, 1, 4, 1, MAT.granite); f.box(cxm + 2, 0, gz0, 1, 4, 1, MAT.granite);
+  f.box(cxm - 1, -1, gz0 - 8, 2, 1, gz1 - gz0 + 4, MAT.gravel);
+  f.box(NX1 + 2, -1, BZ - 30, 4, 1, gz0 - BZ + 30, MAT.gravel);
+  b.prop('tree_oak', gx0 + 12, 0, gz0 + 14, 0, { cat: 'far', scale: 1.3 });
+  b.prop('tree_birch', gx1 - 10, 0, gz1 - 10, 0, { cat: 'far' });
+  const stoneMats = [MAT.roof_slate, MAT.stone_foundation, MAT.granite, MAT.roof_slate, MAT.marble];
+  const cols = Math.max(2, Math.floor((gx1 - gx0 - 16) / 14));
+  SETTLERS.forEach((st, i) => {
+    const row = Math.floor(i / cols), col = i % cols;
+    const x = gx0 + 10 + col * 14 + (row % 2) * 4 + (col >= cols / 2 ? 6 : 0), z = gz0 + 8 + row * 10;
+    if (z > gz1 - 4) return;
+    const m = stoneMats[i % stoneMats.length];
+    const lean = rng.chance(0.3) ? 1 : 0;
+    f.box(x - 2, 0, z, 4, 4, 1, m); f.box(x - 1, 4, z, 2, 1, 1, m);
+    if (lean) f.box(x - 2, 3, z - 1, 4, 1, 1, m);
+    f.box(x - 2, -1, z + 1, 4, 1, 6, MAT.grass_dry);
+    signLine(b, st[0].length > 18 ? st[0].split(' ').slice(-2).join(' ') : st[0], x, 2, z - 0.05, 0, { bg: '#5a5e66', fg: '#d8d8d0', border: '#5a5e66', scale: 0.22 });
+    readAt(b, x, 2, z, 0, st[0], `HERE LIES\n${st[0]}\n${st[1]} - ${st[2]}\n\n${st[3]}`, 1.8);
+  });
+  readAt(b, cxm, 3, gz0 - 1, 0, 'The Old Burying Ground', 'THE OLD BURYING GROUND\nof the First Church in Juniper Bay, 1854 - 1889\n\nHere lie the founders of the town, its first deacon and first minister,\nand the first soul buried in Juniper Bay, Sarah Fisk, aged 24.\nThe slate stones were cut in Boston and came up by schooner.\nClosed to burials in 1889, when the town cemetery opened on the Mill Road.\n\n"Remember me as you pass by: as you are now, so once was I."', 2.6);
+  for (const e of [eM, eL, eRr]) linkToSidewalk(ctx, e);
+  void choir; void pews;
+  return b;
+}
+
 // =====================================================================================
 // placeholders for the remaining generators (filled in below)
 // =====================================================================================
 function buildPark(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
 function buildLibrary(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
-function buildStBrigid(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
-function buildRectory(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
-function buildCongregational(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
 function buildSchool(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
 function buildHospital(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
 function buildFireStation(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }

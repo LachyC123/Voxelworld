@@ -76,6 +76,17 @@ function col(m, x0, y, z0, w, h, c, d = w) {
     if (big) { m.clear(cx + sx, y, cz, 1, h, 1); m.clear(cx, y, cz + sz, 1, h, 1); }
   }
 }
+// A view of model m mirrored front-to-back (z -> sz-1-z), for building a prop "facing the other way".
+function flipZ(m) {
+  const S = m.sz;
+  return {
+    box: (x, y, z, w, h, d, c) => m.box(x, y, S - z - d, w, h, d, c),
+    set: (x, y, z, c) => m.set(x, y, S - 1 - Math.floor(z), c),
+    cylZ: (cx, cy, z, r, len, c) => m.cylZ(cx, cy, S - z - len, r, len, c),
+    cyl: (cx, y, cz, r, h, c) => m.cyl(cx, y, S - cz, r, h, c),
+    clear: (x, y, z, w, h, d) => m.box(x, y, S - z - d, w, h, d, 0),
+  };
+}
 // sphere-ish hash for scattered multicolour fills
 const hash3 = (x, y, z) => { let h = (x * 374761393 + y * 668265263 + z * 2147483647) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return h; };
 
@@ -1856,5 +1867,1751 @@ defineProp('collection_plate', {
     m.cyl(6, 0, 6, 4, 1, BRASS_D); m.cyl(6, 1, 6, 5.6, 1, BRASS); m.cyl(6, 2, 6, 6, 1, BRASS_L);
     m.cyl(6, 1, 6, 4.2, 1, '#8a1a22'); m.cyl(6, 2, 6, 5, 1, 0);
     m.box(3, 2, 4, 3, 1, 2, '#9ab89a'); m.box(7, 2, 6, 2, 1, 3, '#f4ecd8'); m.set(5, 2, 8, '#c8ccd0'); m.set(8, 2, 3, '#b87a3a');
+  },
+});
+
+// ---------------------------------------------------------------- school
+
+// 1950s combination school desk: maple seat & back on a tubular steel frame, attached writing top with
+// pencil groove and inkwell in front, book box beneath, book rack under the seat. Student faces +z.
+defineProp('desk_school', {
+  size: [10, 13, 15], collide: [0.6, 0.78, 0.9],
+  build(m) {
+    const st = '#3e5048', map = '#c8986a', mapD = '#a87a4e';
+    // frame runners
+    m.box(1, 0, 1, 1, 1, 13, st); m.box(8, 0, 1, 1, 1, 13, st);
+    m.box(1, 1, 2, 1, 5, 1, st); m.box(8, 1, 2, 1, 5, 1, st); m.box(1, 1, 12, 1, 10, 1, st); m.box(8, 1, 12, 1, 10, 1, st);
+    m.box(1, 3, 3, 8, 1, 5, st);                               // book rack under the seat
+    m.box(2, 4, 4, 5, 1, 3, '#2a4a7a'); m.box(3, 5, 4, 3, 1, 3, '#8a2a2a');
+    // seat & back
+    m.box(1, 6, 1, 8, 1, 6, map); m.box(1, 6, 7, 8, 1, 1, mapD);
+    m.box(1, 7, 1, 1, 5, 1, st); m.box(8, 7, 1, 1, 5, 1, st); m.box(1, 9, 0, 8, 3, 1, map);
+    m.box(1, 6, 7, 1, 1, 5, st); m.box(8, 6, 7, 1, 1, 5, st);  // side rails to the desk
+    // desk: book box and top
+    m.box(1, 8, 9, 8, 3, 5, st); m.box(1, 11, 8, 8, 1, 7, map); m.box(1, 11, 14, 8, 1, 1, mapD);
+    m.box(2, 11, 9, 6, 1, 1, mapD); m.set(7, 11, 9, '#1a1a1a');                // pencil groove & inkwell
+    m.set(3, 12, 11, '#e8c23a'); m.set(4, 12, 11, '#e8c23a');                   // a yellow pencil
+  },
+});
+
+// Teacher's oak desk (1.5 x 0.75 m): twin drawer pedestals, green blotter, apple, hand bell, books,
+// inkwell & pen. The teacher sits at -z; the modesty panel faces the class (+z).
+defineProp('desk_teacher', {
+  size: [24, 14, 12], collide: [1.5, 0.78, 0.75],
+  build(m) {
+    const oak = '#a8784a', oakD = '#86592f';
+    m.box(0, 0, 0, 7, 12, 12, oak); m.box(17, 0, 0, 7, 12, 12, oak);
+    m.box(7, 4, 11, 10, 8, 1, oak); m.box(8, 5, 11, 8, 6, 1, oakD);          // modesty panel (front)
+    for (const x of [0, 17]) for (const y of [1, 5, 9]) { m.box(x + 1, y, 0, 5, 3, 1, oakD); m.set(x + 3, y + 1, 0, BRASS); }
+    m.box(7, 10, 0, 10, 2, 1, oakD); m.set(12, 10, 0, BRASS);
+    m.box(0, 12, 0, 24, 1, 12, oakD); m.box(0, 12, 0, 24, 1, 1, oak);
+    m.box(5, 13, 2, 10, 1, 6, '#2e5a3a'); m.box(5, 13, 2, 1, 1, 6, '#6a3a1e'); m.box(14, 13, 2, 1, 1, 6, '#6a3a1e');   // blotter
+    m.set(8, 13, 4, '#f4f0e0'); m.set(9, 13, 4, '#f4f0e0'); m.set(10, 13, 5, '#f4f0e0');                               // papers
+    m.set(19, 13, 8, '#c8202a'); m.set(19, 14, 8, '#6a3a1a');                  // apple
+    m.set(21, 13, 4, BRASS); m.set(21, 14, 4, WALNUT);                          // hand bell
+    m.box(1, 13, 7, 3, 1, 4, '#2a4a7a'); m.box(1, 14, 7, 3, 1, 4, '#8a2a2a'); m.box(2, 15, 8, 2, 1, 3, '#2e5a3a');    // books
+    m.set(16, 13, 3, '#1a1a2a'); m.set(17, 14, 3, '#1a1a1a');                  // inkwell & pen
+  },
+});
+
+// Chalk ledge for a blackboard, back at z=0, 1/32 m voxels (1.2 m): oak trough with felt erasers and
+// sticks of white & yellow chalk, a dusting of chalk.
+defineProp('chalk_eraser_tray', {
+  size: [38, 4, 4], scale: 1 / 32, origin: [19, 0, 0],
+  build(m) {
+    m.box(0, 0, 0, 38, 1, 4, OAK_D); m.box(0, 1, 3, 38, 1, 1, OAK_D); m.box(0, 1, 0, 38, 1, 3, '#e8e4dc');
+    for (const x of [4, 17, 29]) { m.box(x, 1, 1, 5, 1, 2, '#3a3a3a'); m.box(x, 2, 1, 5, 1, 2, OAK); }
+    for (const [x, c] of [[11, '#f8f8f4'], [13, '#f8f8f4'], [24, '#f0e060'], [35, '#f8f8f4']]) m.box(x, 2, 1, 2, 1, 1, c);
+  },
+});
+
+// Classroom globe, 1/32 m voxels (0.55 m): tilted globe with 1950s political colours on a pale-blue
+// ocean (Americas toward +z), brass half-meridian, turned walnut stand.
+defineProp('school_globe', {
+  size: [16, 18, 16], scale: 1 / 32, collide: [0.4, 0.55, 0.4],
+  build(m) {
+    m.cyl(8, 0, 8, 5, 1, WALNUT_D); m.cyl(8, 1, 8, 3, 1, WALNUT); m.cyl(8, 2, 8, 1.2, 3, WALNUT);
+    const cy = 10.5, R = 5.6, tilt = 0.41;
+    // continents as lat/lon boxes: [lat0, lat1, lon0, lon1, colour]   (lon 0 = facing +z)
+    const land = [   // [lat0, lat1, lon0, lon1, colour] in real degrees; the view is turned so the Americas face +z
+      [15, 50, -125, -65, '#e8a8b8'], [50, 70, -140, -60, '#e8c070'], [-55, 10, -80, -35, '#e8e090'], [60, 83, -55, -20, '#f4f2ea'],
+      [36, 70, -10, 40, '#c8d890'], [-35, 35, -17, 50, '#8ac080'], [10, 75, 40, 150, '#e8c070'], [8, 30, 68, 90, '#e8a8b8'], [-40, -12, 113, 153, '#e8a8b8'],
+    ];
+    for (let y = 0; y < 18; y++) for (let z = 0; z < 16; z++) for (let x = 0; x < 16; x++) {
+      const dx = x + 0.5 - 8, dy = y + 0.5 - cy, dz = z + 0.5 - 8;
+      const r = Math.hypot(dx, dy, dz);
+      if (r > R) continue;
+      // un-tilt around z axis
+      const ux = dx * Math.cos(tilt) + dy * Math.sin(tilt), uy = -dx * Math.sin(tilt) + dy * Math.cos(tilt);
+      const lat = Math.asin(uy / r) * 180 / Math.PI, lon = ((Math.atan2(ux, dz) * 180 / Math.PI - 90 + 540) % 360) - 180;
+      let c = '#a8cce0';
+      for (const [a0, a1, o0, o1, col] of land) if (lat >= a0 && lat <= a1 && lon >= o0 && lon <= o1) { c = col; break; }
+      m.set(x, y, z, c);
+    }
+    // brass meridian half-ring & axis pins
+    for (let a = 0; a <= Math.PI; a += 0.1) {
+      const lx = -Math.sin(a) * (R + 0.9), ly = Math.cos(a) * (R + 0.9);
+      const x = 8 + lx * Math.cos(tilt) - ly * Math.sin(tilt), y = cy + lx * Math.sin(tilt) + ly * Math.cos(tilt);
+      if (!m.get(Math.floor(x), Math.floor(y), 8)) m.set(Math.floor(x), Math.floor(y), 8, BRASS);
+    }
+    m.box(7.5, 4, 7.5, 1, 1, 1, BRASS);
+  },
+});
+
+// Indoor flag stand: 48-star U.S. flag with gold fringe rippling toward +x from a walnut pole topped by
+// a gilt eagle, on a weighted brass base. ORIGIN at the foot of the pole (flag extends toward +x);
+// the flag's face is seen from +z.
+defineProp('flag_stand', {
+  size: [30, 43, 10], origin: [2, 0, 5], collide: [0.4, 2.6, 0.4],
+  build(m) {
+    m.cyl(2, 0, 5, 2.5, 1, BRASS_D); m.cyl(2, 1, 5, 1.6, 1, BRASS);
+    m.box(2, 1, 5, 1, 37, 1, WALNUT);
+    m.box(1, 38, 4, 3, 1, 3, GOLD); m.set(2, 39, 5, GOLD);                    // eagle: body, wings, head
+    m.box(0, 40, 5, 5, 1, 1, GOLD); m.box(1, 41, 5, 3, 1, 1, GOLD); m.set(0, 41, 5, GOLD); m.set(4, 41, 5, GOLD); m.set(2, 42, 5, GOLD);
+    const R = '#b8202a', W = '#f4f2ea', B = '#243a70';
+    for (let x = 3; x < 29; x++) {
+      const z = 5 + Math.round(Math.sin((x - 3) / 3.2) * 1.4), droop = Math.floor((x - 3) / 9);
+      for (let s = 0; s < 13; s++) {
+        const y = 36 - s - droop;
+        let c = s % 2 === 0 ? R : W;
+        if (s < 7 && x < 13) c = ((x + s) % 2 === 0) ? W : B;                    // canton, 48 stars as a dot grid
+        m.set(x, y, z, c);
+      }
+      if (x === 28) for (let s = 0; s < 13; s++) m.set(x + 1, 36 - s - droop, z, GOLD);
+      m.set(x, 36 - 13 - droop, z, GOLD);                                       // bottom fringe
+    }
+    m.box(3, 36, 5, 1, 1, 1, '#d8d0b8');
+  },
+});
+
+// Schoolroom wall clock, back at z=0, 1/32 m voxels (0.4 m): black bezel, white face, hour ticks,
+// hands at ten past ten, red sweep hand. Origin = bottom-centre of the back face.
+defineProp('classroom_clock', {
+  size: [14, 14, 3], scale: 1 / 32, origin: [7, 0, 0],
+  build(m) {
+    for (let y = 0; y < 14; y++) for (let x = 0; x < 14; x++) {
+      const r = Math.hypot(x + 0.5 - 7, y + 0.5 - 7);
+      if (r <= 7) { m.box(x, y, 0, 1, 1, 2, r > 5.8 ? '#1a1a1a' : '#f6f4ee'); if (r > 5.8) m.set(x, y, 2, '#2a2a2a'); }
+    }
+    for (let h = 0; h < 12; h++) { const a = h * Math.PI / 6; m.set(Math.floor(7 + Math.sin(a) * 4.9), Math.floor(7 + Math.cos(a) * 4.9), 2, h % 3 === 0 ? '#1a1a1a' : '#6a6a6a'); }
+    m.set(7, 7, 2, '#1a1a1a'); m.set(6, 7, 2, '#1a1a1a'); m.set(5, 8, 2, '#1a1a1a');                  // hour hand (≈10)
+    m.set(7, 8, 2, '#1a1a1a'); m.set(8, 9, 2, '#1a1a1a'); m.set(9, 10, 2, '#1a1a1a');                 // minute hand (2)
+    m.set(7, 6, 2, '#c8202a'); m.set(7, 5, 2, '#c8202a'); m.set(7, 4, 2, '#c8202a');
+  },
+});
+
+// Gymnasium basketball goal, back at z=0 (wall): steel wall bracket, white wooden backboard with a
+// black target square, orange rim at regulation 3.05 m with a white cord net. The origin is on the
+// floor at the wall, so the whole goal sits at the correct height when placed at floor level.
+defineProp('basketball_hoop', {
+  size: [20, 62, 17], origin: [10, 0, 0],
+  build(m) {
+    const st = '#4a5054';
+    m.box(7, 40, 0, 6, 20, 1, st);                           // wall plate
+    m.box(8, 44, 1, 1, 1, 5, st); m.box(11, 44, 1, 1, 1, 5, st); m.box(8, 56, 1, 1, 1, 5, st); m.box(11, 56, 1, 1, 1, 5, st);
+    for (let i = 0; i < 11; i++) { m.set(8, 45 + i, 1 + Math.floor(i / 2.2), st); m.set(11, 45 + i, 1 + Math.floor(i / 2.2), st); }
+    m.box(0, 45, 6, 20, 16, 1, '#f4f2ea'); m.box(0, 45, 5, 20, 16, 1, '#c8c4b8');
+    m.box(0, 45, 7, 20, 1, 1, '#2a2a2a'); m.box(0, 60, 7, 20, 1, 1, '#2a2a2a'); m.box(0, 45, 7, 1, 16, 1, '#2a2a2a'); m.box(19, 45, 7, 1, 16, 1, '#2a2a2a');
+    m.box(6, 49, 7, 8, 1, 1, '#2a2a2a'); m.box(6, 54, 7, 8, 1, 1, '#2a2a2a'); m.box(6, 49, 7, 1, 6, 1, '#2a2a2a'); m.box(13, 49, 7, 1, 6, 1, '#2a2a2a');
+    // rim at y=48 (3.05 m), centre z=12
+    m.box(9, 48, 7, 2, 1, 2, '#d8601a');
+    for (let a = 0; a < 32; a++) { const t = a * Math.PI / 16; m.set(Math.floor(10 + Math.cos(t) * 3.7), 48, Math.floor(12.5 + Math.sin(t) * 3.7), '#e8702a'); }
+    for (let y = 44; y < 48; y++) {
+      const r = 3.4 - (48 - y) * 0.35;
+      for (let a = 0; a < 12; a++) { const t = a * Math.PI / 6 + (y & 1) * 0.26; m.set(Math.floor(10 + Math.cos(t) * r), y, Math.floor(12.5 + Math.sin(t) * r), '#f4f4f0'); }
+    }
+  },
+});
+
+// Trophy case, back at z=0 (1.5 x 1.9 m): oak cabinet with a glass front (frame only), three glass
+// shelves of gold loving cups, a football, plaques, a bronze runner, a team photograph and felt pennants
+// in the school colours (tint A with tint B lettering).
+defineProp('trophy_case', {
+  size: [24, 31, 8], origin: [12, 0, 0], collide: [1.5, 1.9, 0.5],
+  build(m) {
+    const oak = '#a8784a', oakD = '#86592f';
+    m.box(0, 0, 0, 24, 6, 8, oak); for (const x of [1, 12]) { m.box(x, 1, 7, 11, 4, 1, oakD); m.set(x + 5, 3, 8, BRASS); }
+    m.box(0, 6, 0, 24, 1, 8, oakD); m.box(0, 29, 0, 24, 2, 8, oakD);
+    m.box(0, 7, 0, 1, 22, 8, oak); m.box(23, 7, 0, 1, 22, 8, oak); m.box(1, 7, 0, 22, 22, 1, '#3a2a4a');   // velvet back
+    frame(m, 0, 6, 0, 24, 24, 8, oakD); m.box(12, 7, 7, 1, 22, 1, oakD);
+    for (const y of [13, 20]) m.box(1, y, 1, 22, 1, 6, '#c8dce0');
+    const cup = (x, y, h) => {
+      m.box(x, y, 3, 3, 1, 3, '#3a2a1a'); m.box(x + 1, y + 1, 4, 1, 1, 1, GOLD);
+      m.box(x, y + 2, 3, 3, h, 3, GOLD); m.box(x + 1, y + 2, 3, 1, h, 1, BRASS_L);
+      m.set(x - 1, y + 2 + (h >> 1), 4, GOLD); m.set(x + 3, y + 2 + (h >> 1), 4, GOLD);
+    };
+    cup(3, 7, 3); cup(9, 7, 2); m.box(15, 7, 3, 4, 2, 3, '#7a4a2a'); m.box(16, 9, 4, 2, 1, 1, '#7a4a2a'); m.box(16, 8, 6, 2, 1, 1, '#f4f0e0');   // football
+    m.box(20, 7, 2, 2, 4, 3, oakD);
+    cup(3, 14, 4); m.box(8, 14, 2, 4, 5, 1, oakD); m.box(9, 15, 2, 2, 3, 1, BRASS);   // plaque
+    m.box(15, 14, 4, 2, 1, 2, '#3a2a1a'); m.box(15, 15, 4, 1, 3, 1, '#8a5a2a'); m.set(16, 17, 4, '#8a5a2a'); m.set(14, 16, 4, '#8a5a2a');   // bronze runner
+    cup(19, 14, 3);
+    m.box(3, 21, 1, 7, 5, 1, '#1a1a1a'); m.box(4, 22, 1, 5, 3, 1, '#b8b0a0');       // team photo
+    for (const x of [5, 7]) m.set(x, 23, 1, '#5a5048');
+    // pennants hung on the back
+    for (const [x, y] of [[13, 25], [18, 22]]) {
+      for (let i = 0; i < 6; i++) m.box(x + i, y + (i >> 1), 1, 1, 4 - (i >> 1) * 2 + (i > 3 ? 1 : 0), 1, TA(0.5));
+      m.set(x + 1, y + 1, 2, TB(0.55)); m.set(x + 2, y + 2, 2, TB(0.55));
+    }
+    cup(10, 21, 4);
+    glint(m, 3, 9, 7, 4); glint(m, 15, 16, 7, 3);
+  },
+});
+
+// Bank of three school lockers, back at z=0 (0.9 x 1.8 m, 0.4 m deep): institutional green steel with
+// louvre vents, chrome lift handles, combination dials and brass number plates.
+defineProp('lockers', {
+  size: [15, 30, 7], origin: [7.5, 0, 0], collide: [0.94, 1.85, 0.44],
+  build(m) {
+    const gr = '#6a8a78', grD = '#4e6a58', grL = '#7a9a88';
+    m.box(0, 0, 0, 15, 2, 6, '#2a2a2a');
+    m.box(0, 2, 0, 15, 27, 6, gr); m.box(0, 29, 0, 15, 1, 6, grD);
+    for (let i = 0; i < 3; i++) {
+      const x = i * 5;
+      m.box(x, 2, 5, 1, 27, 1, grD);                           // door gaps
+      m.box(x + 1, 3, 6, 4, 25, 1, gr);                        // door leaf, proud of the frame
+      for (const y of [4, 6, 24, 26]) m.box(x + 1, y, 6, 4, 1, 1, grD);            // louvres
+      m.box(x + 4, 13, 6, 1, 4, 1, grD); m.set(x + 4, 14, 6, CHROME); m.set(x + 4, 15, 6, CHROME);   // lift handle
+      m.set(x + 2, 15, 6, '#1a1a1a'); m.set(x + 2, 16, 6, '#e8e8e0');               // combination dial
+      m.box(x + 2, 21, 6, 2, 1, 1, BRASS);                     // number plate
+    }
+    m.box(14, 2, 5, 1, 27, 1, grD);
+  },
+});
+
+// ---------------------------------------------------------------- hospital
+
+// Hospital bed: white enamelled iron with spindled head & foot boards, crank at the foot, castors;
+// made up with white sheets, a pale-blue blanket and pillow. The patient's head is at -z. Chart on the
+// footboard.
+defineProp('hospital_bed', {
+  size: [15, 20, 33], collide: [0.95, 0.75, 2.05],
+  build(m) {
+    const w = '#eef0ee', wD = '#c8ccc8', sheet = '#f8f8f4', blanket = '#a8c0d8';
+    for (const [x, z] of [[0, 0], [14, 0], [0, 32], [14, 32]]) { m.box(x, 1, z, 1, 1, 1, '#2a2a2a'); m.set(x, 0, z, '#1a1a1a'); }
+    // head board (tall) & foot board
+    m.box(0, 2, 0, 1, 18, 1, w); m.box(14, 2, 0, 1, 18, 1, w); m.box(0, 19, 0, 15, 1, 1, w); m.box(0, 13, 0, 15, 1, 1, w);
+    for (let x = 2; x < 14; x += 2) m.box(x, 13, 0, 1, 6, 1, w);
+    m.box(0, 2, 32, 1, 13, 1, w); m.box(14, 2, 32, 1, 13, 1, w); m.box(0, 14, 32, 15, 1, 1, w); m.box(0, 10, 32, 15, 1, 1, w);
+    for (let x = 2; x < 14; x += 2) m.box(x, 10, 32, 1, 4, 1, w);
+    // spring frame & mattress
+    m.box(0, 7, 1, 15, 1, 31, wD);
+    m.box(1, 8, 1, 13, 2, 31, sheet); m.box(1, 10, 1, 13, 1, 31, sheet);
+    m.box(0, 8, 9, 15, 3, 23, blanket); m.box(1, 11, 9, 13, 1, 22, blanket); m.box(0, 10, 9, 15, 1, 2, sheet);   // blanket with turned-down sheet
+    m.box(2, 11, 2, 11, 2, 5, '#fbfbf8'); m.box(3, 13, 3, 9, 1, 3, '#fbfbf8');     // pillow
+    // crank & chart
+    m.box(7, 6, 33 - 1, 1, 1, 1, CHROME_D); m.box(7, 5, 32, 1, 2, 1, CHROME);
+    m.box(5, 11, 32, 5, 3, 1, '#8a6a48'); m.box(6, 11, 32, 3, 2, 1, '#f4f0e6'); m.set(7, 14, 32, CHROME);
+  },
+});
+
+// IV stand, 1/32 m voxels (~1.9 m): chrome pole on a four-castor base, two hooks, an upturned glass
+// bottle of saline with a rubber stopper, drip chamber and coiled tubing.
+defineProp('iv_stand', {
+  size: [16, 62, 16], scale: 1 / 32, collide: [0.3, 1.9, 0.3],
+  build(m) {
+    m.box(1, 1, 7.5, 14, 1, 1, CHROME); m.box(7.5, 1, 1, 1, 1, 14, CHROME);
+    for (const [x, z] of [[1, 7.5], [14, 7.5], [7.5, 1], [7.5, 14]]) m.set(x, 0, z, '#1a1a1a');
+    m.box(7, 2, 7, 2, 2, 2, CHROME_M); m.box(7.5, 4, 7.5, 1, 55, 1, CHROME);
+    m.box(7.5, 30, 7.5, 1, 2, 1, CHROME_D);
+    m.box(3, 58, 7.5, 10, 1, 1, CHROME); m.set(3, 57, 7.5, CHROME); m.set(12, 57, 7.5, CHROME); m.set(7.5, 59, 7.5, CHROME_M);
+    // bottle hanging upside down from the left hook
+    m.box(2, 56, 7.5, 3, 1, 1, CHROME_D); m.box(2, 47, 6.5, 3, 9, 3, GLASS); m.box(2, 47, 6.5, 3, 6, 3, '#d8ecf0');
+    m.box(3, 45, 7.5, 1, 2, 1, '#8a3a2a'); m.box(3, 42, 7.5, 1, 3, 1, '#e8f0f0'); m.box(3, 38, 7.5, 1, 4, 1, '#d8dcd8');
+    m.box(3, 30, 8.5, 1, 8, 1, '#d8dcd8'); m.box(4, 30, 9.5, 3, 1, 1, '#d8dcd8');
+    m.box(3, 52, 9.5, 3, 2, 1, '#f4f0e0');                    // label
+  },
+});
+
+// Three-panel folding privacy screen (1.8 m wide, 1.75 m): white-enamel tube frames with pale green
+// cotton panels, set in a zigzag, on small castors. Faces +z.
+defineProp('privacy_screen', {
+  size: [30, 28, 9], collide: [1.85, 1.75, 0.5],
+  build(m) {
+    const fr = '#eeeeea', cl = '#c8dcc8', clD = '#b0c8b4';
+    const panel = (x0, zA, zB) => {
+      for (let i = 0; i < 10; i++) {
+        const z = Math.round(zA + (zB - zA) * i / 9), x = x0 + i;
+        m.box(x, 2, z, 1, 25, 1, i === 0 || i === 9 ? fr : (i % 3 === 1 ? clD : cl));
+        m.set(x, 2, z, fr); m.set(x, 26, z, fr); m.set(x, 27, z, fr);
+        if (i === 0 || i === 9) { m.box(x, 0, z, 1, 2, 1, fr); m.set(x, 0, z, '#2a2a2a'); }
+      }
+    };
+    panel(0, 7, 2); panel(10, 2, 7); panel(20, 7, 2);
+  },
+});
+
+// 1950s folding wheelchair, 1/32 m voxels: chrome tube frame, brown leatherette sling seat & back,
+// large rear wheels with push rims & spokes, small front casters, footplates. The sitter faces +z.
+defineProp('wheelchair', {
+  size: [22, 30, 30], scale: 1 / 32, collide: [0.68, 0.95, 0.95],
+  build(m) {
+    const fr = CHROME, lea = '#5a3a2a', tyre = '#1e1e1e';
+    // big rear wheels at the sides (x=0..1 and x=20..21), centre y=9.5, z=9
+    for (const x of [0, 20]) {
+      for (let y = 0; y < 20; y++) for (let z = 0; z < 20; z++) {
+        const r = Math.hypot(y + 0.5 - 9.5, z + 0.5 - 9.5);
+        if (r <= 9.5 && r > 8.3) m.box(x, y, z, 2, 1, 1, tyre);
+        else if (r <= 8.3 && r > 7.5) m.set(x + (x ? 1 : 0), y, z, CHROME_M);
+        else if (r < 7.5 && (Math.abs(y + 0.5 - 9.5) < 0.6 || Math.abs(z + 0.5 - 9.5) < 0.6 || Math.abs((y - z)) < 0.8 || Math.abs(y + z - 18) < 0.8)) m.set(x + (x ? 0 : 1), y, z, CHROME_D);
+      }
+      m.box(x + (x ? -1 : 2), 9, 9, 1, 1, 1, CHROME);         // hub
+      for (let y = 1; y < 19; y++) for (let z = 1; z < 19; z++) { const r = Math.hypot(y + 0.5 - 9.5, z + 0.5 - 9.5); if (r <= 9.6 && r > 8.9) m.set(x ? 21 : 0, y, z, CHROME); }   // push rim
+    }
+    // frame sides
+    for (const x of [3, 18]) {
+      m.box(x, 10, 6, 1, 1, 16, fr); m.box(x, 10, 6, 1, 18, 1, fr); m.box(x, 27, 3, 1, 1, 4, fr);   // seat rail, back post, push handle
+      m.box(x, 3, 22, 1, 8, 1, fr); m.box(x, 16, 7, 1, 1, 14, fr); m.box(x, 11, 20, 1, 5, 1, fr);   // front post, armrest
+      m.box(x, 16, 8, 1, 1, 12, '#2a2a2a');
+      m.box(x, 3, 22, 1, 1, 6, fr); m.box(x, 0, 25, 1, 3, 1, fr); m.box(x, 0, 24, 1, 1, 3, tyre);   // caster
+    }
+    m.box(4, 10, 7, 14, 1, 14, lea); m.box(4, 11, 6, 14, 11, 1, lea); m.box(4, 11, 7, 14, 1, 1, '#4a2a1a');
+    m.box(4, 3, 25, 6, 1, 4, '#8a9298'); m.box(12, 3, 25, 6, 1, 4, '#8a9298');   // footplates
+    m.box(4, 4, 23, 1, 7, 1, fr); m.box(17, 4, 23, 1, 7, 1, fr);
+    for (const x of [3, 18]) m.box(x, 27, 2, 1, 1, 2, '#1a1a1a');
+  },
+});
+
+// Hospital nursery bassinet, 1/32 m voxels: enamelled stand on castors with a shelf for linens, a white
+// basket with a tiny swaddled baby (tint A blanket: pink or blue) in a knitted cap and a name card.
+defineProp('bassinet', {
+  size: [18, 30, 26], scale: 1 / 32, collide: [0.55, 0.9, 0.8],
+  build(m) {
+    const w = '#eeeeea', wD = '#c8ccc8';
+    for (const [x, z] of [[1, 1], [16, 1], [1, 24], [16, 24]]) { m.box(x, 1, z, 1, 18, 1, CHROME); m.set(x, 0, z, '#1a1a1a'); }
+    m.box(1, 6, 1, 16, 1, 24, wD); m.box(3, 7, 4, 10, 2, 8, '#f8f8f4'); m.box(3, 9, 4, 10, 1, 8, '#e0ecf4');    // linen shelf
+    m.box(0, 19, 0, 18, 1, 26, wD); m.box(0, 20, 0, 18, 8, 26, w); m.clear(1, 21, 1, 16, 7, 24);          // basket
+    m.box(1, 20, 1, 16, 2, 24, '#f8f8f4');                    // mattress & sheet
+    // swaddled baby: head at -z
+    m.box(6, 22, 8, 6, 3, 11, TA(0.55)); m.box(7, 25, 9, 4, 1, 9, TA(0.6)); m.box(6, 22, 18, 6, 2, 1, TA(0.5));
+    for (let z = 10; z < 18; z += 3) m.box(6, 24, z, 6, 1, 1, TA(0.48));      // folds
+    m.box(7, 22, 4, 4, 3, 4, '#f0d0b8'); m.box(7, 25, 4, 4, 1, 4, TA(0.62)); m.box(7, 24, 4, 4, 1, 1, TA(0.62));  // face & cap
+    m.set(8, 23, 7, '#6a4a3a'); m.set(10, 23, 7, '#6a4a3a'); m.set(9, 22, 7, '#e0a8a0');
+    // name card on the foot of the basket
+    m.box(3, 21, 26 - 1, 12, 6, 1, '#f8f6ee'); m.text('BABY', 9, 22, 25, TA(0.4), { font: 'small', align: 'center' });
+    m.box(3, 21, 25, 12, 1, 1, TA(0.5));
+  },
+});
+
+// Doctor's examination table (1.85 m): white-enamel steel cabinet with drawers & a pull-out step,
+// padded black leatherette top with the head section raised at -z, paper sheet from a roll.
+defineProp('exam_table', {
+  size: [12, 18, 31], collide: [0.75, 0.95, 1.9],
+  build(m) {
+    const w = '#eeeeea', wD = '#c8ccc8', lea = '#2a2a2e';
+    m.box(0, 0, 0, 12, 1, 30, '#3a3a3a'); m.box(0, 1, 0, 12, 11, 30, w);
+    for (const [z, h] of [[2, 4], [7, 4], [12, 4], [17, 4], [22, 4]]) { m.box(12 - 1, 2, z, 1, 3, h, wD); m.set(11, 3, z + 2, CHROME); }
+    for (const z of [2, 12, 22]) { m.box(0, 7, z, 1, 3, 8, wD); m.set(0, 8, z + 4, CHROME); }
+    m.box(2, 1, 30, 8, 3, 1, CHROME_M); m.box(2, 4, 30, 8, 1, 1, '#2a2a2a');   // pull-out step at the foot (+z)
+    m.box(0, 12, 8, 12, 2, 22, lea);                          // flat section
+    for (let z = 0; z < 8; z++) m.box(0, 12 + Math.floor((8 - z) / 2), z, 12, 2, 1, lea);   // raised head section
+    m.box(2, 14, 10, 8, 1, 20, '#f4f2ea');                     // paper sheet
+    for (let z = 1; z < 8; z++) m.box(2, 14 + Math.floor((8 - z) / 2), z, 8, 1, 1, '#f4f2ea');
+    m.cylX(1, 13, 30, 1.3, 10, '#f4f2ea'); m.box(0, 12, 30, 1, 2, 1, CHROME); m.box(11, 12, 30, 1, 2, 1, CHROME);   // paper roll
+  },
+});
+
+// Tall medicine cabinet, back at z=0 (0.8 x 1.9 m, 0.4 m): white enamel with a glazed upper case (frame
+// only) of bottles — brown, cobalt, clear — boxes & a jar of swabs; solid doors below; a red cross.
+defineProp('medicine_cabinet_tall', {
+  size: [13, 31, 7], origin: [6.5, 0, 0], collide: [0.82, 1.92, 0.44],
+  build(m) {
+    const w = '#eeeeea', wD = '#c8ccc8';
+    m.box(0, 0, 0, 13, 1, 7, '#3a3a3a'); m.box(0, 1, 0, 13, 11, 7, w);
+    m.box(1, 2, 6, 5, 9, 1, wD); m.box(7, 2, 6, 5, 9, 1, wD); m.set(5, 7, 7 - 1, CHROME); m.set(7, 7, 7 - 1, CHROME);
+    m.box(0, 12, 0, 13, 1, 7, wD); m.box(0, 12, 0, 1, 18, 7, w); m.box(12, 12, 0, 1, 18, 7, w); m.box(0, 30, 0, 13, 1, 7, w); m.box(1, 12, 0, 11, 18, 1, w);
+    frame(m, 0, 12, 0, 13, 19, 7, w); m.box(6, 13, 6, 1, 17, 1, w);
+    for (const y of [17, 22, 26]) m.box(1, y, 1, 11, 1, 5, '#d8e8ec');
+    const bot = ['#6a3a1a', '#2a4ab0', '#e8eef0', '#6a3a1a', '#2a4ab0', '#e8eef0', '#6a3a1a', '#3a8a4a'];
+    for (const [y, o] of [[13, 0], [18, 2], [23, 4]]) for (let i = 0; i < 5; i++) { const x = 2 + i * 2; bottle(m, x, y, 3, 2 + ((i + o) % 2), bot[(i + o) % 8], i % 2 ? '#1a1a1a' : '#f4f0e0'); }
+    m.box(2, 27, 2, 3, 2, 3, '#f4f0e6'); m.box(7, 27, 2, 3, 3, 3, GLASS); m.box(7, 27, 2, 3, 2, 3, '#f8f8f4');   // box & swab jar
+    m.box(5, 9, 7 - 1, 3, 1, 1, '#c8202a'); m.box(6, 8, 7 - 1, 1, 3, 1, '#c8202a');
+  },
+});
+
+// Nurses' station counter module (1.0 m, 1.05 m high): white steel with a linoleum top; black rotary
+// telephone, gooseneck lamp, clipboard chart rack, call-bell. Visitors at +z, the nurse at -z.
+defineProp('nurses_desk', {
+  size: [16, 23, 12], collide: [1.0, 1.05, 0.75],
+  build(m) {
+    const w = '#eeeeea', wD = '#c8ccc8';
+    m.box(0, 0, 1, 16, 1, 10, '#3a3a3a'); m.box(0, 1, 0, 16, 16, 11, w);
+    m.box(0, 10, 11, 16, 1, 1, wD); m.box(0, 16, 0, 16, 1, 12, '#8aa0a8'); m.box(0, 16, 11, 16, 1, 1, CHROME);
+    m.clear(1, 1, 0, 14, 10, 4); m.box(1, 5, 0, 14, 1, 4, wD);
+    for (let x = 2; x < 14; x += 3) m.box(x, 6, 1, 2, 4, 2, '#8a6a48');           // files
+    m.box(0, 11, 0, 16, 1, 12, '#b8c8cc');                    // writing shelf at -z
+    // phone
+    m.box(2, 17, 3, 3, 2, 3, '#1a1a1a'); m.box(2, 19, 3, 3, 1, 1, '#1a1a1a'); m.box(2, 19, 5, 3, 1, 1, '#1a1a1a'); m.set(3, 18, 6, '#e8e8e0');
+    // gooseneck lamp
+    m.box(12, 17, 2, 2, 1, 2, '#2a4a3a'); m.box(12.5, 18, 2.5, 1, 4, 1, CHROME); m.box(12, 22, 3, 2, 1, 3, '#2a4a3a'); m.set(12.5, 21, 5, { c: '#fff4d0', emit: 0.6 });
+    // chart rack with clipboards
+    m.box(6, 17, 1, 5, 1, 4, CHROME_D); for (let i = 0; i < 3; i++) { m.box(6 + i * 2, 18, 2, 1, 4, 3, '#8a6a48'); m.set(6 + i * 2, 22, 3, CHROME); }
+    m.set(14, 17, 9, CHROME); m.set(14, 18, 9, '#1a1a1a');     // call bell
+  },
+});
+
+// Infant incubator (Isolette-style), 1/32 m voxels: white cabinet on castors with controls, clear hood
+// (frame only) with chrome porthole rings, a tiny baby in a tint-A cap on a white mattress.
+defineProp('incubator', {
+  size: [30, 34, 18], scale: 1 / 32, collide: [0.95, 1.05, 0.56],
+  build(m) {
+    const w = '#eeeeea', wD = '#c8ccc8';
+    for (const [x, z] of [[1, 1], [28, 1], [1, 16], [28, 16]]) m.box(x, 0, z, 1, 2, 1, '#1a1a1a');
+    m.box(0, 2, 0, 30, 18, 18, w); m.box(1, 3, 17, 28, 1, 1, wD);
+    m.box(3, 6, 18 - 1, 10, 6, 1, '#c8ccc8'); m.set(5, 9, 17, { c: '#ff6040', emit: 0.6 }); m.set(8, 9, 17, { c: '#60e060', emit: 0.6 }); m.set(11, 8, 17, '#2a2a2a');   // control panel
+    m.box(17, 6, 17, 9, 10, 1, wD); m.set(24, 11, 17, CHROME);
+    m.box(0, 20, 0, 30, 1, 18, wD); m.box(2, 21, 2, 26, 1, 14, '#f8f8f4');
+    frame(m, 1, 21, 1, 28, 12, 16, '#d8e4e8'); m.box(1, 32, 1, 28, 1, 16, '#e8f2f4');
+    for (const x of [7, 22]) for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; m.set(Math.floor(x + Math.cos(t) * 2.8), Math.floor(26.5 + Math.sin(t) * 2.8), 16, CHROME); }
+    // baby
+    m.box(11, 22, 6, 9, 2, 6, '#f4f2ee'); m.box(8, 22, 7, 3, 3, 4, '#f0d0b8'); m.box(8, 25, 7, 3, 1, 4, TA(0.6)); m.box(7, 23, 7, 1, 2, 4, TA(0.6));
+    m.set(11, 23, 7, '#f0d0b8'); m.set(11, 23, 10, '#f0d0b8');
+  },
+});
+
+// ---------------------------------------------------------------- theatre
+
+// Row module of four theatre seats, 2.2 m wide: crimson velvet tip-up seats (0.45 m) & backs, walnut
+// armrests, cast-iron end standards with a little amber aisle lamp, brass seat numbers on the backs.
+// Sitters face +z. Rows tile along x.
+defineProp('theater_seats', {
+  size: [36, 16, 11], collide: [2.25, 0.95, 0.68],
+  build(m) {
+    const vel = '#8a1420', velD = '#6a0e18', velL = '#a01c28', ir = '#26262a', wal = '#5a3620';
+    const arms = [0, 9, 18, 27, 35];
+    for (const x of arms) {
+      m.box(x, 0, 2, 1, 10, 7, ir); m.box(x, 10, 1, 1, 1, 9, wal);
+      if (x === 0 || x === 35) { m.box(x, 0, 1, 1, 11, 9, ir); m.box(x, 3, 8, 1, 2, 1, { c: '#ffb050', emit: 0.5 }); m.set(x, 7, 5, '#3a3a3e'); }
+    }
+    for (let i = 0; i < 4; i++) {
+      const x0 = arms[i] + 1, w = arms[i + 1] - x0;
+      m.box(x0, 5, 3, w, 2, 6, vel); m.box(x0, 7, 3, w, 1, 5, velL); m.box(x0, 5, 9, w, 2, 1, velD);   // seat cushion
+      for (let y = 7; y < 16; y++) m.box(x0, y, 2 - (y > 12 ? 1 : 0), w, 1, 1, y === 15 ? velD : vel);   // back
+      m.box(x0, 7, 1, w, 8, 1, wal);                                                                       // wooden back shell
+      m.box(x0 + (w >> 1) - 1, 12, 0, 2, 1, 1, BRASS);                                                     // seat number
+      m.box(x0 + 1, 9, 3 - 0, w - 2, 1, 1, velD);                                                          // tufting line
+    }
+  },
+});
+
+// 1950s carbon-arc projector (1.8 m): lamphouse with chimney at the rear, projector head with lens
+// pointing +z (toward the screen), open 2,000-ft reels above and below, sound head, heavy pedestal.
+defineProp('projector', {
+  size: [14, 31, 28], collide: [0.8, 1.9, 1.7],
+  build(m) {
+    const gr = '#3e4a44', grD = '#2c3632', grL = '#56645c', blk = '#1a1a1c';
+    m.box(2, 0, 6, 10, 1, 16, grD); m.box(4, 1, 9, 6, 10, 10, gr); m.box(3, 10, 4, 8, 2, 20, grD);   // pedestal & bed
+    // lamphouse (rear, -z)
+    m.box(2, 12, 3, 10, 9, 9, gr); m.box(2, 12, 3, 10, 1, 9, grD); m.box(12 - 1, 14, 5, 1, 5, 5, grL); m.set(11, 16, 7, { c: '#ffe0a0', emit: 0.7 });
+    m.box(5, 21, 5, 4, 3, 4, grD); m.box(6, 24, 6, 2, 4, 2, CHROME_D);           // chimney
+    // projector head & lens
+    m.box(4, 12, 12, 6, 8, 8, grL); m.box(4, 12, 12, 1, 8, 8, gr);
+    m.cylZ(7, 16, 20, 1.6, 4, CHROME_M); m.cylZ(7, 16, 24, 1.2, 2, blk); m.set(6.5, 15.5, 25, { c: '#d8e8ff', emit: 0.4 });
+    m.box(9, 16, 16, 2, 2, 2, CHROME);                        // framing knob
+    // sound head below, lower reel arm
+    m.box(4, 8, 13, 6, 4, 6, gr); m.box(5, 7, 20, 4, 2, 2, grD);
+    // reels: upper (above the head) & lower (on an arm at the front)
+    const reel = (cy, cz, r) => {
+      for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let z = Math.floor(cz - r); z <= cz + r; z++) {
+        const d = Math.hypot(y + 0.5 - cy, z + 0.5 - cz);
+        if (d > r) continue;
+        const c = d > r - 1 ? CHROME_M : d < 1.2 ? CHROME : d < r * 0.62 ? '#3a2a1a' : (Math.abs(y + 0.5 - cy) < 0.6 || Math.abs(z + 0.5 - cz) < 0.6 ? CHROME_D : 0);
+        if (c) m.box(6, y, z, 2, 1, 1, c);
+      }
+    };
+    m.box(6.5, 20, 15, 1, 2, 1, grD); reel(25.5, 15.5, 5.5);
+    m.box(6.5, 2, 22, 1, 6, 1, grD); reel(4.5, 23.5, 4.5);
+    m.box(7, 21, 13, 0.5, 5, 1, '#3a2a1a'); m.box(7, 6, 19, 0.5, 6, 1, '#3a2a1a');   // film path
+  },
+});
+
+// Popcorn cart, 1/32 m voxels (1.0 x 1.7 m): red cabinet on spoked wheels, glass case (frame) heaped
+// with popcorn under a hanging kettle, warm lamp glow inside, "POPCORN" header in gold, a scoop and
+// striped bags. Lights its surroundings when the room lamps are on.
+defineProp('popcorn_machine', {
+  size: [32, 54, 22], scale: 1 / 32, collide: [1.0, 1.7, 0.7], light: lampLight(0, 1.2, 0, [1.0, 0.8, 0.45], 3.5, 'room'),
+  build(m) {
+    const red = '#b8202a', redD = '#8a1820', gold = '#d8b04a', pop = '#f8ecc0', popD = '#e8d090';
+    // wheels
+    for (const x of [0, 30]) for (let y = 0; y < 12; y++) for (let z = 5; z < 17; z++) {
+      const d = Math.hypot(y + 0.5 - 6, z + 0.5 - 11);
+      if (d <= 6 && (d > 5 || d < 1.2 || Math.abs(y + 0.5 - 6) < 0.6 || Math.abs(z + 0.5 - 11) < 0.6)) m.box(x, y, z, 2, 1, 1, d > 5 ? '#2a2a2a' : gold);
+    }
+    m.box(2, 3, 2, 28, 16, 18, red); m.box(2, 3, 19, 28, 1, 1, gold); m.box(2, 18, 19, 28, 1, 1, gold);
+    m.box(5, 6, 20 - 1, 10, 10, 1, redD); m.box(17, 6, 19, 10, 10, 1, redD); m.set(14, 11, 19, gold); m.set(17, 11, 19, gold);
+    m.box(2, 19, 2, 28, 1, 18, gold);
+    // glass case
+    frame(m, 2, 20, 2, 28, 22, 18, gold); m.box(15, 20, 19, 2, 22, 1, gold);
+    m.box(3, 20, 3, 26, 5, 16, pop);
+    for (let x = 3; x < 29; x += 2) for (let z = 3; z < 19; z += 2) { const h = Math.round(2 + Math.sin(x * 0.5) * 1.3 + Math.cos(z * 0.6) * 1.3); if (h > 0) m.box(x, 25, z, 2, h, 2, (x + z) % 8 === 0 ? popD : pop); }
+    // kettle hanging from the roof
+    m.box(12, 36, 7, 8, 4, 8, CHROME_M); m.box(13, 35, 8, 6, 1, 6, CHROME_D); m.box(15, 40, 10, 2, 2, 2, CHROME_D);
+    m.box(10, 38, 8, 2, 1, 1, CHROME); m.box(14, 34, 9, 4, 1, 4, pop);
+    m.box(4, 40, 4, 24, 1, 14, { c: '#fff0c0', emit: 0.7 });   // lamp strip
+    // roof & header
+    m.box(0, 42, 0, 32, 2, 22, red); m.box(1, 44, 1, 30, 1, 20, redD);
+    m.box(2, 45, 10, 28, 9, 2, red); m.box(2, 45, 12, 28, 1, 1, gold); m.box(2, 53, 10, 28, 1, 2, gold);
+    label(m, 'POPCORN', 16, 47, 12, { c: '#f8d860', emit: 0.8 }, { align: 'center' });
+    // bags & scoop
+    for (let i = 0; i < 3; i++) { const x = 5 + i * 4; m.box(x, 19, 16, 3, 1, 3, '#f8f4ec'); for (let y = 20; y < 24; y++) m.box(x, y, 16, 3, 1, 3, (y + i) % 2 ? '#f8f4ec' : red); m.box(x, 24, 16, 3, 1, 3, pop); }
+    m.box(22, 25, 10, 4, 1, 3, CHROME); m.box(26, 26, 11, 3, 1, 1, CHROME_D);
+  },
+});
+
+// Art-deco ticket booth, 1/20 m voxels (1.6 m wide, 2.7 m): maroon & cream enamel with chrome bands,
+// a window with a brass speaking grille and money trough, a ticket-issuing machine inside, a glowing
+// "TICKETS" marquee on top. Customers at +z.
+defineProp('ticket_booth', {
+  size: [32, 54, 28], scale: 1 / 20, cat: 'exterior', collide: [1.6, 2.7, 1.4], light: lampLight(0, 2.55, 0.7, [1.0, 0.85, 0.6], 4, 'night'),
+  build(m) {
+    const mar = '#6a1a24', cream = '#efe6cc', chr = CHROME_M;
+    m.box(0, 0, 0, 32, 3, 28, '#2a2a2a');
+    m.box(1, 3, 1, 30, 16, 26, mar);
+    for (const y of [6, 12]) m.box(0, y, 0, 32, 1, 28, chr);
+    m.box(1, 19, 1, 30, 22, 26, cream);                       // upper body
+    m.box(4, 22, 25, 24, 16, 3, 0); m.box(4, 22, 25, 24, 1, 1, chr);            // window opening
+    frame(m, 3, 21, 25, 26, 18, 3, chr);
+    m.box(4, 22, 3, 24, 16, 1, '#d8c8a8');                    // inside back wall
+    m.box(4, 22, 3, 24, 1, 22, mar);                          // counter inside
+    m.box(10, 23, 12, 10, 5, 8, CHROME_D); m.box(11, 28, 13, 8, 1, 6, CHROME); for (let x = 11; x < 19; x += 2) m.set(x, 26, 20, '#f0d860');  // ticket machine
+    m.box(13, 29, 10, 6, 3, 4, '#f4e8c8');                    // roll of tickets
+    m.box(12, 30, 26, 8, 5, 1, BRASS_D); for (let x = 13; x < 20; x += 2) for (let y = 31; y < 35; y += 2) m.set(x, y, 26, '#2a2a2a');   // speaking grille
+    m.box(10, 21, 25, 12, 1, 3, BRASS);                       // money trough
+    m.box(0, 41, 0, 32, 2, 28, chr); m.box(1, 43, 1, 30, 1, 26, mar);
+    // marquee
+    m.box(0, 44, 10, 32, 10, 3, mar); m.box(0, 44, 13, 32, 1, 1, chr); m.box(0, 53, 10, 32, 1, 4, chr);
+    label(m, 'TICKETS', 16, 46, 13, { c: '#ffe070', emit: 0.95 }, { align: 'center' });
+    for (let x = 2; x < 32; x += 3) m.set(x, 52, 13, { c: '#fff4c0', emit: 0.95 });
+  },
+});
+
+// Velvet rope line, 1/32 m voxels (1.25 m): two polished brass stanchions with ball tops & weighted
+// bases, a crimson velvet rope sagging between brass hooks. Runs along x.
+defineProp('velvet_rope', {
+  size: [40, 32, 8], scale: 1 / 32, collide: [1.25, 0.95, 0.25],
+  build(m) {
+    for (const x of [3.5, 36.5]) {
+      m.cyl(x, 0, 4, 3.5, 1, BRASS_D); m.cyl(x, 1, 4, 2.4, 1, BRASS); m.cyl(x, 2, 4, 1, 26, BRASS_L);
+      m.cyl(x, 12, 4, 1.4, 1, BRASS); m.sphere(x, 29.5, 4, 2, BRASS_L);
+    }
+    for (let x = 5; x <= 35; x++) {
+      const t = (x - 5) / 30, y = Math.round(27 - Math.sin(t * Math.PI) * 7);
+      m.box(x, y, 3, 1, 2, 2, x & 1 ? '#9a1420' : '#8a101c');
+    }
+    m.box(4, 27, 3, 2, 2, 2, BRASS); m.box(34, 27, 3, 2, 2, 2, BRASS);
+  },
+});
+
+// Framed one-sheet movie poster, back at z=0, 1/32 m voxels (0.88 x 1.25 m): chrome frame; a
+// 1950s space picture — starfield, ringed planet, red & silver rocket, a hero & heroine, "ROCKET"
+// title and credit lines.
+defineProp('movie_poster', {
+  size: [28, 40, 2], scale: 1 / 32, origin: [14, 0, 0],
+  build(m) {
+    m.box(0, 0, 0, 28, 40, 1, CHROME_M); m.box(0, 0, 1, 28, 1, 1, CHROME_D); m.box(0, 39, 1, 28, 1, 1, CHROME_D); m.box(0, 0, 1, 1, 40, 1, CHROME_D); m.box(27, 0, 1, 1, 40, 1, CHROME_D);
+    for (let y = 1; y < 39; y++) m.box(1, y, 1, 26, 1, 1, y > 26 ? '#141a3a' : y > 14 ? '#1e2a5a' : '#3a2a5a');
+    for (const [x, y] of [[3, 36], [8, 33], [20, 35], [24, 30], [5, 28], [14, 37], [22, 25], [11, 24]]) m.set(x, y, 1, '#f8f4d0');
+    // ringed planet
+    for (let y = 20; y < 30; y++) for (let x = 16; x < 27; x++) { const d = Math.hypot(x + 0.5 - 21, y + 0.5 - 25); if (d < 3.6) m.set(x, y, 1, d < 2.2 ? '#f0a040' : '#d87a2a'); }
+    for (let x = 15; x < 28; x++) m.set(x, Math.round(25 + (x - 21) * 0.25), 1, '#f4e0a0');
+    // rocket on a diagonal with exhaust
+    for (let i = 0; i < 9; i++) { m.set(4 + i, 16 + i, 1, '#d8dde2'); m.set(5 + i, 16 + i, 1, '#b8c0c8'); }
+    m.set(13, 25, 1, '#c8202a'); m.set(12, 25, 1, '#c8202a'); m.set(13, 24, 1, '#c8202a');
+    m.set(4, 18, 1, '#c8202a'); m.set(6, 15, 1, '#c8202a'); m.set(3, 15, 1, '#ffd060'); m.set(2, 14, 1, '#ff8030'); m.set(3, 14, 1, '#ffd060');
+    // hero & heroine heads
+    m.box(4, 7, 1, 4, 5, 1, '#e8c0a0'); m.box(4, 11, 1, 4, 2, 1, '#3a2a1a'); m.set(5, 9, 1, '#2a2a2a'); m.set(7, 9, 1, '#2a2a2a');
+    m.box(9, 6, 1, 4, 5, 1, '#f0cdb0'); m.box(8, 10, 1, 6, 3, 1, '#e8c060'); m.box(8, 6, 1, 1, 4, 1, '#e8c060'); m.set(10, 8, 1, '#2a2a2a'); m.set(12, 8, 1, '#2a2a2a'); m.set(11, 7, 1, '#c8202a');
+    m.box(4, 4, 1, 4, 3, 1, '#2a3a6a'); m.box(9, 4, 1, 4, 2, 1, '#c8202a');
+    // title & credits
+    m.box(1, 30, 1, 26, 8, 1, '#141a3a');
+    m.text('ROCKET', 14, 32, 1, '#f8d030', { font: 'small', align: 'center' });
+    m.box(4, 31, 1, 20, 1, 1, '#c8202a');
+    for (const y of [2, 3]) for (let x = 15; x < 26; x += 2) m.set(x, y, 1, '#8a90b0');
+    m.box(16, 8, 1, 9, 1, 1, '#f8f4d0'); m.box(17, 6, 1, 7, 1, 1, '#c8c8d8');
+  },
+});
+
+// ---------------------------------------------------------------- bowling alley
+
+// Full rack of ten maple pins in the triangle, 1/32 m voxels: white with twin red neck stripes. The
+// head pin is nearest the bowler at +z; 30 cm spacing.
+defineProp('bowling_pins', {
+  size: [36, 13, 32], scale: 1 / 32,
+  build(m) {
+    const prof = [1.2, 1.6, 2.1, 2.1, 2.1, 1.6, 1.2, 1.2, 0.8, 0.8, 1.2, 1.2, 0.8];
+    const pin = (cx, cz) => prof.forEach((r, y) => m.cyl(cx, y, cz, r, 1, y === 8 || y === 9 ? '#c8202a' : '#f6f4ee'));
+    for (let row = 0; row < 4; row++) for (let i = 0; i <= row; i++) pin(18 + (i - row / 2) * 9.6, 27.5 - row * 8.3);
+  },
+});
+
+// Ball return at the end of the approach, 1/32 m voxels (1.5 m long along z): mahogany & chrome hood
+// where balls emerge, a sloped rail holding three balls, a hand-dryer grille. Bowlers stand at +z.
+defineProp('ball_return', {
+  size: [20, 26, 48], scale: 1 / 32, collide: [0.62, 0.8, 1.5],
+  build(m) {
+    const mah = '#6a2e1e', mahD = '#4e2014';
+    m.box(2, 0, 0, 16, 3, 48, mahD);
+    m.box(3, 3, 0, 14, 16, 14, mah); for (let z = 0; z < 14; z++) m.box(3, 19, z, 14, Math.round(4 - Math.abs(z - 7) * 0.5), 1, mah);  // rounded hood
+    m.box(4, 4, 14, 12, 12, 1, '#1a1a1a'); m.box(3, 16, 14, 14, 1, 1, CHROME); m.box(3, 3, 14, 14, 1, 1, CHROME);
+    for (let y = 6; y < 11; y += 2) m.box(5, y, 14, 10, 1, 1, CHROME_D);          // air vent grille
+    // rails sloping down toward +z
+    for (let z = 14; z < 46; z++) { const y = 10 - Math.floor((z - 14) / 6); m.box(4, y, z, 1, 1, 1, CHROME); m.box(15, y, z, 1, 1, 1, CHROME); m.box(4, 3, z, 12, y - 3, 1, mah); }
+    m.box(3, 3, 46, 14, 5, 2, mah); m.box(3, 8, 46, 14, 1, 2, CHROME);
+    const balls = ['#1a1a1c', '#6a1a2a', '#1e3a6a'];
+    balls.forEach((c, i) => { const z = 20 + i * 8.5, y = 10 - Math.floor((z - 14) / 6) + 3.3; m.sphere(10, y, z, 4.2, c); m.set(9, Math.floor(y + 3), Math.floor(z), '#e8e8e8'); m.set(11, Math.floor(y + 3), Math.floor(z) + 1, '#e8e8e8'); });
+    for (let i = 0; i < 3; i++) m.set(8 + i, 20, 16, '#101010');
+  },
+});
+
+// House-ball rack, 1/32 m voxels (1.25 m): two tiers of cupped chrome rails on a walnut frame holding
+// ten balls in black, maroon, blue, green & mottled colours, finger holes toward +z.
+defineProp('bowling_ball_rack', {
+  size: [40, 30, 14], scale: 1 / 32, collide: [1.25, 0.95, 0.44],
+  build(m) {
+    const wal = '#5a3620';
+    for (const x of [0, 38]) m.box(x, 0, 0, 2, 26, 14, wal);
+    m.box(2, 0, 7, 36, 2, 7, wal); m.box(2, 13, 0, 36, 2, 7, wal); m.box(2, 0, 0, 36, 13, 1, wal);
+    for (const [y, z] of [[2, 10], [15, 3.5]]) { m.box(2, y, z - 2.5, 36, 1, 1, CHROME); m.box(2, y, z + 1.5, 36, 1, 1, CHROME); }
+    const cols = ['#1a1a1c', '#6a1a2a', '#1e3a6a', '#1e5a3a', '#3a2a4a', '#8a3a1a', '#1a1a1c', '#1e3a6a', '#6a1a2a', '#2a4a4a'];
+    for (let i = 0; i < 10; i++) {
+      const top = i >= 5, x = 5.5 + (i % 5) * 7.2, y = top ? 18.5 : 5.5, z = top ? 3.5 : 10;
+      m.sphere(x, y, z, 3.4, cols[i]);
+      m.set(Math.floor(x) - 1, Math.floor(y) + 1, Math.floor(z + 3), '#0a0a0a'); m.set(Math.floor(x), Math.floor(y) + 1, Math.floor(z + 3), '#0a0a0a'); m.set(Math.floor(x) - 1, Math.floor(y) - 1, Math.floor(z + 3), '#0a0a0a');
+    }
+  },
+});
+
+// Bowling scorer's table: a sloped maple desk with a gridded score sheet & pencils on a pedestal,
+// swivel stool, and an overhead hooded lamp on a post with a small lit score screen above it.
+defineProp('score_table', {
+  size: [14, 36, 14], collide: [0.8, 1.2, 0.8],
+  build(m) {
+    const map = '#c8986a', mapD = '#a87a4e';
+    m.box(4, 0, 2, 6, 1, 6, CHROME_D); m.box(6, 1, 4, 2, 10, 2, CHROME);
+    for (let z = 1; z < 9; z++) m.box(2, 11 + Math.floor((9 - z) / 4), z, 10, 1, 1, map);
+    m.box(2, 10, 1, 10, 1, 8, mapD);
+    for (let z = 2; z < 8; z++) m.box(3, 12 + Math.floor((9 - z) / 4), z, 8, 1, 1, '#f4f2ea');
+    for (let x = 3; x < 11; x += 2) for (let z = 3; z < 8; z += 2) m.set(x, 12 + Math.floor((9 - z) / 4), z, '#8a9ab0');
+    m.set(10, 13, 8, '#e8c23a'); m.set(11, 13, 8, '#e8c23a');
+    m.cyl(7, 0, 11.5, 1.5, 1, CHROME_D); m.box(6.5, 1, 11, 1, 6, 1, CHROME); m.cyl(7, 7, 11.5, 2.5, 1, '#8a1a22');   // stool
+    // post, screen & lamp
+    m.box(12, 11, 1, 1, 24, 1, CHROME_D);
+    m.box(3, 28, 0, 10, 6, 2, '#2a2a2e'); m.box(4, 29, 2, 8, 4, 1, { c: '#e8f0e0', emit: 0.6 });
+    for (let x = 5; x < 12; x += 2) m.box(x, 29, 2, 1, 4, 1, { c: '#6a8a6a', emit: 0.4 });
+    m.box(4, 25, 3, 7, 1, 5, '#2e5a3a'); m.box(5, 24, 4, 5, 1, 3, { c: '#fff4d0', emit: 0.7 }); m.box(7, 26, 4, 1, 2, 1, CHROME_D);
+  },
+});
+
+// ---------------------------------------------------------------- nightclub & music
+
+// Jazz drum kit, 1/32 m voxels (1.5 m wide): tint-A sparkle shells with chrome hoops — bass drum with a
+// painted cream head, mounted tom, floor tom, snare on its stand, hi-hat, ride & crash cymbals, and
+// the drummer's throne behind (at -z). The kit faces the audience at +z.
+defineProp('drum_kit', {
+  size: [48, 40, 36], scale: 1 / 32, collide: [1.5, 1.1, 1.1],
+  build(m) {
+    const sh = TA(0.5), shD = TA(0.4), hoop = CHROME, head = '#f2ecd8', cym = '#d8b050', cymD = '#b89038', st = CHROME_M;
+    // bass drum lying on its side, heads facing +z/-z
+    m.cylZ(24, 9.5, 20, 9.5, 8, sh); m.cylZ(24, 9.5, 20, 9.5, 1, hoop); m.cylZ(24, 9.5, 27, 9.5, 1, hoop);
+    m.cylZ(24, 9.5, 28, 8.7, 1, head); m.text('JB', 24, 7, 29, '#8a1a22', { font: 'small', align: 'center' });
+    for (let a = 0; a < 8; a++) { const t = a * Math.PI / 4; m.set(Math.floor(24 + Math.cos(t) * 9.6), Math.floor(9.5 + Math.sin(t) * 9.6), 24, CHROME_D); }
+    m.box(15, 0, 26, 1, 3, 1, st); m.box(32, 0, 26, 1, 3, 1, st);               // spurs
+    m.box(22, 0, 18, 4, 1, 2, CHROME_D); m.box(23, 1, 18, 2, 5, 1, st);           // pedal & beater
+    // mounted tom on the bass drum
+    m.box(23.5, 19, 23, 1, 3, 1, st); m.cyl(24, 22, 23, 4.5, 5, sh); m.cyl(24, 26, 23, 4.6, 1, hoop); m.cyl(24, 27, 23, 4.2, 1, head); m.cyl(24, 22, 23, 4.6, 1, hoop);
+    // floor tom (right from the audience = -x side)
+    for (const [x, z] of [[4, 18], [12, 18], [8, 27]]) m.box(x, 0, z, 1, 12, 1, st);
+    m.cyl(8.5, 4, 22.5, 6, 12, sh); m.cyl(8.5, 15, 22.5, 6.1, 1, hoop); m.cyl(8.5, 16, 22.5, 5.6, 1, head); m.cyl(8.5, 4, 22.5, 6.1, 1, hoop);
+    // snare on a stand (drummer's left = +x side here)
+    m.box(35.5, 0, 12, 1, 12, 1, st); m.box(33, 0, 12, 6, 1, 1, st); m.box(35.5, 0, 9, 1, 1, 6, st);
+    m.cyl(36, 12, 12.5, 5.5, 4, sh); m.cyl(36, 15, 12.5, 5.6, 1, hoop); m.cyl(36, 16, 12.5, 5, 1, head); m.cyl(36, 12, 12.5, 5.6, 1, hoop);
+    m.box(41, 13, 12, 1, 2, 1, CHROME_D);
+    // hi-hat
+    m.box(44.5, 0, 9, 1, 26, 1, st); m.box(42, 0, 9, 6, 1, 1, st); m.box(44.5, 0, 6, 1, 1, 6, st); m.box(43, 1, 10, 3, 1, 3, CHROME_D);
+    m.cyl(45, 24, 9.5, 4.5, 1, cym); m.cyl(45, 25, 9.5, 4.5, 1, cymD); m.cyl(45, 25, 9.5, 1, 1, cym);
+    // ride & crash cymbals on boom stands
+    m.box(3.5, 0, 12, 1, 30, 1, st); m.cyl(4, 30, 12.5, 6.5, 1, cym); m.cyl(4, 31, 12.5, 1.2, 1, cymD);
+    m.box(39.5, 0, 27, 1, 33, 1, st); m.cyl(40, 33, 27.5, 5.5, 1, cym); m.cyl(40, 34, 27.5, 1, 1, cymD);
+    // throne & sticks
+    m.box(23.5, 0, 5, 1, 12, 1, st); m.box(20, 0, 5, 8, 1, 1, st); m.cyl(24, 12, 5.5, 4, 2, '#1a1a1a');
+    m.box(33, 17, 10, 6, 1, 1, '#e8d8b0'); m.box(34, 17, 13, 5, 1, 1, '#e8d8b0');
+  },
+});
+
+// Double bass standing in a chrome cradle stand, 1/32 m voxels (1.85 m): amber-brown varnished body
+// with darker edges, f-holes, bridge, black fingerboard, scroll & tuning pegs. Faces +z.
+defineProp('upright_bass_stand', {
+  size: [26, 60, 14], scale: 1 / 32, collide: [0.7, 1.85, 0.45],
+  build(m) {
+    const inside = (x, y) => Math.hypot((x + 0.5 - 13) / 11.5, (y + 0.5 - 13) / 12) <= 1 || Math.hypot((x + 0.5 - 13) / 9, (y + 0.5 - 30) / 8.5) <= 1 || (y > 17 && y < 26 && Math.abs(x + 0.5 - 13) < 8.5 - Math.sin((y - 17) / 9 * Math.PI) * 2.5);
+    for (let y = 1; y < 40; y++) for (let x = 0; x < 26; x++) {
+      if (!inside(x, y)) continue;
+      const edge = !inside(x + 1, y) || !inside(x - 1, y) || !inside(x, y + 1) || !inside(x, y - 1);
+      m.box(x, y, 4, 1, 1, 6, edge ? '#3a1a0a' : Math.abs(x + 0.5 - 13) > 7 ? '#8a3a12' : '#b8561a');
+    }
+    // f-holes, bridge, tailpiece, strings
+    for (let i = 0; i < 6; i++) { m.set(8 + (i === 0 || i === 5 ? 1 : 0), 19 + i, 10, '#1a0a04'); m.set(17 - (i === 0 || i === 5 ? 1 : 0), 19 + i, 10, '#1a0a04'); }
+    m.box(10, 17, 10, 6, 2, 1, '#e8d0a0'); m.box(11, 6, 10, 4, 8, 1, '#1a1a1a');
+    m.box(12, 14, 11, 2, 38, 1, '#e8e0c8');                  // strings (pale)
+    m.box(12, 24, 10, 2, 30, 1, '#1a1a1a');                   // fingerboard
+    m.box(12, 40, 6, 2, 13, 3, '#8a3a12');                    // neck
+    m.box(11, 53, 6, 4, 4, 3, '#6a2a0e'); m.box(12, 57, 6, 3, 2, 3, '#6a2a0e'); m.set(13, 59, 7, '#6a2a0e');   // pegbox & scroll
+    for (const y of [54, 56]) { m.box(9, y, 7, 2, 1, 1, CHROME); m.box(15, y, 7, 2, 1, 1, CHROME); }
+    m.box(12.5, 0, 6, 1, 2, 1, CHROME_D);                     // endpin
+    // cradle stand
+    m.box(4, 0, 0, 18, 1, 3, '#2a2a2a'); m.box(12.5, 0, 0, 1, 1, 12, '#2a2a2a'); m.box(12.5, 1, 1, 1, 30, 1, CHROME_M);
+    m.box(8, 30, 1, 10, 1, 3, CHROME_M); m.box(8, 30, 3, 1, 3, 1, '#2a2a2a'); m.box(17, 30, 3, 1, 3, 1, '#2a2a2a');
+  },
+});
+
+// Vintage chrome microphone on a round-base stand, 1/32 m voxels (1.6 m): ribbed "unidyne" style head
+// in a yoke, cloth cord trailing to the base. Faces +z.
+defineProp('mic_stand', {
+  size: [14, 54, 14], scale: 1 / 32, collide: [0.3, 1.6, 0.3],
+  build(m) {
+    m.cyl(7, 0, 7, 5.5, 1, '#1e1e20'); m.cyl(7, 1, 7, 3.5, 1, CHROME_M);
+    m.box(6.5, 2, 6.5, 1, 40, 1, CHROME); m.box(6, 24, 6, 2, 2, 2, CHROME_D); m.box(6.5, 42, 6.5, 1, 1, 3, CHROME_D);
+    m.box(4, 43, 8, 1, 4, 1, CHROME_D); m.box(9, 43, 8, 1, 4, 1, CHROME_D);       // yoke
+    for (let y = 43; y < 52; y++) {
+      const w = y < 45 || y > 49 ? 3 : 4, x0 = 7 - w / 2;
+      m.box(x0, y, 7, w, 1, 4, (y & 1) ? CHROME : CHROME_D);
+    }
+    m.box(6, 52, 8, 2, 1, 2, CHROME);
+    m.box(6, 43, 11, 2, 1, 1, '#1a1a1a');
+    m.box(7.5, 2, 8, 1, 40, 1, '#3a3a3a');                                           // cloth cord taped down the pole
+    m.box(8, 1, 7, 1, 1, 6, '#2a2a2a');
+  },
+});
+
+// Black grand piano (1.5 x 1.8 m), lid open on its stick: gold iron frame & strings visible inside,
+// music desk with sheet music, brass-capped legs, pedal lyre. The KEYBOARD is on the +z side: the
+// pianist sits at +z facing -z. The bass (straight) side is +x; the lid rises on the curved -x side.
+defineProp('piano_grand', {
+  size: [24, 28, 29], collide: [1.5, 1.0, 1.8],
+  build(m) {
+    const blk = '#141416', blkL = '#2a2a30', plate = '#c8a040', board = '#d8b878';
+    const xmin = (z) => z >= 14 ? 0 : Math.round(13 * Math.pow((14 - z) / 14, 1.6));
+    const inCase = (x, z) => z >= 1 && z <= 23 && x >= xmin(z) && x <= 23 && !(z < 4 && x > 23 - (4 - z) * 2);
+    for (let z = 0; z < 24; z++) for (let x = 0; x < 24; x++) {
+      if (!inCase(x, z)) continue;
+      const rim = !inCase(x - 1, z) || !inCase(x + 1, z) || !inCase(x, z - 1) || !inCase(x, z + 1);
+      m.box(x, 8, z, 1, rim ? 5 : 1, 1, blk);
+      if (!rim) m.set(x, 9, z, (x + z) % 7 === 0 ? plate : x % 2 ? board : '#c8a868');   // soundboard & strings
+      if (!rim && z > 3 && z < 21 && x > 3 && (x % 5 === 0)) m.set(x, 10, z, plate);           // iron frame struts
+    }
+    // keyboard & cheek blocks at +z
+    m.box(0, 8, 24, 24, 3, 5, blk); m.box(1, 11, 24, 22, 1, 4, '#f4f2ea');
+    for (let x = 1; x < 23; x++) if ([0, 1, 3, 4, 5].includes(x % 7)) m.set(x, 12, 24, '#101010');
+    m.box(0, 11, 24, 1, 2, 5, blk); m.box(23, 11, 24, 1, 2, 5, blk); m.box(1, 11, 28, 22, 1, 1, blk);
+    // music desk with sheet music
+    m.box(3, 12, 21, 18, 1, 2, blk); m.box(4, 13, 21, 16, 4, 1, blk); m.box(7, 13, 22, 10, 4, 1, '#f4f0e0');
+    for (const y of [14, 16]) for (let x = 8; x < 16; x += 2) m.set(x, y, 22, '#6a6a6a');   // notes
+    // legs & pedal lyre
+    for (const [x, z] of [[1, 25], [21, 25], [16, 3]]) { m.box(x, 0, z, 2, 8, 2, blk); m.box(x, 0, z, 2, 1, 2, BRASS); }
+    m.box(11, 1, 21, 2, 7, 1, blk); m.box(10, 1, 22, 4, 1, 2, BRASS);
+    // lid: hinged along the straight +x side, raised on the -x side, held by the stick
+    for (let z = 1; z < 24; z++) for (let x = 0; x < 24; x++) {
+      if (!inCase(x, z) || z > 22) continue;
+      const y = 13 + Math.round((23 - x) * 0.62);
+      m.set(x, y, z, x === xmin(z) ? blkL : blk);
+    }
+    const sx = Math.max(2, xmin(12) + 1);
+    for (let y = 13; y < 13 + Math.round((23 - sx) * 0.62); y++) m.set(sx, y, 12, blk);
+  },
+});
+
+// Orchestra music stand, 1/32 m voxels (1.25 m): black tripod, telescoping post, tilted desk with an
+// open score. Faces +z (the reader is at +z).
+defineProp('music_stand', {
+  size: [16, 42, 12], scale: 1 / 32, collide: [0.35, 1.25, 0.3],
+  build(m) {
+    const bl = '#1e1e20';
+    m.box(2, 0, 5, 12, 1, 1, bl); m.box(7.5, 0, 1, 1, 1, 10, bl);
+    m.box(7.5, 1, 5, 1, 16, 1, bl); m.box(7.5, 17, 5, 1, 12, 1, CHROME_D); m.box(7, 16, 4.5, 2, 1, 2, bl);
+    for (let y = 29; y < 41; y++) { const z = 5 + Math.floor((y - 29) / 4); m.box(1, y, z, 14, 1, 1, bl); }
+    m.box(1, 29, 6, 14, 1, 2, bl);
+    for (let y = 31; y < 40; y++) { const z = 6 + Math.floor((y - 29) / 4); m.box(2, y, z, 5, 1, 1, '#f4f0e0'); m.box(8, y, z, 5, 1, 1, '#f4f0e0'); if (y % 2) { m.set(3, y, z, '#6a6a6a'); m.set(10, y, z, '#6a6a6a'); } }
+  },
+});
+
+// Nightclub two-top, 1/32 m voxels (0.6 m dia, 0.75 m): white tablecloth over a round table, red glass
+// candle-holder with a flickering flame, two cocktail glasses (a martini with an olive, a Manhattan
+// with a cherry), matchbook & ashtray. Glows softly when the room lamps are on.
+defineProp('club_table', {
+  size: [22, 30, 22], scale: 1 / 32, collide: [0.62, 0.78, 0.62], light: lampLight(0, 0.85, 0, [1.0, 0.6, 0.35], 2.2, 'room'),
+  build(m) {
+    m.cyl(11, 0, 11, 5, 1, '#1e1e20'); m.cyl(11, 1, 11, 1.2, 21, '#1e1e20');
+    m.cyl(11, 22, 11, 10, 2, '#f8f6f0'); m.cyl(11, 17, 11, 10.6, 5, '#f4f2ea'); m.cyl(11, 17, 11, 9.6, 5, 0);
+    m.cyl(11, 24, 11, 1.8, 3, { c: '#c02028', emit: 0.55 }); m.set(11, 27, 11, { c: '#ffd070', emit: 1 });
+    // martini
+    m.set(5, 24, 9, GLASS); m.set(5, 25, 9, GLASS); m.box(4, 26, 8, 3, 1, 3, '#e8f0f0'); m.box(3, 27, 7, 5, 1, 5, GLASS); m.set(5, 27, 9, '#6a8a2a');
+    // Manhattan
+    m.set(16, 24, 13, GLASS); m.box(15, 25, 12, 3, 2, 3, '#a8401a'); m.box(15, 27, 12, 3, 1, 3, GLASS); m.set(16, 27, 13, '#c8102a');
+    m.box(14, 24, 5, 3, 1, 2, '#1a1a1a'); m.set(14, 24, 5, '#c8202a');             // matchbook
+    m.cyl(7, 24, 15, 1.8, 1, '#3a3a3a');
+  },
+});
+
+// Stage lighting batten: a pipe with five can lights (red, amber, blue, amber, red gels) on C-clamps
+// and a cable run. ORIGIN at the TOP centre of the pipe: place it at ceiling height and it hangs down.
+// The lamps aim down toward +z (the stage in front). Throws a warm light when the room lamps are on.
+defineProp('stage_lights', {
+  size: [40, 10, 8], origin: [20, 10, 4], cat: 'interior', light: lampLight(0, -0.6, 0.4, [1.0, 0.7, 0.55], 7, 'room'),
+  build(m) {
+    m.box(0, 8, 3, 40, 1, 1, '#3a3a3e'); m.box(0, 9, 4, 40, 1, 1, '#1a1a1a');   // pipe & cable
+    for (const x of [0, 39]) m.box(x, 9, 3, 1, 1, 2, '#3a3a3e');
+    const gels = ['#ff4040', '#ffb040', '#4080ff', '#ffb040', '#ff4040'];
+    gels.forEach((g, i) => {
+      const x = 3 + i * 8;
+      m.box(x + 1, 7, 3, 1, 1, 1, '#5a5a5e');                  // clamp
+      m.box(x, 3, 2, 3, 4, 3, '#1e1e20'); m.box(x, 2, 3, 3, 2, 3, '#1e1e20');    // can body, tilted forward
+      m.box(x, 1, 4, 3, 2, 2, { c: g, emit: 0.8 }); m.box(x + 1, 6, 1, 1, 1, 1, '#3a3a3e');
+      m.box(x - 1, 4, 3, 1, 2, 1, '#5a5a5e'); m.box(x + 3, 4, 3, 1, 2, 1, '#5a5a5e');   // yoke
+    });
+  },
+});
+
+// ---------------------------------------------------------------- railroad station & hotel
+
+// Station waiting bench (2.4 m): heavy oak slats on cast-iron ends with scrolled armrests, a centre
+// armrest dividing it into seats. Sitters face +z; seat 0.45 m.
+defineProp('bench_station', {
+  size: [39, 15, 10], collide: [2.45, 0.9, 0.62],
+  build(m) {
+    const oak = '#a8784a', oakD = '#86592f', ir = '#26262a';
+    for (const x of [0, 19, 38]) {
+      m.box(x, 0, 1, 1, 7, 1, ir); m.box(x, 0, 8, 1, 7, 1, ir); m.box(x, 0, 1, 1, 1, 8, ir);   // legs
+      m.box(x, 6, 1, 1, 1, 9, ir); m.box(x, 10, 2, 1, 1, 8, ir); m.set(x, 9, 9, ir); m.set(x, 8, 9, ir);   // arm scroll
+      m.box(x, 7, 0, 1, 8, 1, ir);
+    }
+    for (const z of [2, 4, 6, 8]) m.box(0, 7, z, 39, 1, 1, z % 4 ? oak : oakD);
+    for (const y of [9, 11, 13]) m.box(0, y, 1, 39, 1, 1, y === 11 ? oakD : oak);
+    m.box(0, 15 - 1, 0, 39, 1, 1, oakD);
+  },
+});
+
+// Railroad ticket window counter module (1.5 m wide): oak & marble counter, brass grille with an arched
+// opening and money cup, "FARES" plate, timetable rack & date-stamp press inside. Travellers at +z.
+defineProp('ticket_window', {
+  size: [24, 39, 10], collide: [1.5, 2.3, 0.62],
+  build(m) {
+    const oak = '#8a6040', oakD = '#6a4428', mar = '#e8e2d8';
+    m.box(0, 0, 0, 24, 1, 9, oakD); m.box(0, 1, 0, 24, 14, 9, oak);
+    for (const x of [1, 12]) { m.box(x, 3, 9, 11, 10, 1, oakD); m.box(x + 1, 4, 9, 9, 8, 1, oak); }
+    m.box(0, 15, 0, 24, 1, 10, mar);
+    m.box(0, 16, 0, 2, 20, 2, oak); m.box(22, 16, 0, 2, 20, 2, oak); m.box(0, 32, 0, 24, 7, 2, oakD);
+    // brass grille with an arched window
+    for (let x = 2; x < 22; x++) for (let y = 16; y < 32; y++) {
+      const inWin = x >= 8 && x < 16 && (y < 24 || Math.hypot(x + 0.5 - 12, y - 24) < 4);
+      if (inWin) continue;
+      if (x % 2 === 0 || y % 4 === 0) m.set(x, y, 1, BRASS);
+    }
+    for (let a = 0; a <= 16; a++) { const t = a * Math.PI / 16; m.set(Math.floor(12 + Math.cos(t) * 4.2), Math.floor(24 + Math.sin(t) * 4.2), 1, BRASS_D); }
+    m.box(8, 16, 1, 1, 8, 1, BRASS_D); m.box(15, 16, 1, 1, 8, 1, BRASS_D);
+    m.box(9, 15, 1, 6, 1, 3, BRASS_D); m.box(10, 15, 2, 4, 1, 1, '#3a2a1a');       // money cup
+    m.box(3, 32, 2, 18, 7, 1, '#1a2a1a'); label(m, 'FARES', 12, 33, 2, '#e8d090', { align: 'center' });
+    // behind the glass: date stamp & tickets rack
+    m.box(3, 16, 0, 4, 3, 1, '#2a2a2a'); m.box(17, 16, 0, 4, 6, 1, oakD); for (let y = 17; y < 22; y++) m.box(18, y, 0, 2, 1, 1, y & 1 ? '#e8d8a0' : '#c8e0c0');
+  },
+});
+
+// Station baggage cart: iron-shod oak deck on four spoked wheels, a T-handle, piled with a steamer
+// trunk, leather suitcases (tint A / tint B) and a hat box. ~1.9 m long along z. Pulled from +z.
+defineProp('luggage_cart', {
+  size: [16, 20, 31], collide: [1.0, 1.25, 1.9],
+  build(m) {
+    const oak = '#8a6040', ir = '#2a2a2c';
+    for (const x of [0, 15]) for (const zc of [5, 23]) for (let y = 0; y < 7; y++) for (let z = zc - 3; z <= zc + 3; z++) {
+      const d = Math.hypot(y + 0.5 - 3.5, z + 0.5 - (zc + 0.5));
+      if (d <= 3.5 && (d > 2.6 || d < 0.9 || Math.abs(y - 3) < 0.6 || Math.abs(z - zc) < 0.6)) m.set(x, y, z, d > 2.6 ? ir : '#8a2a1a');
+    }
+    m.box(1, 3, 5, 14, 1, 1, ir); m.box(1, 3, 23, 14, 1, 1, ir);
+    m.box(0, 7, 0, 16, 1, 29, oak); m.box(0, 7, 0, 16, 1, 1, ir); m.box(0, 7, 28, 16, 1, 1, ir);
+    for (let x = 1; x < 16; x += 3) m.box(x, 7, 1, 1, 1, 27, '#7a5234');
+    m.box(0, 8, 0, 1, 4, 1, ir); m.box(15, 8, 0, 1, 4, 1, ir); m.box(0, 11, 0, 16, 1, 1, ir);   // rear rail
+    m.box(7, 7, 29, 2, 1, 2, ir); m.box(7.5, 8, 30, 1, 10, 1, ir); m.box(5, 18, 30, 6, 1, 1, '#6a4428');   // T-handle
+    // luggage
+    m.box(1, 8, 2, 14, 7, 9, '#2a4a3a'); for (const x of [1, 14]) m.box(x, 8, 2, 1, 7, 9, '#3a2a1a');
+    m.box(1, 11, 2, 14, 1, 9, BRASS_D); m.box(7, 12, 11, 2, 1, 1, BRASS);                               // steamer trunk
+    m.box(2, 8, 13, 12, 3, 7, TA(0.5)); m.box(2, 10, 13, 12, 1, 7, TA(0.42)); m.box(7, 11, 16, 2, 1, 1, '#2a2a2a');   // suitcase A
+    m.box(3, 11, 14, 10, 3, 5, TB(0.5)); m.box(7, 14, 15, 2, 1, 1, '#2a2a2a'); m.set(3, 12, 18, BRASS);            // suitcase B
+    m.box(3, 15, 3, 7, 3, 7, '#f0e0c8'); m.box(3, 17, 3, 7, 1, 7, '#c8202a'); m.box(3, 18, 3, 7, 1, 7, '#f0e0c8');  // hat box
+    m.box(2, 8, 21, 11, 4, 6, '#6a3a1a'); m.box(2, 10, 21, 11, 1, 6, '#4a2a10'); m.set(7, 12, 23, '#2a2a2a');       // brown case
+    m.box(4, 12, 22, 3, 1, 3, '#f4ecd8');                                                                          // baggage tag
+  },
+});
+
+// Station departures board, back at z=0, 1/32 m voxels (2.25 x 1.1 m): black board in an oak frame,
+// "DEPARTURES" header, columns of destinations and times in small white letters; a track-number column.
+defineProp('departure_board', {
+  size: [72, 36, 2], scale: 1 / 32, origin: [36, 0, 0],
+  build(m) {
+    const oak = '#7a5030';
+    m.box(0, 0, 0, 72, 36, 1, oak); m.box(1, 1, 0, 70, 34, 2, '#1c1e1c');
+    m.box(0, 35, 0, 72, 1, 2, oak); m.box(0, 0, 0, 72, 1, 2, oak); m.box(0, 0, 0, 1, 36, 2, oak); m.box(71, 0, 0, 1, 36, 2, oak);
+    m.text('DEPARTURES', 36, 28, 1, '#f0d060', { font: 'small', align: 'center' }); m.box(3, 26, 1, 66, 1, 1, '#5a5a50');
+    const rows = [['BOSTON', '7:15', '1'], ['PORTLAND', '8:40', '2'], ['PROVIDENCE', '9:05', '1'], ['NEW YORK', '11:30', '3']];
+    rows.forEach(([d, t, tr], i) => {
+      const y = 19 - i * 6;
+      m.text(d, 3, y, 1, '#f4f2ea', { font: 'small' });
+      m.text(t, 46, y, 1, '#f4f2ea', { font: 'small' });
+      m.text(tr, 67, y, 1, '#f0d060', { font: 'small' });
+    });
+  },
+});
+
+// Hotel reception desk module (1.25 m): mahogany panelled front toward the guests (+z), marble top
+// with a brass service bell, open guest register & pen stand, a small brass lamp; mail slots are a
+// separate prop (mail_slots) for the wall behind.
+defineProp('hotel_desk', {
+  size: [20, 22, 11], collide: [1.25, 1.1, 0.7],
+  build(m) {
+    const mah = MAHOG, mahD = MAHOG_D, mar = '#ece6dc';
+    m.box(0, 0, 0, 20, 1, 10, mahD); m.box(0, 1, 0, 20, 15, 10, mah);
+    m.clear(1, 2, 0, 18, 12, 4); m.box(1, 7, 0, 18, 1, 4, mahD);
+    for (const x0 of [1, 10]) { m.box(x0, 3, 10, 9, 11, 1, mahD); m.box(x0 + 1, 4, 10, 7, 9, 1, mah); m.box(x0 + 3, 7, 10, 3, 3, 1, '#7a3624'); }
+    m.box(0, 16, 0, 20, 1, 11, mar); m.box(0, 15, 10, 20, 1, 1, BRASS_D);
+    // register, pen, bell, lamp
+    m.box(6, 17, 5, 8, 1, 5, '#f4ecd8'); m.box(9.5, 17, 5, 1, 1, 5, '#c8b890'); m.box(6, 17, 5, 8, 1, 1, '#5a1a1a');
+    for (const x of [7, 8, 11, 12]) m.set(x, 17, 7, '#8a8a88');
+    m.box(15, 17, 6, 2, 1, 2, '#1a1a1a'); m.set(16, 18, 6, '#1a1a1a');
+    m.box(3, 17, 7, 2, 1, 2, BRASS_D); m.box(3, 18, 7, 2, 1, 2, BRASS_L); m.set(3.5, 19, 7.5, BRASS);          // bell
+    m.box(16, 17, 2, 2, 1, 2, BRASS); m.box(16.5, 18, 2.5, 1, 2, 1, BRASS); m.box(15, 20, 1, 4, 2, 4, '#2a5a3a'); m.box(16, 20, 2, 2, 1, 2, { c: '#fff0c0', emit: 0.6 });
+  },
+});
+
+// Bellhop's brass luggage cart: carpeted platform on castors under a brass bird-cage frame with a
+// hanging rail, loaded with suitcases (tint A / B), a hat box and a garment bag.
+defineProp('bellhop_cart', {
+  size: [12, 30, 20], collide: [0.75, 1.85, 1.25],
+  build(m) {
+    const car = '#8a1a22';
+    for (const [x, z] of [[1, 1], [10, 1], [1, 18], [10, 18]]) { m.set(x, 0, z, '#1a1a1a'); m.box(x, 1, z, 1, 1, 1, BRASS_D); }
+    m.box(0, 2, 0, 12, 1, 20, BRASS); m.box(1, 3, 1, 10, 1, 18, car);
+    for (const z of [0, 19]) { m.box(0, 3, z, 1, 26, 1, BRASS); m.box(11, 3, z, 1, 26, 1, BRASS); }
+    for (let x = 0; x < 12; x++) { const y = 26 + Math.round(Math.sin((x + 0.5) / 12 * Math.PI) * 3); m.set(x, y, 0, BRASS_L); m.set(x, y, 19, BRASS_L); }
+    m.box(5.5, 26, 0, 1, 3, 20, BRASS_L);                    // hanging rail
+    m.box(4, 12, 3, 4, 14, 3, '#3a3a4a'); m.box(5.5, 25, 4, 1, 1, 1, BRASS);      // garment bag
+    m.box(1, 4, 7, 10, 3, 8, TA(0.5)); m.box(1, 6, 7, 10, 1, 8, TA(0.42)); m.box(5, 7, 10, 2, 1, 1, '#2a2a2a');
+    m.box(2, 7, 8, 8, 3, 6, TB(0.5)); m.box(5, 10, 10, 2, 1, 1, '#2a2a2a');
+    m.box(2, 4, 16, 6, 5, 3, '#f0e0c8'); m.box(2, 8, 16, 6, 1, 3, '#2a4a8a');
+    m.box(0, 14, 0, 12, 1, 1, BRASS); m.box(0, 14, 19, 12, 1, 1, BRASS);
+  },
+});
+
+// Potted parlour palm (≈1.9 m): glazed Chinese-style jardinière with a blue band on a stand, several
+// arching fronds of kentia palm.
+defineProp('palm_pot', {
+  size: [30, 34, 30], collide: [0.55, 1.9, 0.55],
+  build(m) {
+    col(m, 11, 0, 11, 8, 1, '#3a2a1a'); col(m, 10, 1, 10, 10, 6, '#e8e2d4'); col(m, 10, 3, 10, 10, 2, '#2a4a8a'); col(m, 10, 7, 10, 10, 1, '#d8d0c0');
+    col(m, 11, 7, 11, 8, 1, '#4a3020');                       // soil
+    m.box(14, 8, 14, 2, 9, 2, '#6a5a3a'); m.box(14, 10, 14, 2, 1, 2, '#5a4a2e'); m.box(14, 13, 14, 2, 1, 2, '#5a4a2e');   // ringed trunk
+    const frond = (a, len, lift) => {
+      const dx = Math.cos(a), dz = Math.sin(a);
+      for (let i = 0; i < len; i++) {
+        const x = 15 + dx * i, z = 15 + dz * i, y = 17 + lift * i - 0.13 * i * i;
+        m.set(x, y, z, '#3e6e2c');
+        if (i > 2 && i % 2 === 0) for (const s of [1, -1]) m.set(x + dz * s * 1.5, y - 1, z - dx * s * 1.5, '#4e7e36');
+      }
+    };
+    for (let k = 0; k < 8; k++) frond(k * Math.PI / 4 + 0.2, 13, 1.35);
+    for (let k = 0; k < 4; k++) frond(k * Math.PI / 2 + 0.9, 9, 1.9);
+    m.box(14, 17, 14, 2, 3, 2, '#4e7e36');
+  },
+});
+
+// Hotel pigeonhole key rack, back at z=0 (1.25 x 0.9 m): oak grid of 5 x 4 cubbies with brass
+// numbers, room keys on brass tags hanging below, and letters & telegrams tucked into some cubbies.
+defineProp('mail_slots', {
+  size: [20, 15, 5], origin: [10, 0, 0], collide: false,
+  build(m) {
+    const oak = '#8a6040', oakD = '#6a4428';
+    m.box(0, 0, 0, 20, 15, 1, oakD);
+    for (let x = 0; x <= 20; x += 4) m.box(Math.min(x, 19), 0, 0, 1, 15, 4, oak);
+    for (let y = 0; y <= 15; y += 3.5) m.box(0, Math.min(Math.round(y), 14), 0, 20, 1, 4, oak);
+    let k = 0;
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {
+      const x = 1 + c * 4, y = 1 + Math.round(r * 3.5);
+      m.set(x + 1, y - 1, 3, BRASS);
+      if ((k * 7) % 5 === 1) m.box(x, y, 1, 3, 2, 1, '#f4ecd8');
+      if ((k * 3) % 4 === 2) { m.box(x + 1, y, 1, 1, 1, 2, BRASS_D); m.set(x + 1, y, 3, BRASS_L); }
+      if (k % 7 === 3) m.box(x, y, 1, 2, 1, 1, '#f0e0a0');
+      k++;
+    }
+  },
+});
+
+// ---------------------------------------------------------------- newspaper & radio station
+
+// Rotary newspaper press, 1/12 m voxels (3.2 m long, 2.3 m tall, 1.6 m deep): cast-iron side frames
+// painted green-grey with big gears, a reel stand with a full newsprint roll at -x, the white paper web
+// threading over & under the plate and impression cylinders and inking rollers, a folder at +x
+// delivering folded papers onto a conveyor, walkway & railing on the operator's side (+z).
+defineProp('printing_press', {
+  size: [40, 28, 20], scale: 1 / 12, collide: [3.3, 2.3, 1.7], cat: 'interior',
+  build(m) {
+    const fr = '#46564e', frD = '#34423a', steel = '#b4bcc4', ink = '#1c1c1e', web = '#f4f2ea', gear = '#5e6e64';
+    m.box(0, 0, 1, 40, 1, 18, '#2a2a2a');                     // bedplate
+    for (const z of [2, 15]) {
+      m.box(8, 1, z, 24, 20, 2, fr); m.box(8, 1, z, 24, 2, 2, frD); m.box(8, 20, z, 24, 1, 2, frD);
+      m.clear(12, 5, z, 4, 12, 2); m.clear(24, 5, z, 4, 12, 2);
+    }
+    // gears on the +z frame
+    for (const [cx, cy, r] of [[14, 11, 4.5], [22, 7, 3], [26, 13, 4.5]]) for (let y = 0; y < 28; y++) for (let x = 0; x < 40; x++) {
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+      if (d <= r && (d > r - 1 ? (Math.atan2(y - cy, x - cx) * 6 / Math.PI + 12) % 2 < 1.2 : true)) m.set(x, y, 17, d < 1.2 ? CHROME : d > r - 1 ? gear : (d < r - 2 ? gear : frD));
+    }
+    // cylinders spanning the frames (along z)
+    for (const [x, y, r, c] of [[14, 8, 2.6, steel], [14, 14, 2.6, steel], [26, 8, 2.6, steel], [26, 14, 2.6, steel], [11, 17, 1.2, ink], [17, 17, 1.2, ink], [23, 17, 1.2, ink], [29, 17, 1.2, ink], [11, 5, 1.2, ink], [29, 5, 1.2, ink], [20, 11, 1.4, CHROME_M]]) m.cylZ(x + 0.5, y + 0.5, 4, r, 11, c);
+    // reel stand & roll at -x
+    m.box(1, 1, 3, 2, 12, 1, fr); m.box(1, 1, 15, 2, 12, 1, fr);
+    m.cylZ(4, 9, 4, 5.5, 11, web); m.cylZ(4, 9, 4, 5.6, 1, '#d8d4c8'); m.cylZ(4, 9, 14, 5.6, 1, '#d8d4c8'); m.cylZ(4, 9, 3, 1, 13, '#6a4a2a');
+    // the paper web: from the roll over the top, down between the cylinder pairs, out to the folder
+    m.box(4, 14, 4, 7, 1, 11, web); m.box(10, 14, 4, 1, 1, 11, web);
+    m.box(16, 11, 4, 1, 1, 11, web); m.box(17, 11, 4, 7, 1, 11, web); m.box(28, 11, 4, 5, 1, 11, web);
+    m.box(11, 11, 4, 1, 3, 11, web); m.box(12, 11, 4, 1, 1, 11, web);
+    // folder & delivery at +x
+    m.box(32, 1, 3, 6, 14, 14, fr); m.box(32, 15, 3, 6, 1, 14, frD); m.box(33, 9, 17, 4, 4, 1, frD);
+    m.box(33, 11, 3, 1, 3, 14, web);
+    m.box(38, 6, 5, 2, 1, 10, '#3a3a3a');
+    for (let i = 0; i < 4; i++) m.box(38, 7 + i, 6 + i % 2, 2, 1, 7, i % 2 ? '#e8e4d8' : web);
+    // walkway & railing along the operator side
+    m.box(8, 3, 18, 24, 1, 2, '#5a5a5a'); for (const x of [8, 18, 31]) m.box(x, 4, 19, 1, 7, 1, '#e8c23a'); m.box(8, 10, 19, 24, 1, 1, '#e8c23a');
+    m.box(19, 21, 5, 2, 3, 10, frD); m.box(18, 24, 4, 4, 1, 12, '#5a5a5a');   // ink fountain on top
+  },
+});
+
+// Stack of newsprint rolls on a pallet: two rolls lying side by side and one on top, kraft wrappers,
+// white spiralled ends with dark cores and a stencilled mill label. ~2.1 x 1.8 m.
+defineProp('paper_rolls', {
+  size: [34, 29, 18], collide: [2.1, 1.8, 1.1],
+  build(m) {
+    m.box(0, 0, 0, 34, 1, 18, '#8a6a48'); for (let x = 1; x < 34; x += 5) m.box(x, 1, 0, 3, 1, 18, '#9a7a58');
+    const roll = (cx, cy) => {
+      m.cylZ(cx, cy, 1, 8.2, 16, '#c8a878'); m.cylZ(cx, cy, 0, 7.8, 1, '#f4f0e6'); m.cylZ(cx, cy, 17, 7.8, 1, '#f4f0e6');
+      for (const z of [0, 17]) { m.cylZ(cx, cy, z, 5.2, 1, '#e8e4d8'); m.cylZ(cx, cy, z, 4.6, 1, '#f4f0e6'); m.cylZ(cx, cy, z, 1.6, 1, '#6a4a2a'); m.cylZ(cx, cy, z, 0.9, 1, '#2a1a10'); }
+      m.box(cx - 3, cy + 5, 17, 6, 1, 1, '#2a4a8a');
+    };
+    roll(8.5, 10.2); roll(25.5, 10.2); roll(17, 20.5);
+  },
+});
+
+// Linotype typesetting machine (≈2.1 m): black & nickel with brass — the 90-key keyboard (black,
+// white & blue sections) toward the operator at +z, slanted brass type magazine, distributor bar on
+// top, copy holder, melting pot with a blue gas flame at the right, galley of slugs at the left.
+defineProp('linotype', {
+  size: [28, 35, 20], collide: [1.75, 2.15, 1.25],
+  build(m) {
+    const ir = '#26282a', irL = '#3a3e42', nick = CHROME_M;
+    m.box(4, 0, 3, 20, 2, 14, ir); m.box(8, 2, 5, 12, 10, 10, ir);           // base & column
+    // keyboard at the front
+    m.box(6, 11, 13, 16, 2, 5, irL);
+    for (let r = 0; r < 4; r++) for (let x = 7; x < 21; x++) {
+      const c = x < 11 ? '#1a1a1a' : x < 17 ? '#f4f0e6' : '#2a4a9a';
+      if ((x + r) % 2 === 0) m.set(x, 13, 14 + r, c);
+    }
+    m.box(12, 13, 17, 5, 1, 1, '#f4f0e6');                    // space band
+    // assembler & mould disc
+    m.box(8, 12, 10, 12, 4, 3, irL); m.cylZ(20.5, 10, 10, 3.5, 2, nick); m.set(20, 10, 12, ir);
+    // brass magazine sloping up toward the back
+    for (let i = 0; i < 12; i++) m.box(7, 16 + i, 11 - Math.floor(i * 0.7), 14, 1, 3, i % 3 === 0 ? BRASS_D : BRASS);
+    m.box(6, 16, 3, 1, 14, 9, ir); m.box(21, 16, 3, 1, 14, 9, ir);
+    // distributor on top
+    m.box(6, 28, 2, 16, 2, 4, irL); m.box(6, 30, 3, 16, 1, 2, nick); m.box(12, 31, 3, 2, 3, 2, ir); m.box(7, 31, 3, 1, 4, 1, nick);
+    // melting pot with flame (right) & galley (left)
+    m.box(22, 4, 6, 5, 7, 6, irL); m.box(23, 11, 7, 3, 2, 4, '#8a8a8a'); m.box(23, 3, 7, 3, 1, 4, { c: '#5a8aff', emit: 0.9 }); m.set(24, 4, 8, { c: '#ffb040', emit: 0.9 });
+    m.box(0, 10, 8, 7, 1, 6, nick); m.box(1, 11, 9, 5, 1, 4, '#9a9aa0'); for (let x = 1; x < 6; x++) m.set(x, 12, 10, '#7a7a80');
+    m.box(0, 2, 9, 1, 8, 1, ir); m.box(6, 2, 9, 1, 8, 1, ir);
+    // copy holder with a typed sheet
+    m.box(21, 13, 15, 1, 6, 1, nick); m.box(20, 18, 14, 5, 5, 1, '#f4f0e6'); for (const y of [19, 21]) m.box(21, y, 14, 3, 1, 1, '#8a8a88');
+    m.box(20, 18, 15, 5, 1, 1, nick);
+  },
+});
+
+// Tied bundles of the evening edition, 1/32 m voxels (0.75 m): folded papers stacked and crossed with
+// twine, grey column-text and a black headline bar on the top sheets, one bundle leaning.
+defineProp('newspaper_bundles', {
+  size: [24, 24, 20], scale: 1 / 32, collide: [0.75, 0.7, 0.62],
+  build(m) {
+    const pap = '#ece8dc', papD = '#d8d2c2', tw = '#c8a870';
+    const bundle = (x, y, z, h) => {
+      for (let i = 0; i < h; i++) m.box(x, y + i, z, 10, 1, 13, i % 2 ? pap : papD);
+      m.box(x + 1, y + h - 1, z + 1, 8, 1, 11, pap);
+      m.box(x + 1, y + h - 1, z + 2, 8, 1, 2, '#2a2a2a');                        // headline
+      for (let r = 5; r < 12; r += 2) for (let c = 0; c < 3; c++) m.box(x + 1 + c * 3, y + h - 1, z + r, 2, 1, 1, '#9a9690');
+      m.box(x + 4, y, z - 0, 1, h, 1, tw); m.box(x + 4, y + h, z, 1, 1, 13, tw); m.box(x + 4, y, z + 12, 1, h, 1, tw);
+      m.box(x, y + h, z + 6, 10, 1, 1, tw);
+    };
+    bundle(1, 0, 1, 7); bundle(12, 0, 3, 8); bundle(4, 7, 3, 6); bundle(13, 8, 5, 5);
+  },
+});
+
+// Radio-station control console (1.8 m): walnut & grey-enamel desk with a sloped panel of rotary faders,
+// four lit VU meters, key switches & pilot lamps, a program clock, and a big ribbon microphone on a
+// desk stand. The operator sits at +z facing -z (the controls face +z).
+defineProp('radio_console_studio', {
+  size: [30, 26, 16], collide: [1.85, 1.1, 1.0],
+  build(m) {
+    const gr = '#7a8288', grD = '#5a6268', wal = WALNUT;
+    m.box(0, 0, 0, 30, 12, 16, wal); m.clear(8, 0, 9, 14, 11, 7);           // desk with a knee-hole at +z
+    m.box(1, 1, 0, 28, 10, 1, WALNUT_L); m.box(0, 12, 0, 30, 1, 16, WALNUT_D);
+    // sloped control turret at the back of the desk, facing the operator (+z)
+    for (let y = 13; y < 21; y++) m.box(2, y, 2, 26, 1, 23 - y - 2, gr);
+    m.box(2, 21, 2, 26, 1, 2, grD); m.box(1, 13, 2, 1, 8, 9, grD); m.box(28, 13, 2, 1, 8, 9, grD);
+    for (let x = 4; x < 27; x += 3) { m.set(x, 14, 9, '#1a1a1a'); m.set(x, 15, 8, '#1a1a1a'); m.set(x, 15, 9, '#f4f0e6'); }        // rotary faders
+    for (let x = 5; x < 26; x += 4) m.set(x, 16, 7, i2c(x));                                                                       // pilot lamps
+    for (let i = 0; i < 4; i++) { const x = 4 + i * 6; m.box(x, 17, 5, 4, 1, 1, { c: '#f8d890', emit: 0.8 }); m.box(x, 18, 4, 4, 1, 1, { c: '#f8d890', emit: 0.8 }); m.set(x + 1, 18, 5, '#1a1a1a'); }   // VU meters
+    for (let x = 4; x < 27; x += 2) m.set(x, 20, 3, x % 4 ? '#1a1a1a' : '#c8202a');                                               // key switches
+    m.box(26, 22, 2, 3, 3, 1, grD); m.box(26.5, 22.5, 3, 2, 2, 1, '#f4f0e6'); m.set(27, 23, 4, '#1a1a1a');                        // program clock
+    // ribbon microphone on a desk stand, toward the operator
+    m.box(3, 13, 11, 4, 1, 3, CHROME_D); m.box(4.5, 14, 12, 1, 5, 1, CHROME);
+    m.box(3, 19, 11, 4, 5, 3, CHROME_M); m.box(4, 24, 12, 2, 1, 1, CHROME_M); m.box(4, 18, 12, 2, 1, 1, CHROME_M);
+    for (let y = 20; y < 23; y++) m.box(3, y, 14, 4, 1, 1, y % 2 ? '#3a3a3e' : CHROME);
+    m.box(4, 20, 10, 2, 2, 1, '#8a1a22');                     // call-letter plate on the back
+    m.box(12, 13, 12, 6, 1, 3, '#f4f0e6'); m.box(13, 13, 13, 4, 1, 1, '#9a9690');   // program log
+  },
+});
+function i2c(x) { return [{ c: '#ff4030', emit: 0.9 }, { c: '#40e060', emit: 0.9 }, { c: '#ffd040', emit: 0.9 }][x % 3]; }
+
+// "ON AIR" warning light box, back at z=0, 1/32 m voxels (0.9 x 0.36 m): chrome case with a glowing
+// red lens and bright lettering; tints the room red when lit.
+defineProp('on_air_sign', {
+  size: [30, 13, 4], scale: 1 / 32, origin: [15, 0, 0], light: lampLight(0, 0.2, 0.2, [1.0, 0.2, 0.15], 2.5, 'always'),
+  build(m) {
+    m.box(0, 0, 0, 30, 13, 3, CHROME_M); m.box(1, 1, 3, 28, 11, 1, CHROME);
+    m.box(2, 2, 3, 26, 9, 1, { c: '#e02020', emit: 0.95 });
+    m.text('ON AIR', 15, 4, 3, { c: '#fff0e0', emit: 1 }, { font: 'small', align: 'center' });
+    m.box(13, 12, 0, 4, 1, 1, CHROME_D);
+  },
+});
+
+// Pair of broadcast transcription turntables in one walnut console, 1/32 m voxels (1.6 m): two 16-inch
+// platters with discs, long chrome tone arms, a small mixing panel with knobs between, sleeved
+// transcription discs on the shelf below. The operator stands at +z.
+defineProp('turntables_studio', {
+  size: [52, 30, 22], scale: 1 / 32, collide: [1.62, 0.95, 0.7],
+  build(m) {
+    m.box(0, 0, 0, 52, 2, 22, WALNUT_D); m.box(0, 2, 0, 52, 24, 22, WALNUT);
+    m.clear(2, 3, 12, 48, 9, 10); m.box(2, 3, 12, 48, 1, 10, WALNUT_D);
+    for (let i = 0; i < 9; i++) m.box(4 + i * 5, 4, 14, 1, 8, 7, ['#c8b898', '#e8e0c8', '#b8a888'][i % 3]);   // sleeved discs
+    m.box(0, 26, 0, 52, 1, 22, '#5a6268');
+    for (const cx of [12, 40]) {
+      m.cyl(cx, 27, 10.5, 9.8, 1, '#2a2a2e'); m.cyl(cx, 28, 10.5, 9.2, 1, '#141416'); m.cyl(cx, 28, 10.5, 3, 1, '#c8202a'); m.set(cx, 29, 10, CHROME);
+      m.box(cx + 10, 27, 17, 2, 2, 2, CHROME_D); m.box(cx + 10, 29, 6, 1, 1, 12, CHROME); m.box(cx + 7, 29, 5, 4, 1, 1, CHROME); m.box(cx + 7, 28, 5, 1, 1, 1, '#1a1a1a');   // tone arm
+    }
+    m.box(23, 27, 14, 6, 1, 6, '#3a3e42'); for (const x of [24, 26, 28]) m.set(x, 28, 18, '#f4f0e6'); m.set(26, 28, 15, { c: '#ffd040', emit: 0.8 });
+  },
+});
+
+// ---------------------------------------------------------------- maritime museum
+
+function line2(m, x0, y0, x1, y1, z, c) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  for (let i = 0; i <= n; i++) m.set(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), z, c);
+}
+
+// Glass case (frame only) on a mahogany stand holding a clipper-ship model, 1/32 m voxels (1.25 m long,
+// 1.6 m overall): black hull with a gold sheer stripe & copper bottom, three masts of square sails,
+// jibs on the bowsprit, rigging lines, a red ensign. The broadside faces +z; bow toward +x.
+defineProp('ship_model_case', {
+  size: [40, 54, 18], scale: 1 / 32, collide: [1.25, 1.7, 0.56],
+  build(m) {
+    const mah = MAHOG, mahD = MAHOG_D, sail = '#f0ead8', sailD = '#ddd4bc', rig = '#8a7a5a';
+    legs(m, 2, 0, 3, 36, 12, 22, mahD, 2); m.box(0, 22, 1, 40, 3, 16, mah); m.box(2, 8, 4, 36, 1, 10, mahD);
+    m.box(15, 23, 17, 10, 2, 1, BRASS);                       // name plate
+    frame(m, 0, 25, 1, 40, 29, 16, mahD); m.box(0, 25, 1, 40, 1, 16, mahD);
+    // cradle & hull (keel at y=27)
+    m.box(12, 26, 8, 2, 2, 2, mahD); m.box(26, 26, 8, 2, 2, 2, mahD);
+    for (let x = 4; x < 36; x++) {
+      const t = (x - 4) / 31, half = Math.max(0.6, 2.6 * Math.sin(Math.min(1, t * 1.3 + 0.15) * Math.PI * 0.9)), z0 = Math.round(9 - half), z1 = Math.round(9 + half);
+      m.box(x, 28, z0 + 1, 1, 1, Math.max(1, z1 - z0 - 1), '#b86a3a');                // copper bottom
+      m.box(x, 29, z0, 1, 2, z1 - z0 + 1, '#1a1a1a'); m.box(x, 30, z0, 1, 1, 1, GOLD); m.box(x, 30, z1, 1, 1, 1, GOLD);
+      m.box(x, 31, z0 + 1, 1, 1, Math.max(1, z1 - z0 - 1), '#c8a878');                 // deck
+    }
+    m.box(4, 27, 9, 30, 1, 1, '#1a1a1a');                      // keel
+    line2(m, 35, 31, 39, 34, 9, '#3a2a1a');                    // bowsprit
+    // masts and square sails
+    for (const [x, h] of [[28, 21], [20, 23], [12, 19]]) {
+      m.box(x, 31, 9, 1, h, 1, '#5a3a1e');
+      for (let k = 0; k < 4; k++) {
+        const w = 11 - k * 2, y = 33 + k * 4 + (h - 19) / 2;
+        m.box(x - Math.floor(w / 2), y, 9, w, 3, 1, k % 2 ? sailD : sail);
+        m.box(x - Math.floor(w / 2) - 1, y + 3, 9, w + 2, 1, 1, '#5a3a1e');          // yard
+      }
+      line2(m, x, 31 + h, x + 8, 31, 8, rig); line2(m, x, 31 + h, x - 8, 31, 8, rig);
+    }
+    // jibs
+    for (let i = 0; i < 7; i++) m.box(30 + i, 33 + i, 9, 1, 12 - i * 2 > 0 ? 12 - i * 2 : 1, 1, sail);
+    line2(m, 28, 52, 39, 34, 9, rig);
+    // spanker & ensign
+    m.box(7, 33, 9, 5, 6, 1, sailD); m.box(5, 38, 9, 7, 1, 1, '#5a3a1e'); m.box(4, 36, 9, 2, 2, 1, '#b8202a'); m.set(4, 37, 9, '#f4f0e6');
+    glint(m, 3, 30, 16, 4); glint(m, 30, 44, 16, 3);
+  },
+});
+
+// Carved figurehead of a maiden on a painted plinth (≈1.7 m): white gown with a gold sash, flowing
+// dark hair, hands clasping a garland to her breast, scrolled gilt base; she leans forward toward +z
+// as she did on the bow.
+defineProp('figurehead', {
+  size: [12, 28, 16], collide: [0.6, 1.7, 0.8],
+  build(m) {
+    const skin = '#e8c8a8', gown = '#f2eee4', gownD = '#d8d0c0', hair = '#3a2418';
+    m.box(1, 0, 1, 10, 4, 10, '#2a3a5a'); m.box(0, 4, 0, 12, 1, 12, '#1e2a44');   // plinth
+    m.box(2, 5, 2, 8, 2, 8, '#6a4428');                                          // mounting block
+    // scrollwork base curling forward
+    for (let i = 0; i < 5; i++) m.box(3, 7 + i, 4 + i, 6, 1, 2, i % 2 ? GOLD : BRASS);
+    // gown: leaning forward as it rises
+    for (let y = 9; y < 20; y++) {
+      const z = 4 + Math.floor((y - 9) * 0.55), w = y < 14 ? 6 : 5;
+      m.box(6 - w / 2, y, z, w, 1, 4, y % 3 === 0 ? gownD : gown);
+    }
+    m.box(3.5, 16, 8, 5, 1, 1, GOLD); m.box(4, 15, 9, 1, 2, 1, GOLD);            // sash
+    // arms & garland at the breast
+    m.box(2, 16, 9, 1, 3, 2, skin); m.box(9, 16, 9, 1, 3, 2, skin); m.box(3, 17, 11, 6, 1, 1, skin);
+    m.box(4, 18, 11, 4, 1, 1, '#3a7a2e'); m.set(4, 18, 12, '#d83a4a'); m.set(7, 18, 12, '#f0d040'); m.set(5, 19, 11, '#d83a4a');
+    // head, face forward & up, hair streaming back
+    m.box(5, 20, 9, 2, 1, 2, skin); m.box(4, 21, 9, 4, 4, 4, skin);
+    m.set(4, 23, 12, '#2a4a8a'); m.set(7, 23, 12, '#2a4a8a'); m.set(5, 21, 12, '#c86a6a'); m.set(6, 21, 12, '#c86a6a');
+    m.box(4, 25, 8, 4, 1, 5, hair); m.box(3, 21, 7, 1, 4, 5, hair); m.box(8, 21, 7, 1, 4, 5, hair); m.box(4, 19, 5, 4, 6, 3, hair);
+    m.box(4, 17, 4, 4, 3, 2, hair);
+    m.box(4, 26, 9, 4, 1, 1, GOLD);                                               // diadem
+  },
+});
+
+// Brass Mark V diving helmet on a turned walnut plinth, 1/32 m voxels (0.7 m): copper-bronze bonnet with
+// a round front port (faces +z) and side ports behind grilles, bolted breastplate with wing nuts,
+// air & exhaust elbows at the back.
+defineProp('diving_helmet', {
+  size: [18, 24, 18], scale: 1 / 32, collide: [0.5, 0.75, 0.5],
+  build(m) {
+    const br = '#c89040', brD = '#9a6a28', cu = '#b8703a';
+    m.box(2, 0, 2, 14, 2, 14, WALNUT_D); m.box(3, 2, 3, 12, 1, 12, WALNUT);
+    // breastplate
+    m.box(2, 3, 3, 14, 3, 12, br); m.box(3, 6, 4, 12, 1, 10, brD);
+    for (const [x, z] of [[2, 5], [15, 5], [2, 11], [15, 11], [6, 14], [11, 14], [6, 3], [11, 3]]) m.set(x, 5, z, BRASS_L);
+    // bonnet
+    m.sphere(9, 13, 9, 6.6, cu); m.sphere(9, 13, 9, 6.6, br, (x, y) => y < 9 || y > 17);
+    // front port with a brass rim & cross guard
+    for (let a = 0; a < 20; a++) { const t = a * Math.PI / 10; m.set(Math.floor(9 + Math.cos(t) * 3), Math.floor(13 + Math.sin(t) * 3), 15, br); }
+    m.cylZ(9, 13, 15, 2.2, 1, '#4a6a70'); m.box(8, 11, 16, 2, 4, 1, brD); m.box(7, 12, 16, 4, 2, 1, brD); m.set(8, 13, 16, '#a8c8d0');
+    // side ports
+    for (const x of [2, 15]) { m.box(x, 11, 7, 1, 4, 4, '#4a6a70'); m.box(x + (x < 9 ? -1 : 1), 11, 8, 1, 4, 1, brD); m.box(x + (x < 9 ? -1 : 1), 12, 7, 1, 1, 4, brD); }
+    // top port & air elbows at the back
+    m.box(7, 19, 7, 4, 1, 4, br); m.box(8, 20, 8, 2, 1, 2, '#4a6a70');
+    m.box(6, 15, 2, 2, 2, 1, br); m.box(6, 16, 1, 2, 1, 1, br); m.box(11, 11, 2, 2, 2, 1, br); m.box(11, 12, 1, 2, 3, 1, brD);
+  },
+});
+
+// Whaling harpoons on a wall rack, back at z=0 (2.6 m x 1.2 m): an oak board with pegs carrying two
+// toggle-iron harpoons, a barbed two-flued harpoon, a killing lance and a flensing spade on hickory
+// poles; a coil of whale line.
+defineProp('harpoons_rack', {
+  size: [42, 20, 4], origin: [21, 0, 0],
+  build(m) {
+    const oak = '#8a6040', pole = '#b89060', iron = '#4a4a4c', rust = '#6a3a22';
+    m.box(0, 0, 0, 42, 20, 1, oak); m.box(0, 0, 0, 42, 1, 2, '#6a4428'); m.box(0, 19, 0, 42, 1, 2, '#6a4428');
+    const rack = (y) => { for (const x of [6, 20, 34]) m.box(x, y - 1, 1, 1, 1, 2, '#5a3a22'); };
+    // harpoon: pole from x=1, iron shank to the head at +x
+    const harpoon = (y, head) => {
+      rack(y); m.box(1, y, 2, 24, 1, 1, pole); m.box(25, y, 2, 12, 1, 1, iron); m.set(24, y, 2, rust);
+      if (head === 'toggle') { m.box(37, y, 2, 3, 1, 1, iron); m.set(38, y + 1, 2, iron); m.set(40, y, 2, rust); }
+      else if (head === 'barb') { m.box(37, y, 2, 3, 1, 1, iron); m.set(37, y + 1, 2, iron); m.set(37, y - 1, 2, iron); m.set(38, y + 1, 2, iron); m.set(38, y - 1, 2, iron); m.set(40, y, 2, iron); }
+      else if (head === 'lance') { m.box(37, y, 2, 3, 1, 1, CHROME_D); m.set(40, y, 2, CHROME_D); }
+      else if (head === 'spade') { m.box(37, y - 1, 2, 3, 3, 1, CHROME_D); m.set(40, y, 2, CHROME_D); }
+    };
+    harpoon(17, 'toggle'); harpoon(13, 'barb'); harpoon(9, 'toggle'); harpoon(5, 'lance'); harpoon(2, 'spade');
+    m.cylZ(40.5, 11, 1, 1.5, 2, '#d8c8a0'); m.cylZ(40.5, 11, 3, 0.8, 1, oak);
+  },
+});
+
+// Arch of a pair of right-whale jawbones (≈3.4 m high, 1/12 m voxels): bleached, curving bones set in
+// granite footings, meeting at the top. A walk-through arch along z. (Classic New England lawn relic.)
+defineProp('whale_jawbone', {
+  size: [30, 42, 8], scale: 1 / 12, cat: 'exterior', collide: false,
+  build(m) {
+    const bone = '#e8e0cc', boneD = '#cfc4a8';
+    for (const s of [0, 1]) {
+      for (let y = 0; y < 40; y++) {
+        const t = y / 40, x = 3 + Math.round(Math.pow(t, 2.2) * 10.5), w = y > 34 ? 2 : 3;
+        const xx = s ? 29 - x - w + 1 : x;
+        m.box(xx, y + 2, 2, w, 1, 4, y % 7 === 3 ? boneD : bone);
+      }
+      m.box(s ? 23 : 1, 0, 1, 6, 3, 6, '#8a8a88');
+    }
+    m.box(13, 41, 2, 4, 1, 4, bone);
+  },
+});
+
+// Museum vitrine (1.0 m, 1.75 m tall): mahogany base with a glass case (frame only) on top holding a
+// tint-A lustreware jug & vase, scrimshaw whale teeth, a brass sextant, a logbook open on a stand and a
+// ship's compass, with a typed card for each.
+defineProp('display_case_museum', {
+  size: [16, 28, 10], collide: [1.0, 1.75, 0.62],
+  build(m) {
+    const mah = MAHOG, mahD = MAHOG_D;
+    m.box(0, 0, 0, 16, 1, 10, mahD); m.box(0, 1, 0, 16, 12, 10, mah); m.box(1, 3, 9, 14, 8, 1, mahD); m.box(2, 4, 9, 12, 6, 1, mah);
+    m.box(0, 13, 0, 16, 1, 10, mahD); m.box(1, 14, 1, 14, 1, 8, '#2a3a2a');
+    frame(m, 0, 13, 0, 16, 15, 10, mahD); m.box(0, 27, 0, 16, 1, 10, mahD); m.box(1, 21, 1, 14, 1, 8, '#c8dce0');
+    // lower shelf: jug & vase in tint A, scrimshaw teeth, cards
+    m.box(2, 15, 3, 2, 3, 2, TA(0.5)); m.set(1, 16, 3, TA(0.45)); m.box(2, 18, 3, 2, 1, 1, TA(0.55));
+    m.box(5, 15, 4, 2, 4, 2, TA(0.45)); m.box(5, 17, 4, 2, 1, 2, TA(0.6)); m.box(5.5, 19, 4.5, 1, 1, 1, TA(0.5));
+    for (const x of [9, 11]) { m.box(x, 15, 4, 1, 3, 1, '#f0e8d4'); m.set(x, 16, 5, '#2a2a2a'); m.set(x + 1, 15, 4, '#f0e8d4'); }
+    m.box(13, 15, 3, 2, 1, 3, BRASS); m.set(13, 16, 3, BRASS); m.set(14, 17, 3, BRASS);                                // sextant
+    for (const x of [2, 6, 10, 13]) m.box(x, 15, 7, 2, 1, 1, '#f4f0e6');
+    // upper shelf: logbook on a stand, compass
+    m.box(3, 22, 3, 6, 1, 4, '#5a3a22'); m.box(3, 23, 3, 6, 1, 3, '#efe6cc'); m.set(6, 23, 3, '#b8a888'); m.set(4, 23, 4, '#6a6a6a'); m.set(7, 23, 5, '#6a6a6a');
+    m.box(11, 22, 3, 3, 2, 3, WALNUT); m.box(11, 24, 3, 3, 1, 3, '#f4f0e6'); m.set(12, 24, 4, '#c8202a');             // compass
+    glint(m, 2, 17, 9, 3); glint(m, 10, 23, 9, 3);
+  },
+});
+
+// Admiralty-pattern anchor on a granite plinth (≈1.9 m): iron shank, ring and oak stock (the stock
+// runs along z), curved arms with spade flukes along x, a length of chain draped over the plinth.
+defineProp('anchor_display', {
+  size: [24, 31, 14], collide: [1.4, 1.9, 0.85],
+  build(m) {
+    const ir = '#3a3634', rust = '#6a3e26', gran = '#8a8a88', granD = '#6e6e6c';
+    m.box(1, 0, 1, 22, 3, 12, granD); m.box(2, 3, 2, 20, 1, 10, gran);
+    m.box(11, 4, 6, 2, 22, 2, ir);                            // shank
+    // arms curving up to the flukes
+    for (let i = 0; i < 9; i++) { const y = 5 + Math.round((i * i) / 9); m.box(11 - i - 1, y, 6, 1, 2, 2, ir); m.box(12 + i + 1, y, 6, 1, 2, 2, ir); }
+    m.box(0, 13, 5, 4, 5, 4, ir); m.box(20, 13, 5, 4, 5, 4, ir); m.box(1, 17, 6, 2, 2, 2, ir); m.box(21, 17, 6, 2, 2, 2, ir);   // flukes & bills
+    m.box(10, 4, 5, 4, 2, 4, ir);                             // crown
+    m.box(11, 24, 0, 2, 2, 14, '#6a4a2a'); for (const z of [0, 13]) m.box(11, 24, z, 2, 2, 1, '#2a2a2a');   // oak stock with iron bands
+    for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; m.set(Math.floor(12 + Math.cos(t) * 2.2), Math.floor(28.5 + Math.sin(t) * 2.2), 7, ir); }   // ring
+    m.set(10, 9, 6, rust); m.set(13, 16, 7, rust); m.set(4, 14, 8, rust); m.set(19, 15, 5, rust);
+    // chain
+    for (let i = 0; i < 12; i++) m.box(2 + i * 1.6, 4, 10 + (i % 2), 1, 1, 1, i % 2 ? ir : '#2a2826');
+    for (let y = 1; y < 4; y++) m.set(21, y, 12, ir);
+  },
+});
+
+// Ship's wheel mounted on a wall, back at z=0, 1/32 m voxels (1.1 m dia): teak rim with brass rings,
+// eight turned spokes & handles, brass hub, on an iron wall bracket. Origin = bottom-centre of the back.
+defineProp('ships_wheel_wall', {
+  size: [36, 36, 6], scale: 1 / 32, origin: [18, 0, 0],
+  build(m) {
+    const teak = '#7a4a26', teakD = '#5a3418';
+    for (let y = 0; y < 36; y++) for (let x = 0; x < 36; x++) {
+      const d = Math.hypot(x + 0.5 - 18, y + 0.5 - 18);
+      if (d >= 10.5 && d <= 12.5) m.box(x, y, 3, 1, 1, 2, Math.abs(d - 11.5) < 0.35 ? BRASS : teak);
+    }
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4;
+      for (let r = 3; r <= 17.5; r += 0.5) {
+        const x = Math.floor(18 + Math.cos(a) * r), y = Math.floor(18 + Math.sin(a) * r);
+        m.box(x, y, 3, 1, 1, 2, r > 12.5 ? (r > 16 ? teakD : teak) : teakD);
+      }
+    }
+    m.cylZ(18, 18, 2, 3.2, 4, BRASS); m.cylZ(18, 18, 5, 1.6, 1, BRASS_L);
+    m.box(16, 12, 0, 4, 12, 2, '#2a2a2c'); m.box(17, 17, 2, 2, 2, 1, '#2a2a2c');
+  },
+});
+
+// Ship's bell on a stand, 1/32 m voxels (1.25 m): polished brass bell hung from an oak gallows with an
+// iron crown bracket, a white braided bell-rope with a Turk's-head knot.
+defineProp('bell_brass', {
+  size: [24, 40, 14], scale: 1 / 32, collide: [0.6, 1.25, 0.45],
+  build(m) {
+    const oak = '#7a5030';
+    m.box(2, 0, 2, 20, 2, 10, oak); m.box(3, 2, 6, 2, 36, 2, oak); m.box(19, 2, 6, 2, 36, 2, oak); m.box(2, 36, 5, 20, 3, 4, oak);
+    m.box(3, 2, 3, 2, 3, 8, oak); m.box(19, 2, 3, 2, 3, 8, oak);
+    m.box(11, 33, 6, 2, 3, 2, '#2a2a2c');                    // crown bracket
+    const prof = [5.6, 5.4, 5.0, 4.6, 4.3, 4.1, 4.0, 3.9, 3.9, 3.8, 3.6, 3.2, 2.4];
+    prof.forEach((r, i) => m.cyl(12, 19 + i, 7, r, 1, i === 0 ? BRASS_D : i === 2 || i === 9 ? BRASS_L : BRASS));
+    m.cyl(12, 19, 7, 4.4, 1, 0); m.box(11.5, 16, 6.5, 1, 4, 1, BRASS_D); m.set(11.5, 16, 6.5, BRASS);   // clapper
+    m.box(11.5, 12, 6.5, 1, 4, 1, '#f4f0e6'); m.box(11, 10, 6, 2, 2, 2, '#e8e0cc'); m.box(11.5, 7, 6.5, 1, 3, 1, '#f4f0e6');   // bell rope
+  },
+});
+
+// ---------------------------------------------------------------- fire station & police
+
+// "Old Faithful", the town's 1903 horse-drawn steam fire engine — the fire-house showpiece. 1/12 m voxels
+// (≈2.0 m wide, 3.0 m tall, 4.2 m long). Polished brass boiler with banded jacket and flared stack over
+// the rear axle, big red wheels with gold hubs & iron tyres, red frame with gold striping, brass pump
+// air-chamber, driver's box with lamps & bell, coal box and stoker's step at the rear, hard suction hose
+// along the sides, and the horses' pole. The pole/front points +z.
+defineProp('steam_pumper', {
+  size: [24, 38, 52], scale: 1 / 12, collide: [2.0, 3.0, 4.3],
+  build(m) {
+    const red = '#a81c1c', redD = '#801414', gold = '#d8b04a', tyre = '#2a2a2a', nick = '#d8dce0';
+    const wheel = (x, cy, cz, r, spokes) => {
+      for (let y = 0; y < 38; y++) for (let z = 0; z < 52; z++) {
+        const d = Math.hypot(y + 0.5 - cy, z + 0.5 - cz);
+        if (d > r) continue;
+        if (d > r - 1) m.box(x, y, z, 2, 1, 1, tyre);
+        else if (d > r - 2) m.box(x, y, z, 2, 1, 1, red);
+        else if (d < 1.8) m.box(x, y, z, 2, 1, 1, gold);
+      }
+      const sx = x + (x < 12 ? 1 : 0);
+      for (let k = 0; k < spokes; k++) {
+        const a = (k + 0.5) * 2 * Math.PI / spokes;
+        for (let t = 1.5; t < r - 1.5; t += 0.5) m.set(sx, cy + Math.sin(a) * t, cz + Math.cos(a) * t, red);
+      }
+      m.box(x < 12 ? x - 1 : x + 2, cy - 0.5, cz - 0.5, 1, 1, 1, gold);          // hub cap
+    };
+    wheel(0, 9, 10, 9, 10); wheel(22, 9, 10, 9, 10);            // rear wheels (1.5 m)
+    wheel(2, 6.5, 38, 6.5, 8); wheel(20, 6.5, 38, 6.5, 8);    // front wheels (1.1 m)
+    m.box(1, 8.5, 9.5, 22, 1, 1, '#2a2a2a'); m.box(3, 6, 37.5, 18, 1, 1, '#2a2a2a');   // axles
+    // frame rails with gold pinstripe, curving up to the driver's box
+    for (const x of [4, 19]) {
+      m.box(x, 11, 3, 1, 2, 26, red); m.box(x, 12, 3, 1, 1, 26, gold);
+      for (let i = 0; i < 6; i++) m.box(x, 13 + i * 1.3, 29 + i, 1, 2, 1, red);
+    }
+    m.box(5, 10, 16, 14, 1, 6, redD);
+    // boiler over the rear axle
+    m.cyl(12, 7, 8, 4.6, 19, BRASS); for (const y of [9, 13, 17, 21, 25]) m.cyl(12, y, 8, 4.8, 1, BRASS_D);
+    m.cyl(12, 26, 8, 3.6, 2, nick); m.cyl(12, 28, 8, 2.6, 4, BRASS); m.cyl(12, 32, 8, 3.6, 1, BRASS_L); m.cyl(12, 33, 8, 4.4, 2, BRASS);   // stack & crown
+    m.cyl(12, 35, 8, 3.2, 1, '#2a2a2a');
+    m.box(10, 9, 12, 5, 4, 1, '#2a2a2a'); m.box(11, 10, 13, 3, 2, 1, '#e86a20');      // firebox door (glow)
+    m.box(15, 18, 12, 2, 2, 1, '#f4f0e6'); m.set(15, 19, 13, '#1a1a1a');              // steam gauge
+    // pump & brass air chamber
+    m.box(8, 11, 17, 8, 5, 5, nick); m.box(9, 16, 18, 6, 1, 3, BRASS_D);
+    m.cyl(12, 17, 19.5, 2, 5, BRASS); m.sphere(12, 23.5, 19.5, 2.8, BRASS_L); m.set(12, 26, 19, BRASS);
+    for (const x of [3, 20]) { m.box(x, 12, 18, 1, 2, 3, BRASS); m.box(x < 12 ? x - 1 : x + 1, 12, 19, 1, 2, 1, BRASS_L); }   // suction inlets
+    // driver's box, seat, lamps & bell
+    m.box(5, 19, 30, 14, 5, 7, red); m.box(5, 19, 36, 14, 5, 1, redD); m.box(6, 20, 37, 12, 3, 1, red);
+    m.text('NO 1', 12, 20, 37, gold, { font: 'small', align: 'center' });
+    m.box(6, 24, 30, 12, 2, 5, '#1a1a1a'); m.box(6, 24, 29, 12, 5, 1, '#1a1a1a');     // seat & back
+    m.box(4, 16, 37, 16, 1, 4, '#5a3a22');                                            // footboard
+    for (const x of [3, 20]) { m.box(x, 22, 36, 1, 3, 1, BRASS); m.box(x, 25, 35, 1, 3, 3, BRASS_L); m.set(x, 26, 37, { c: '#fff0b0', emit: 0.5 }); }
+    m.box(11.5, 26, 34, 1, 4, 1, '#2a2a2a'); m.sphere(12, 29, 34.5, 1.8, BRASS, (x, y) => y < 30); m.set(12, 30, 34, BRASS);   // bell
+    // coal box & stoker's step at the rear
+    m.box(7, 11, 0, 10, 5, 3, '#1a1a1a'); m.box(8, 16, 1, 8, 1, 1, '#3a3a3a');
+    m.box(5, 6, 0, 14, 1, 2, '#5a3a22'); m.box(4, 7, 0, 1, 9, 1, BRASS); m.box(19, 7, 0, 1, 9, 1, BRASS);
+    // suction hose along both sides
+    for (const x of [2, 21]) { m.box(x, 14, 4, 1, 1, 24, '#1a1a1a'); for (let z = 6; z < 28; z += 5) m.set(x, 14, z, BRASS_D); }
+    // horses' pole & whippletree
+    m.box(11.5, 7, 40, 1, 1, 12, '#8a6a48'); m.box(7, 7, 43, 10, 1, 1, '#8a6a48'); m.set(12, 7, 51, BRASS);
+    for (const x of [7, 16]) m.set(x, 7, 44, BRASS);
+  },
+});
+
+// Fire-house wall rack, back at z=0 (2.0 x 1.9 m): oak board with four pegs, each with a black leather
+// helmet (the captain's is white) above a hanging turnout coat, plus a coiled length of rope and an axe.
+defineProp('helmet_rack', {
+  size: [32, 31, 7], origin: [16, 0, 0], collide: false,
+  build(m) {
+    const oak = '#8a6040', coat = '#2a2a2c', coatL = '#3e3e40', refl = '#d8c060';
+    m.box(0, 20, 0, 32, 5, 1, oak); m.box(0, 25, 0, 32, 1, 2, '#6a4428');
+    for (let i = 0; i < 4; i++) {
+      const x = 2 + i * 8, helm = i === 0 ? '#f0ece4' : '#1e1e20';
+      m.box(x + 2, 22, 1, 1, 1, 3, BRASS);                      // peg
+      // coat hanging from the peg
+      m.box(x, 8, 1, 6, 13, 3, i % 2 ? coatL : coat); m.box(x + 1, 21, 1, 4, 1, 2, i % 2 ? coatL : coat);
+      m.box(x, 11, 4, 6, 1, 1, refl); m.box(x + 2, 12, 4, 1, 8, 1, '#1a1a1a');
+      for (const y of [13, 16, 19]) m.set(x + 3, y, 4, '#b8b0a0');                  // clasps
+      m.box(x - 1, 9, 1, 1, 11, 2, i % 2 ? coatL : coat); m.box(x + 6, 9, 1, 1, 11, 2, i % 2 ? coatL : coat);   // sleeves
+      // leather helmet with long back brim & front shield
+      m.box(x, 25, 1, 6, 1, 6, helm); m.box(x + 1, 26, 2, 4, 2, 4, helm); m.box(x + 2, 28, 3, 2, 1, 2, helm);
+      m.box(x - 1, 25, 0, 8, 1, 2, helm);
+      m.box(x + 2, 26, 6, 2, 3, 1, i === 0 ? '#1e1e20' : '#c8202a'); m.set(x + 2.5, 29, 6, BRASS);     // front shield & eagle
+      m.text(String(i + 1), x + 2, 26, 7, '#f4f0e6', { font: 'small' });
+    }
+    m.cylZ(30, 5, 1, 2, 2, '#d8c8a0'); m.cylZ(30, 5, 3, 1, 1, '#b8a880');
+    m.box(28, 12, 1, 1, 7, 1, '#8a6a48'); m.box(27, 18, 1, 3, 2, 1, '#8a8a8e'); m.set(26, 18, 1, '#c8202a');
+  },
+});
+
+// Fireman's boots with turnout pants pushed down over them, ready to step into — 1/32 m voxels: black
+// rubber boots with red tops, tan canvas trousers bunched at the ankles, red suspenders.
+defineProp('fire_boots', {
+  size: [18, 22, 14], scale: 1 / 32, collide: [0.5, 0.65, 0.42],
+  build(m) {
+    const rub = '#1a1a1c', red = '#b8202a', can = '#b89a6a', canD = '#9a7e52';
+    for (const x of [2, 10]) {
+      m.box(x, 0, 2, 6, 1, 10, '#101010'); m.box(x, 1, 3, 6, 3, 9, rub); m.box(x, 1, 3, 6, 12, 5, rub);
+      m.box(x, 13, 3, 6, 1, 5, red); m.set(x + 2, 1, 11, red);
+    }
+    // bunched trousers around both boots
+    for (let y = 8; y < 16; y++) m.box(1, y, 2, 16, 1, 7, y % 3 === 0 ? canD : can);
+    m.box(2, 16, 2, 14, 2, 7, can); m.box(3, 18, 2, 12, 1, 7, canD); m.clear(4, 18, 3, 10, 1, 5);
+    m.box(4, 18, 3, 1, 4, 1, red); m.box(13, 18, 3, 1, 4, 1, red); m.box(4, 18, 7, 1, 4, 1, red); m.box(13, 18, 7, 1, 4, 1, red);   // suspenders
+    m.box(4, 21, 3, 10, 1, 1, red); m.box(4, 21, 7, 10, 1, 1, red);
+  },
+});
+
+// Fire-house checkers table, 1/32 m voxels (0.62 m square, 0.75 m): oak table with a painted red &
+// black checkerboard top, a game in progress, a coffee mug and an ashtray.
+defineProp('checkers_table', {
+  size: [20, 26, 20], scale: 1 / 32, collide: [0.62, 0.78, 0.62],
+  build(m) {
+    const oak = '#8a6040';
+    legs(m, 1, 0, 1, 18, 18, 22, '#6a4428', 2); m.box(2, 12, 2, 16, 1, 16, '#6a4428');
+    m.box(0, 22, 0, 20, 2, 20, oak);
+    for (let i = 0; i < 8; i++) for (let k = 0; k < 8; k++) m.box(2 + i * 2, 23, 2 + k * 2, 2, 1, 2, (i + k) % 2 ? '#1a1a1a' : '#a82020');
+    const pcs = [[0, 0, 'r'], [2, 0, 'r'], [4, 0, 'r'], [1, 1, 'r'], [5, 1, 'r'], [7, 1, 'r'], [2, 2, 'r'], [3, 3, 'r'], [6, 2, 'r'],
+      [1, 7, 'b'], [3, 7, 'b'], [7, 7, 'b'], [0, 6, 'b'], [4, 6, 'b'], [6, 6, 'b'], [5, 5, 'b'], [4, 4, 'b']];
+    for (const [i, k, t] of pcs) m.box(2 + i * 2, 24, 2 + k * 2, 2, 1, 2, t === 'r' ? '#e04040' : '#f0ece0');
+    m.box(4, 25, 10, 2, 1, 2, '#e04040');                      // a king
+    m.box(16, 24, 16, 2, 2, 2, '#f4f0e6'); m.set(18, 25, 16, '#f4f0e6'); m.set(16, 26, 16, '#4a2a18');
+  },
+});
+
+// Desk sergeant's high desk (2.0 m, 1.3 m high): raised oak counter with brass rail, "SERGEANT" plate,
+// the big blotter/register book, green-shaded lamp, telephone & spike of reports; the sergeant sits on a
+// platform behind (at -z), visitors stand at +z.
+defineProp('police_desk', {
+  size: [32, 28, 16], collide: [2.0, 1.35, 1.0],
+  build(m) {
+    const oak = '#7a5030', oakD = '#5a3a22';
+    m.box(0, 0, 0, 32, 4, 8, oakD);                          // platform behind
+    m.box(0, 0, 8, 32, 20, 7, oak);
+    for (const x of [1, 11, 21]) { m.box(x, 2, 15, 10, 14, 1, oakD); m.box(x + 1, 3, 15, 8, 12, 1, oak); }
+    m.box(0, 20, 6, 32, 1, 10, oakD); m.box(0, 21, 14, 32, 1, 1, BRASS);      // top & brass rail
+    for (const x of [1, 15, 30]) m.box(x, 20, 14, 1, 1, 1, BRASS_D);
+    m.box(8, 16, 15, 16, 4, 1, '#1a1a1a'); label(m, 'SERGEANT', 16, 16, 16, '#e8d090', { align: 'center' });
+    // blotter book, lamp, phone, spike
+    m.box(9, 21, 7, 12, 1, 6, '#f4ecd8'); m.box(9, 21, 7, 12, 1, 1, '#5a1a1a'); m.box(15, 21, 7, 1, 1, 6, '#c8b890');
+    for (const x of [10, 12, 17, 19]) m.set(x, 21, 10, '#6a6a6a');
+    m.box(3, 21, 8, 2, 1, 2, BRASS); m.box(3.5, 22, 8.5, 1, 3, 1, BRASS); m.box(2, 25, 7, 4, 1, 4, '#2a5a3a'); m.box(3, 24, 8, 2, 1, 2, { c: '#fff0c0', emit: 0.6 });
+    m.box(25, 21, 8, 3, 2, 3, '#1a1a1a'); m.box(25, 23, 8, 3, 1, 1, '#1a1a1a'); m.box(25, 23, 10, 3, 1, 1, '#1a1a1a');
+    m.box(29, 21, 11, 1, 3, 1, '#5a5a5a'); m.box(28, 21, 10, 3, 1, 3, '#f4ecd8');
+  },
+});
+
+// Jail-cell cot: riveted steel frame with strap springs, thin ticking-striped mattress, grey army
+// blanket folded at the foot and a flat pillow. Along z; head at -z.
+defineProp('jail_cot', {
+  size: [12, 8, 32], collide: [0.75, 0.5, 2.0],
+  build(m) {
+    const st = '#4a5054';
+    legs(m, 0, 0, 0, 12, 32, 5, st);
+    m.box(0, 5, 0, 12, 1, 32, st); m.clear(1, 5, 1, 10, 1, 30); for (let z = 2; z < 31; z += 3) m.box(1, 5, z, 10, 1, 1, st);
+    m.box(1, 6, 1, 10, 1, 30, '#e8e4d8'); for (let x = 2; x < 11; x += 2) m.box(x, 6, 1, 1, 1, 30, '#8a9ab0');   // ticking stripes
+    m.box(2, 7, 2, 8, 1, 4, '#f0ece4');
+    m.box(1, 7, 24, 10, 1, 6, '#6a6e6a'); m.box(1, 7, 27, 10, 1, 1, '#5a5e5a');
+  },
+});
+
+// Police-station bulletin board, back at z=0, 1/32 m voxels (1.25 x 0.95 m): cork in an oak frame with a
+// "WANTED" poster and mug shot, typed bulletins, a map with pins, a photo; red thumbtacks.
+defineProp('wanted_board', {
+  size: [40, 30, 2], scale: 1 / 32, origin: [20, 0, 0],
+  build(m) {
+    const oak = '#7a5030', cork = '#b8905a', paper = '#f0e8d4', tack = '#c8202a';
+    m.box(0, 0, 0, 40, 30, 1, oak); m.box(2, 2, 0, 36, 26, 2, cork);
+    for (const [x, y] of [[7, 5], [30, 24], [22, 4], [35, 12], [4, 22]]) m.set(x, y, 1, '#9a7448');   // cork speckle
+    // WANTED poster
+    m.box(3, 4, 1, 25, 23, 1, paper); m.text('WANTED', 15.5, 21, 1, '#1a1a1a', { font: 'small', align: 'center' });
+    m.box(11, 11, 1, 9, 8, 1, '#8a8478'); m.box(13, 12, 1, 5, 5, 1, '#c8b8a0'); m.box(13, 16, 1, 5, 2, 1, '#3a3028'); m.set(14, 14, 1, '#2a2a2a'); m.set(16, 14, 1, '#2a2a2a');
+    m.text('$500', 15.5, 5, 1, '#8a1a1a', { font: 'small', align: 'center' });
+    m.set(4, 26, 1, tack); m.set(27, 26, 1, tack);
+    // typed bulletin & a notice
+    m.box(29, 15, 1, 9, 12, 1, '#f4e8a8'); for (let y = 17; y < 25; y += 2) m.box(30, y, 1, 7, 1, 1, '#8a8a88'); m.set(33, 26, 1, tack);
+    // street map with pins
+    m.box(29, 3, 1, 9, 10, 1, '#e8e4c8'); for (let x = 31; x < 37; x += 3) m.box(x, 3, 1, 1, 10, 1, '#c8c0a0'); for (let y = 5; y < 13; y += 3) m.box(29, y, 1, 9, 1, 1, '#c8c0a0');
+    m.box(29, 7, 1, 3, 6, 1, '#a8c8d8'); m.set(33, 9, 1, tack); m.set(35, 6, 1, '#2a4ab0'); m.set(34, 11, 1, tack);
+  },
+});
+
+// Police radio dispatch set (1.5 m): grey steel transmitter/receiver cabinet with glowing meters & dial,
+// rows of knobs and toggle switches, a speaker grille, a chrome desk microphone with push-to-talk bar,
+// headphones and the call log on the writing shelf. Operator at +z.
+defineProp('police_radio', {
+  size: [16, 25, 12], collide: [1.0, 1.55, 0.75],
+  build(m) {
+    const gr = '#6a7278', grD = '#4e565c';
+    m.box(0, 0, 0, 16, 1, 7, grD); m.box(0, 1, 0, 16, 24, 7, gr);
+    for (const y of [8, 16]) m.box(0, y, 7 - 1, 16, 1, 1, grD);
+    m.box(0, 10, 7, 16, 1, 5, '#5a3a22');                      // writing shelf
+    // lower: speaker grille
+    for (let y = 2; y < 7; y++) for (let x = 3; x < 13; x++) if ((x + y) % 2 === 0) m.set(x, y, 6, grD);
+    // meters, dial & knobs
+    for (const x of [2, 7]) { m.box(x, 20, 7 - 1, 3, 3, 1, '#2a2a2a'); m.box(x + 0.5, 21, 6, 2, 2, 1, { c: '#f8e0a0', emit: 0.8 }); }
+    m.box(11, 19, 6, 4, 4, 1, '#2a2a2a'); m.box(11.5, 20, 6, 3, 2, 1, { c: '#a0e0a0', emit: 0.7 }); m.set(13, 21, 6, '#1a1a1a');
+    for (let x = 2; x < 15; x += 3) { m.set(x, 13, 7 - 1, '#1a1a1a'); m.set(x, 17, 7 - 1, '#1a1a1a'); m.set(x + 1, 13, 6, { c: '#ff5040', emit: 0.9 }); }
+    m.set(2, 24, 6, { c: '#ff3020', emit: 0.95 });
+    // desk mic, headphones, log
+    m.box(4, 11, 8, 3, 1, 3, CHROME_D); m.box(5, 12, 9, 1, 2, 1, CHROME); m.box(4, 14, 9, 3, 2, 2, CHROME_M); m.box(4, 11, 11, 3, 1, 1, '#1a1a1a');
+    m.box(10, 11, 8, 1, 1, 2, '#1a1a1a'); m.box(13, 11, 8, 1, 1, 2, '#1a1a1a'); m.box(10, 12, 8, 4, 1, 1, CHROME_D);
+    m.box(9, 11, 10, 5, 1, 2, '#f4ecd8');
+  },
+});
+
+// ---------------------------------------------------------------- bank & post office
+
+// Bank teller's counter module (1.5 m): veined marble counter with a bronze-trimmed base, ornate brass
+// grille screen with an arched teller's window, marble deal-plate, pen on a chain, "TELLER" plate.
+// Customers at +z, the teller at -z (with a cash drawer & ledger on the inner shelf).
+defineProp('teller_counter', {
+  size: [24, 38, 10], collide: [1.5, 2.35, 0.62],
+  build(m) {
+    const mar = '#ece6dc', marD = '#d4ccc0', vein = '#b8b0a4';
+    m.box(0, 0, 0, 24, 1, 10, '#3a2a1a'); m.box(0, 1, 0, 24, 16, 9, mar);
+    for (const x of [1, 12]) { m.box(x, 3, 9, 11, 12, 1, marD); m.box(x + 1, 4, 9, 9, 10, 1, mar); }
+    for (const [x, y] of [[3, 6], [4, 7], [5, 7], [15, 11], [16, 10], [17, 10], [8, 12]]) m.set(x, y, 9, vein);
+    m.box(0, 1, 9, 24, 1, 1, BRASS_D); m.box(0, 17, 0, 24, 1, 10, marD);
+    m.clear(1, 8, 0, 22, 8, 3); m.box(1, 8, 0, 22, 1, 3, MAHOG); m.box(3, 9, 0, 6, 2, 2, BRASS_D); m.box(12, 9, 0, 6, 1, 3, '#2a4a2a');   // teller's shelf
+    // brass grille
+    m.box(0, 18, 1, 1, 18, 2, BRASS_D); m.box(23, 18, 1, 1, 18, 2, BRASS_D); m.box(0, 35, 1, 24, 3, 2, BRASS_D);
+    for (let x = 1; x < 23; x++) for (let y = 18; y < 35; y++) {
+      const win = x >= 8 && x < 16 && (y < 27 || Math.hypot(x + 0.5 - 12, y - 27) < 4);
+      if (!win && (x % 3 === 0 || (y - 18) % 4 === 0)) m.set(x, y, 2, (x + y) % 6 === 0 ? BRASS_L : BRASS);
+    }
+    for (let a = 0; a <= 16; a++) { const t = a * Math.PI / 16; m.set(Math.floor(12 + Math.cos(t) * 4.2), Math.floor(27 + Math.sin(t) * 4.2), 2, BRASS_D); }
+    m.box(8, 18, 2, 1, 9, 1, BRASS_D); m.box(15, 18, 2, 1, 9, 1, BRASS_D);
+    m.box(9, 17, 3, 6, 1, 4, '#dcd4c8'); m.box(10, 17, 5, 4, 1, 1, vein);            // deal plate (trough)
+    m.box(0, 31, 3, 24, 7, 1, '#1a1a1a'); label(m, 'TELLER', 12, 32, 3, '#e8d090', { align: 'center' });
+    m.box(18, 18, 7, 1, 1, 2, '#1a1a1a'); m.box(17, 18, 8, 1, 1, 1, CHROME_D); m.box(19, 18, 6, 1, 1, 1, CHROME_D);   // pen on its chain
+    m.box(2, 18, 6, 4, 1, 3, '#f4ecd8');                        // deposit slips
+  },
+});
+
+// Great round bank-vault door standing OPEN, back at z=0 (≈2.2 m ring). The steel jamb ring is flush on
+// the wall around a dark vault opening barred by a day gate; the 0.45 m-thick door has swung out 90°
+// on its massive hinge at +x, showing its bolt ring, polished inner face with linkage bars and a
+// four-dial time lock (facing -x toward the opening) and the spoked handwheel on its outer face.
+// Origin = floor point below the centre of the ring, at the wall.
+defineProp('bank_vault_door', {
+  size: [46, 36, 30], origin: [17, 0, 0], collide: [0.8, 2.2, 1.8],
+  build(m) {
+    const st = '#8a9096', stD = '#5e666c', stL = '#b8c0c6', pol = '#c8d0d6', dark = '#141618';
+    const cx = 17, cy = 17.5;
+    for (let y = 0; y < 36; y++) for (let x = 0; x < 36; x++) {
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+      if (d <= 17.5 && d > 13.5) m.box(x, y, 0, 1, 1, 2, d > 16.5 ? stD : d < 14.5 ? stL : st);
+      else if (d <= 13.5) { m.set(x, y, 0, dark); if ((x - 5) % 3 === 0 && y > 4 && y < 31) m.set(x, y, 1, stD); }   // opening & day-gate bars
+    }
+    for (let y = 6; y < 31; y += 8) for (let x = 4; x < 31; x++) if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) < 13.5) m.set(x, y, 1, stD);
+    // hinge arm
+    m.box(33, 8, 1, 4, 4, 4, stD); m.box(33, 23, 1, 4, 4, 4, stD); m.box(35, 6, 3, 3, 23, 3, st);
+    // the door, swung out: a disc in the y-z plane, x = 37..43, z centre 16
+    const dz = 16, R = 13;
+    for (let y = 0; y < 36; y++) for (let z = 2; z < 30; z++) {
+      const d = Math.hypot(y + 0.5 - cy, z + 0.5 - dz);
+      if (d > R) continue;
+      m.box(37, y, z, 7, 1, 1, d > R - 1 ? stD : st);
+      m.set(37, y, z, d > R - 1.2 ? stD : d > R - 3 ? st : pol);                 // inner face (-x)
+      m.set(43, y, z, d > R - 1.2 ? stD : stL);                                  // outer face (+x)
+    }
+    // bolts protruding from the rim
+    for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8; const y = cy + Math.sin(a) * (R + 0.5), z = dz + Math.cos(a) * (R + 0.5); m.box(39, y, z, 3, 1, 1, CHROME); }
+    // inner face: linkage bars, time lock with four dials, hinge plate
+    m.box(36, 17, 6, 1, 1, 20, CHROME_M); m.box(36, 6, 16, 1, 23, 1, CHROME_M);
+    m.box(36, 21, 9, 1, 8, 12, stD); for (const [y, z] of [[26, 11], [26, 17], [23, 11], [23, 17]]) { m.box(36, y, z, 1, 2, 3, '#f4f0e6'); m.set(36, y + 1, z + 1, dark); }
+    m.box(36, 21, 9, 1, 1, 12, BRASS); m.box(36, 28, 9, 1, 1, 12, BRASS);
+    m.box(36, 8, 13, 1, 6, 6, stL); m.set(36, 10, 15, BRASS); m.set(36, 11, 16, BRASS);
+    // outer face: spoked handwheel & dial
+    m.box(44, 16, 15, 1, 3, 3, CHROME_D);
+    for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; for (let t = -5; t <= 5; t += 0.5) m.set(45, cy + Math.sin(a) * t, dz + Math.cos(a) * t, CHROME); }
+    for (let a = 0; a < 24; a++) { const t = a * Math.PI / 12; m.set(45, cy + Math.sin(t) * 5.5, dz + Math.cos(t) * 5.5, CHROME_M); }
+    m.box(44, 25, 15, 1, 3, 3, '#1a1a1a'); m.set(45, 26, 16, '#f4f0e6');
+  },
+});
+
+// Office water cooler, 1/32 m voxels (1.55 m): cream enamel cabinet with a chrome bubbler & push lever,
+// drip grille, an upturned five-gallon glass bottle of water on top, paper cone-cup dispenser at the side.
+defineProp('office_water_cooler', {
+  size: [16, 50, 14], scale: 1 / 32, collide: [0.42, 1.55, 0.42],
+  build(m) {
+    const cr = '#ece4cc', crD = '#cfc6ac';
+    m.box(1, 0, 1, 12, 1, 12, '#3a3a3a'); m.box(1, 1, 1, 12, 28, 12, cr); m.box(1, 1, 12, 12, 1, 1, crD);
+    for (let y = 4; y < 10; y += 2) m.box(3, y, 13 - 1, 8, 1, 1, crD);
+    m.box(1, 27, 1, 12, 2, 12, CHROME_M); m.box(3, 28, 3, 8, 1, 8, CHROME_D); for (let x = 4; x < 10; x += 2) m.box(x, 29, 4, 1, 1, 6, CHROME);
+    m.box(6, 29, 10, 2, 2, 2, CHROME); m.box(6, 31, 11, 2, 1, 1, CHROME_M);              // bubbler
+    m.box(10, 24, 13, 2, 3, 1, CHROME);                                                // lever
+    m.box(3, 29, 3, 8, 2, 8, crD);                                                     // collar
+    col(m, 3, 31, 3, 8, 12, '#b8d8e4'); col(m, 4, 31, 4, 6, 12, '#a0c8d8'); col(m, 3, 43, 3, 8, 2, '#c8e0e8'); col(m, 5, 45, 5, 4, 1, '#d8ecf0');
+    m.box(3, 34, 10, 1, 8, 1, '#e8f4f8');                                              // glint on the bottle
+    col(m, 13, 14, 5, 3, 10, CHROME_M); m.box(13, 13, 5, 3, 1, 3, '#f4f4f0');           // cone-cup dispenser
+  },
+});
+
+// Office adding machine, 1/32 m voxels (0.4 m): grey-green case with nine rows of column keys (white,
+// with red & green function bars), a crank handle on the right, and a paper tape rising from the roll.
+defineProp('adding_machine', {
+  size: [14, 12, 16], scale: 1 / 32,
+  build(m) {
+    const cs = '#5a6a60', csD = '#46544c';
+    m.box(1, 0, 1, 11, 2, 14, csD);
+    for (let z = 1; z < 15; z++) m.box(1, 2, z, 11, Math.max(1, Math.round((15 - z) * 0.45)), 1, cs);
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 8; c++) { const z = 12 - r, y = 2 + Math.round((15 - z) * 0.45); m.set(2 + c, y, z, c === 7 ? '#c8202a' : c === 6 ? '#3a8a4a' : '#f4f0e6'); }
+    m.box(2, 8, 2, 9, 2, 3, csD); m.cylX(3, 9, 2.5, 1.5, 7, '#f4f0e6');               // paper roll
+    m.box(4, 10, 2, 5, 1, 1, '#f4f0e6'); m.box(4, 11, 1, 5, 1, 1, '#f4f0e6'); m.set(5, 11, 1, '#6a6a6a');
+    m.box(12, 4, 5, 1, 2, 2, CHROME_D); m.box(13, 4, 5, 1, 6, 1, CHROME); m.box(13, 9, 5, 1, 1, 3, '#1a1a1a');   // crank
+  },
+});
+
+// Small office safe on castors, 1/32 m voxels (0.55 x 0.7 m): black enamel with gold pinstriping, a
+// painted landscape panel above the door, brass combination dial & T-handle, maker's plate.
+defineProp('safe_small', {
+  size: [18, 23, 18], scale: 1 / 32, collide: [0.56, 0.72, 0.56],
+  build(m) {
+    const blk = '#1c1e1c', gold = '#c8a040';
+    for (const [x, z] of [[1, 1], [15, 1], [1, 15], [15, 15]]) m.box(x, 0, z, 2, 2, 2, '#3a3a3a');
+    m.box(0, 2, 0, 18, 21, 18, blk);
+    m.box(2, 3, 17, 14, 14, 1, '#262826'); m.box(2, 3, 17, 14, 1, 1, gold); m.box(2, 16, 17, 14, 1, 1, gold); m.box(2, 3, 17, 1, 14, 1, gold); m.box(15, 3, 17, 1, 14, 1, gold);
+    // painted landscape panel
+    m.box(3, 18, 17, 12, 4, 1, '#88b0c8'); m.box(3, 18, 17, 12, 1, 1, '#4a7a3a'); m.box(9, 19, 17, 4, 1, 1, '#4a7a3a'); m.set(5, 19, 17, '#f4f0e6'); m.set(12, 21, 17, '#f8e080');
+    m.box(2, 17, 17, 14, 1, 1, gold); m.box(2, 22, 17, 14, 1, 1, gold);
+    // dial & handle
+    m.cylZ(9, 11.5, 17, 2.6, 1, BRASS); m.cylZ(9, 11.5, 18 - 1, 1.2, 1, BRASS_L); m.set(9, 13, 17, '#1a1a1a');
+    m.box(8, 6, 17, 3, 1, 1, BRASS); m.box(9, 5, 17, 1, 3, 1, BRASS_D);
+    m.box(4, 14, 17, 3, 1, 1, BRASS_L);
+  },
+});
+
+// Post-office stamp window counter module (1.5 m): oak counter with brass grille & arched window,
+// "STAMPS" plate, a postal scale, sheets & booklets of stamps, moistener sponge, ink pad & cancelling
+// stamp. Customers at +z, the clerk at -z.
+defineProp('stamp_counter', {
+  size: [24, 34, 10], collide: [1.5, 2.1, 0.62],
+  build(m) {
+    const oak = '#8a6040', oakD = '#6a4428';
+    m.box(0, 0, 0, 24, 1, 9, oakD); m.box(0, 1, 0, 24, 15, 9, oak);
+    for (const x of [1, 12]) { m.box(x, 3, 9, 11, 10, 1, oakD); m.box(x + 1, 4, 9, 9, 8, 1, oak); }
+    m.box(0, 16, 0, 24, 1, 10, '#6a7a70');                   // green linoleum top
+    m.box(0, 17, 1, 1, 14, 2, oak); m.box(23, 17, 1, 1, 14, 2, oak); m.box(0, 31, 1, 24, 3, 2, oakD);
+    for (let x = 1; x < 23; x++) for (let y = 17; y < 31; y++) {
+      const win = x >= 7 && x < 17 && (y < 25 || Math.hypot(x + 0.5 - 12, y - 25) < 5);
+      if (!win && (x % 2 === 0 || (y - 17) % 4 === 0)) m.set(x, y, 2, BRASS);
+    }
+    m.box(0, 27, 3, 24, 7, 1, '#1a1a1a'); label(m, 'STAMPS', 12, 28, 3, '#e8d090', { align: 'center' });
+    // counter-top: scale, stamps, sponge, ink pad & canceller
+    m.box(3, 17, 4, 4, 2, 3, ENAMEL); m.box(3, 19, 4, 4, 1, 3, CHROME); m.box(4, 18, 7, 2, 1, 1, '#f4f0e6');
+    m.box(9, 17, 6, 4, 1, 3, '#d86a6a'); m.box(10, 17, 6, 1, 1, 3, '#f4f0e6'); m.box(13, 17, 7, 2, 1, 2, '#6a8ad0');
+    m.box(17, 17, 6, 2, 1, 2, '#3a5a8a'); m.set(18, 18, 6, '#e8d890');                                            // sponge cup
+    m.box(19, 17, 3, 3, 1, 2, '#1a1a1a'); m.box(20, 18, 2, 1, 2, 1, WALNUT); m.set(20, 17, 2, '#1a1a1a');       // ink pad & canceller
+  },
+});
+
+// Post-office sorting case, back at z=0 (1.5 x 2.0 m): oak table base with a tall rack of 8 x 7
+// pigeonholes, route labels, letters and postcards in many of the holes, a bundle waiting on the table.
+defineProp('mail_sorting_rack', {
+  size: [24, 33, 9], origin: [12, 0, 0], collide: [1.5, 2.05, 0.56],
+  build(m) {
+    const oak = '#9a7048', oakD = '#7a5434';
+    legs(m, 0, 0, 0, 24, 9, 13, oakD); m.box(0, 13, 0, 24, 1, 9, oak); m.box(1, 4, 1, 22, 1, 7, oakD);
+    m.box(0, 14, 0, 24, 19, 1, oakD); m.box(0, 14, 0, 1, 19, 6, oak); m.box(23, 14, 0, 1, 19, 6, oak); m.box(0, 32, 0, 24, 1, 6, oak);
+    for (let y = 14; y < 32; y += 2.5) m.box(1, Math.round(y), 0, 22, 1, 6, oak);
+    for (let x = 1; x < 23; x += 2.75) m.box(Math.round(x), 14, 0, 1, 18, 6, oak);
+    let k = 0;
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 8; c++) {
+      const x = 2 + Math.round(c * 2.75), y = 15 + Math.round(r * 2.5);
+      if ((k * 5 + r) % 3 !== 0) m.box(x, y, 1, 1, 1, 4, (k % 4) === 0 ? '#e8e0c0' : '#f4f0e6');
+      if (k % 5 === 2) m.set(x + 1, y, 3, '#d8c890');
+      m.set(x, y - 1, 5, '#f4f0e6');                          // route label on the shelf lip
+      k++;
+    }
+    m.box(3, 14, 5, 4, 1, 3, '#f4f0e6'); m.box(3, 15, 5, 4, 1, 3, '#e8e0c8'); m.box(5, 14, 5, 1, 2, 3, '#c8a870');   // bundle
+    m.box(14, 14, 6, 5, 1, 2, '#8a6a48');
+  },
+});
+
+// Wall of brass post-office boxes, back at z=0, 1/32 m voxels (1.25 x 1.3 m): 6 x 8 lock-boxes with
+// bevelled brass doors, dark glass windows, tiny combination dials and numbers, in an oak surround.
+defineProp('po_boxes', {
+  size: [42, 42, 3], scale: 1 / 32, origin: [21, 0, 0],
+  build(m) {
+    const oak = '#7a5030', br = '#b8903a', brL = '#d8b458', brD = '#86662a';
+    m.box(0, 0, 0, 42, 42, 1, oak); m.box(0, 0, 1, 42, 2, 2, oak); m.box(0, 40, 1, 42, 2, 2, oak); m.box(0, 0, 1, 2, 42, 2, oak); m.box(40, 0, 1, 2, 42, 2, oak);
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 6; c++) {
+      const x = 2 + c * 6.33, y = 2 + r * 4.75, xi = Math.round(x), yi = Math.round(y);
+      m.box(xi, yi, 1, 6, 5, 1, brD); m.box(xi + 1, yi + 1, 1, 5, 4, 1, br); m.box(xi + 1, yi + 4, 1, 5, 1, 1, brL);
+      m.box(xi + 1, yi + 2, 2, 2, 2, 1, '#1a1c20');           // window
+      m.set(xi + 4, yi + 2, 2, brL);                           // dial
+      if ((r + c) % 3 === 0) m.set(xi + 1, yi + 1, 2, '#f4f0e6');   // mail showing
+    }
   },
 });
