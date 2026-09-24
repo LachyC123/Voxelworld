@@ -201,7 +201,8 @@ export function createMesher(W) {
         const sx = cl(2 * (x - 1) + 1 + (k & 1)), sy = cl(2 * (y - 1) + 1 + ((k >> 1) & 1)), sz = cl(2 * (z - 1) + 1 + ((k >> 2) & 1));
         const a = vox[sx + P * (sz + P * sy)];
         if (!a) continue;
-        if (opaque[a]) { solid++; if (++votes[a] > bestN) { bestN = votes[a]; best = a; } used.push(a); }
+        // a voxel with open air above it is what you see from a distance (grass over dirt, roof over rafters)
+        if (opaque[a]) { solid++; const up = sy + 1 < P ? vox[sx + P * (sz + P * (sy + 1))] : 0; votes[a] += (up && opaque[up]) ? 1 : 3; if (votes[a] > bestN) { bestN = votes[a]; best = a; } used.push(a); }
         else glass = a;
       }
       for (const a of used) votes[a] = 0;
