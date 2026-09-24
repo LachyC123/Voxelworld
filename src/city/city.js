@@ -37,7 +37,7 @@ export async function buildCity(onStatus = () => {}) {
     try {
       const b = gen(ctx, lot, l.spec);
       if (b) {
-        b.m = l.m; b.spec = l.spec;
+        b.rect = l.m; b.spec = l.spec; // (b.m stays the building's local→world method)
         ctx.landmarks.push({ name: b.name, kind: l.spec.kind, x: (l.m.x0 + l.m.x1) / 2, z: (l.m.z0 + l.m.z1) / 2, rect: l.m, building: b });
       }
     } catch (e) {
@@ -50,7 +50,7 @@ export async function buildCity(onStatus = () => {}) {
   // connect every spot to its room / building graph
   for (const s of ctx.spots.list) {
     if (!s.pendingLink) continue;
-    const n = ctx.nav.nearest(s.x, s.y, s.z, (id, inf) => id !== s.node && inf.kind !== 'spot' && (s.room ? inf.room === s.room : true), 30);
+    const n = ctx.nav.nearest(s.x, s.y, s.z, (id, inf) => id !== s.node && inf.kind !== 'spot' && (s.room ? inf.room === s.room : !inf.room), 30);
     if (n >= 0) ctx.nav.link(s.node, n);
     else linkToSidewalk(ctx, s.node, 40);
   }

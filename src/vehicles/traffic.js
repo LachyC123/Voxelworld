@@ -112,18 +112,18 @@ export class Traffic {
 
   update(dt, t, playerPos, night, activeFrac = 1) {
     const cars = this.cars;
+    const nActive = Math.round(cars.length * activeFrac);
+    cars.forEach((c, i) => { c.active = i < nActive; c.h.visible = c.active; });
     // index cars per segment for following
     const seg = new Map();
     for (const c of cars) { if (!c.active) continue; const k = c.from.x + ',' + c.from.z + c.dir; let a = seg.get(k); if (!a) { a = []; seg.set(k, a); } a.push(c); }
     for (const a of seg.values()) a.sort((p, q) => q.s - p.s);
-    const nActive = Math.round(cars.length * activeFrac);
-    cars.forEach((c, i) => { c.active = i < nActive; c.h.visible = c.active; });
     for (const c of cars) {
       if (!c.active) continue;
       const L = this.segLen(c.from, c.to);
       let target = c.max;
       // car ahead in the same segment
-      const list = seg.get(c.from.x + ',' + c.from.z + c.dir);
+      const list = seg.get(c.from.x + ',' + c.from.z + c.dir) || [c];
       const idx = list.indexOf(c);
       let gap = Infinity;
       if (idx > 0) gap = list[idx - 1].s - c.s - list[idx - 1].len;

@@ -1194,7 +1194,7 @@ export const NOTABLES = [
     bio: "Robert “Bobby” Sayer, 9, fourth grade, Miss Vance's class. Drew a picture of Whitcomb Point Light — every window, the gallery rail, and Mr. Fisk waving — and wrote his letter to 2053 on the back. Collects shells and has decided to be a lighthouse keeper.",
     lines: [
       "I drew the lighthouse and wrote my letter to 2053 on the back! I asked if they still have the lighthouse. They'd better.",
-      "Mr. Fisk let me climb all the way up. Ninety-one steps! I counted. He says a keeper has to count everything.",
+      "Mr. Fisk let me climb all the way up. Fifty-eight steps! I counted. He says a keeper has to count everything.",
       "My dad was a Marine. He's in a picture on the piano. Mom says I frown like him when I do sums.",
       "Mr. Ferris is taking Mom to the street dance. He gave me a WJBY pencil. I'm thinking about it.",
     ] },

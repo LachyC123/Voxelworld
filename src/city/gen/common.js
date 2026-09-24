@@ -254,7 +254,7 @@ export function parlour(b, room, x, y, z, w, d, o = {}) {
   // sofa along the back wall
   const sz = z + d - 3.2;
   f.prop('sofa', cx, y, sz, 0, { tint: o.sofaTint ?? '#6a7a5a' });
-  for (const dx of [-2.6, 0, 2.6]) spots.push(b.spot('sit', cx + dx, y, sz - 0.3, 0, { room, act: o.act ?? 'watch', tags: ['lounge', 'tv'], seat: 0.42 }));
+  for (const dx of [-2.6, 0, 2.6]) spots.push(b.spot('sit', cx + dx, y, sz - 0.3, 0, { room, act: o.act ?? (o.tv !== false ? 'watch' : 'listen_sit'), tags: o.tv !== false ? ['lounge', 'tv'] : ['lounge'], seat: 0.42 }));
   f.prop('table_coffee', cx, y, sz - 5.5, 0, {});
   // entertainment against the front side
   const ez = z + 1.6;

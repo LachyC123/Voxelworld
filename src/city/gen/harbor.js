@@ -31,7 +31,7 @@ export function register(GEN, SITES) {
 // local z = world vx, local y = world vy. The Kit converts world metres into that frame.
 function siteBuilding(ctx, name, kind, rect, o = {}) {
   const b = new Building(ctx, { name, kind, lot: { x: 0, z: 0, w: 1, d: 1, facing: 'W', y: 0, street: o.street || 'Harbor Street' }, address: o.address || '', established: o.est || null, lore: o.lore || null, hours: o.hours || null });
-  b._rect = rect;               // becomes b.m (the rect) once the site is finished — b.m() is still a method while building
+  b._rect = rect;               // becomes b.rect once the site is finished
   if (o.landmark !== false) {
     const lr = o.labelOnly ? { x0: (rect.x0 + rect.x1) / 2, z0: (rect.z0 + rect.z1) / 2, x1: (rect.x0 + rect.x1) / 2, z1: (rect.z0 + rect.z1) / 2 } : rect;
     ctx.landmarks.push({ name: o.label || name, kind, x: (rect.x0 + rect.x1) / 2, z: (rect.z0 + rect.z1) / 2, rect: lr, building: b });
@@ -39,7 +39,7 @@ function siteBuilding(ctx, name, kind, rect, o = {}) {
   return b;
 }
 
-function finishSite(b) { b.m = b._rect; }
+function finishSite(b) { b.rect = b._rect; }
 
 class Kit {
   constructor(ctx, b) { this.ctx = ctx; this.W = ctx.world; this.nav = ctx.nav; this.b = b; }
@@ -1778,7 +1778,7 @@ function buildLighthouse(ctx) {
   cf.prop('laundry_basket', 4.5, 1, 14, 0, { tint: '#d8c040' }); cf.prop('photo_frames', 2.6, 6, 9, 1, {}); cf.prop('clock_wall', 10.5, 8, 17.4, 0, {}); cf.prop('ship_model_case', 3.5, 1, 4, 1, {});
   const knit = SP('sit', 6, 12, 1, { room: parlour, act: 'knit', tags: ['lounge'], seat: 0.45, label: 'Knitting for the Kaminski baby' });
   const read = SP('sit', 14.5, 12, 3, { room: parlour, act: 'read', tags: ['lounge'], seat: 0.42 });
-  const kp = M(5, 14); K.read(kp[0], 1.6, kp[2], { title: 'Opal\'s Knitting Basket', body: 'A basket of yarn by the rocker. On top, a half-finished baby sweater in yellow — for the Kaminskis. (She has already done one in pink and one in blue, to be safe.)\n\nUnderneath is a school composition book. Since 1921 Opal Fisk has written in it the name of every baby in Juniper Bay she has knitted for, and what she made. The first entry: "No. 1 — Doane, Ernest Jr. — bonnet & booties." The last: "No. 1,114 — Kaminski — ?"' }, { r: 2 });
+  const kp = M(5, 14); K.read(kp[0], 1.6, kp[2], { title: 'Opal\'s Knitting Basket', body: 'A basket of yarn by the rocker. On top, a finished baby sweater in yellow — for the Kaminskis. Yellow, because nobody knows yet. ("I\'m hedging.")\n\nUnderneath is a school composition book. Since 1921 Opal Fisk has written in it the name of every baby in Juniper Bay she has knitted for, and what she made. The first entry: "No. 1 — Doane, Ernest Jr. — bonnet & booties." The last: "No. 1,114 — Kaminski — ?"' }, { r: 2 });
   // office: the log, the barometer, the spare lamp
   cf.prop('writing_desk', 37, 1, 3.6, 2, {}); cf.prop('chair_wood', 37, 1, 6.4, 0, {}); cf.prop('bookshelf', 45, 1, 9, 3, {}); cf.prop('barometer', 30, 6, 9, 1, {}); cf.prop('lamp_desk', 35.5, 3.6, 3.6, 2, {});
   const desk = SP('sit', 37, 6.4, 0, { room: office, act: 'write', tags: ['work', 'desk'], seat: 0.45 });
@@ -1795,7 +1795,7 @@ function buildLighthouse(ctx) {
   const s1 = SP('sleep', 9.2, 29.8, 0, { room: bedroomR, act: 'sleep', tags: ['sleep'], seat: 0.55 }), s2 = SP('sleep', 11.8, 29.8, 0, { room: bedroomR, act: 'sleep', tags: ['sleep'], seat: 0.55 });
   // hall: oilskins, the list of keepers
   cf.prop('coat_rack', 21.5, 1, 4, 0, { tint: '#e0c030' }); cf.prop('umbrella_stand', 26.5, 1, 4, 0, {}); cf.prop('hat_rack_wall', 27.4, 6, 12, 3, {});
-  const hp = M(20.6, 16); K.read(hp[0], 1.8, hp[2], { title: 'Keepers of Whitcomb Point Light', body: 'KEEPERS OF WHITCOMB POINT LIGHT\n(lettered by hand on a board by the door)\n\nJonas Crowell, 1868–1891\nEben Crowell, his son, 1891–1907\nSilas Hallett, 1907–1921\nAmos Fisk, 1921 —\n\nBelow, in pencil: "Sept. 21, 1938 — lamp lit through the whole of it. Boathouse gone, dory found at Pembroke. Opal and I are well. — A.F."' }, { r: 2 });
+  const hp = M(20.6, 16); K.read(hp[0], 1.8, hp[2], { title: 'Keepers of Whitcomb Point Light', body: 'KEEPERS OF WHITCOMB POINT LIGHT\n(lettered by hand on a board by the door)\n\nJonas Crowell, 1868–1891\nEben Crowell, his son, 1891–1907\nSilas Hallett, 1907–1921\nAmos Fisk, 1921 —\n\nBelow, in pencil: "Sept. 21, 1938 — lamp lit through the whole of it. Opal sat up with me in the lantern room and knitted. Boathouse gone, dory found at Pembroke. We are well. — A.F."' }, { r: 2 });
   // ---- outdoors: fog bell, oil house, the boathouse ruin, washing, a bench facing the sea
   K.B(-158, 3, 307.5, -157.75, 12, 307.75, MAT.wood_dark); K.B(-155.75, 3, 307.5, -155.5, 12, 307.75, MAT.wood_dark); K.B(-158, 12, 307.5, -155.5, 13, 307.75, MAT.wood_dark);
   K.P('bell_brass', -156.75, 2.2, 307.6, 'S', { scale: 1.3 });

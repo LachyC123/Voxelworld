@@ -309,7 +309,7 @@ export class Game {
     const cb = ctx.spots.tagged('club_band'); ctx.clubRoom = cb.length ? cb[0].room : 0;
     const hop = ctx.spots.tagged('sockhop'); ctx.gymRoom = hop.length ? hop[0].room : 0;
     const brig = ctx.buildings.find((b) => b.name.startsWith('St. Brigid'));
-    ctx.bellTower = brig && brig.m ? { x: (brig.m.x0 + brig.m.x1) / 2, y: 25, z: brig.m.z0 + 6 } : { x: 90, y: 25, z: 86 };
+    ctx.bellTower = brig && brig.rect ? { x: (brig.rect.x0 + brig.rect.x1) / 2, y: 25, z: brig.rect.z0 + 6 } : { x: 90, y: 25, z: 86 };
   }
 
   posePlayer(P) {
@@ -350,11 +350,17 @@ export class Game {
   }
 
   areaName(x, z) {
+    if (x >= SQUARE.x0 && x <= 284 && z >= SQUARE.z0 && z <= SQUARE.z1) return 'Founders Square';
+    // the smallest named place containing the point wins (the lighthouse over the beach, a shed over the waterfront)
+    let hit = null, ha = Infinity;
+    for (const l of this.ctx.landmarks) {
+      const r = l.rect; if (l.kind === 'house' || !(x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1)) continue;
+      const a = (r.x1 - r.x0) * (r.z1 - r.z0); if (a < ha) { ha = a; hit = l.name; }
+    }
+    if (hit) return hit;
+    if (z > BEACH.z0 && x < BEACH.x1) return 'Juniper Beach & Boardwalk';
     if (x < 0) return 'Juniper Bay Harbor';
     if (x < 44) return 'The Waterfront';
-    if (x >= SQUARE.x0 && x <= 284 && z >= SQUARE.z0 && z <= SQUARE.z1) return 'Founders Square';
-    if (z > BEACH.z0 && x < BEACH.x1) return 'Juniper Beach & Boardwalk';
-    for (const l of this.ctx.landmarks) { const r = l.rect; if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1 && l.kind !== 'house') return l.name; }
     let best = null, bd = 12;
     for (const a of AVENUES) { const d = Math.abs(x - a.x); if (d < bd) { bd = d; best = a.name; } }
     for (const s of STREETS) { const d = Math.abs(z - s.z); if (d < bd) { bd = d; best = s.name; } }

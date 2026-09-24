@@ -70,7 +70,7 @@ export function setupEvents(ctx) {
     if (!ok) continue;
     if (ev.x === null) {
       const b = kit.building(def.place);
-      if (b && b.m) { ev.x = (b.m.x0 + b.m.x1) / 2; ev.z = (b.m.z0 + b.m.z1) / 2; if (b.entrances[0]) { ev.x = b.entrances[0].pos[0]; ev.z = b.entrances[0].pos[2]; } }
+      if (b && b.rect) { ev.x = (b.rect.x0 + b.rect.x1) / 2; ev.z = (b.rect.z0 + b.rect.z1) / 2; if (b.entrances[0]) { ev.x = b.entrances[0].pos[0]; ev.z = b.entrances[0].pos[2]; } }
     }
     ev.timeLabel = `${fmtTime(ev.start)}–${fmtTime(ev.end)}`;
     ctx.events.push(ev);

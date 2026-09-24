@@ -2418,11 +2418,11 @@ function buildDiner(ctx, lot, spec, T, rng) {
   b.light(sx, 33, CZ0 + 7, { color: [1, 0.35, 0.25], radius: 12, mode: 'night' });
   // ---- vestibule
   f.box(vx, -1, 3, 8, 2, 8, MAT.stone_foundation);
-  f.walls(vx, 1, 3, 8, 12, 8, MAT.stainless, 1);
+  f.walls(vx, 1, 3, 8, 11, 7, MAT.stainless, 1);
   f.box(vx + 1, 1, 4, 6, 1, 6, MAT.floor_checker_red);
   f.carve(vx + 2, 2, 3, 4, 9, 1); f.carve(vx + 2, 2, CZ0, 4, 9, 2);
   f.box(vx, 5, 4, 1, 6, 5, MAT.glass); f.box(vx + 7, 5, 4, 1, 6, 5, MAT.glass);
-  f.box(vx - 1, 13, 2, 10, 1, 9, MAT.steel_white);
+  f.box(vx - 1, 12, 2, 10, 1, 8, MAT.steel_white); f.box(vx - 1, 11, 2, 10, 1, 1, MAT.chrome);
   b.prop(glassType('OPEN 5 A.M. TO MIDNIGHT', { px: 1 / 22, color: '#e8c060' }), vx + 4, 11.2, 2.94, 0, {});
   f.box(vx + 1, 0, 1, 6, 1, 2, MAT.granite);
   b.light(vx + 4, 12, 1.5, { mode: 'night', radius: 6, color: [1, 0.85, 0.6] });
@@ -3034,9 +3034,9 @@ function buildLodge(ctx, lot, spec) {
   f.box(x0 - 1, FH, Z - 2, x1 - x0 + 2, 1, 2, MAT.limestone);
   f.box(x0 - 1, H - 1, Z - 2, x1 - x0 + 2, 2, 2, MAT.limestone); f.walls(x0, H + 1, z0, x1 - x0, 3, z1 - z0, MAT.brick_red, 1); f.box(x0 - 1, H + 4, Z - 2, x1 - x0 + 2, 1, 2, MAT.limestone);
   const cx = Math.round(W / 2);
-  f.box(cx - 30, H - 7, Z - 1, 60, 7, 1, MAT.limestone); f.text('B.P.O.E. LODGE No. 812', cx, H - 6, Z - 2, MAT.trim_dark, { align: 'center', font: 'small' });
+  f.box(cx - 42, FH + 12, Z - 1, 84, 7, 1, MAT.limestone); f.text('B.P.O.E. LODGE No. 812', cx, FH + 13, Z - 2, MAT.trim_dark, { align: 'center', font: 'small' });
   // windows
-  for (const x of [x0 + 6, x0 + 18, x1 - 22, x1 - 10]) { win(f, x, 4, Z, 4, 8, { frame: MAT.trim_white, t: 2, lintelMat: MAT.limestone, sillMat: MAT.limestone }); win(f, x, FH + 4, Z, 4, 10, { frame: MAT.trim_white, t: 2, style: 'arch', sillMat: MAT.limestone }); }
+  for (const x of [x0 + 6, x0 + 18, x1 - 22, x1 - 10]) { win(f, x, 4, Z, 4, 8, { frame: MAT.trim_white, t: 2, lintelMat: MAT.limestone, sillMat: MAT.limestone }); win(f, x, FH + 3, Z, 4, 7, { frame: MAT.trim_white, t: 2, style: 'arch', sillMat: MAT.limestone }); }
   // portico
   const dx = cx - 2;
   f.carve(dx, 1, Z, 4, 10, 2); f.box(dx, 11, Z, 4, 2, 1, MAT.glass);
@@ -3054,8 +3054,8 @@ function buildLodge(ctx, lot, spec) {
   }
   // clock at the parapet showing eleven o'clock
   f.box(cx - 5, H + 3, Z - 1, 11, 11, 2, MAT.limestone); f.box(cx - 4, H + 4, Z - 2, 9, 9, 1, MAT.clock_face);
-  f.box(cx, H + 8, Z - 3, 1, 4, 1, MAT.trim_black); f.box(cx - 1, H + 9, Z - 3, 1, 1, 1, MAT.trim_black); f.box(cx - 2, H + 10, Z - 3, 1, 1, 1, MAT.trim_black);
-  for (const [ddx, ddy] of [[0, 4], [4, 0], [0, -4], [-4, 0]]) f.box(cx + ddx, H + 8 + ddy, Z - 3, 1, 1, 1, MAT.trim_black);
+  f.box(cx, H + 8, Z - 3, 1, 3, 1, MAT.trim_black); f.box(cx - 1, H + 9, Z - 3, 1, 1, 1, MAT.trim_black); f.box(cx - 2, H + 9, Z - 3, 1, 1, 1, MAT.trim_black);
+  for (const [ddx, ddy] of [[4, 0], [0, -4], [-4, 0]]) f.box(cx + ddx, H + 8 + ddy, Z - 3, 1, 1, 1, MAT.trim_dark);
   P(S, 'flag_pole', cx - 14, 0, 4, 0, { cat: 'far' });
   for (const x of [x0 + 2, x1 - 3]) P(S, 'bush_round', x, 0, Z - 2, 0);
   // ---- ground floor: lobby with the grand stair, bar & grill (left), card room (right), kitchen & office behind

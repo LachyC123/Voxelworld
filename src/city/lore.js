@@ -111,7 +111,7 @@ export const TODAY = [
   ['6:00 AM', 'Pier 3', 'The fishing fleet comes in; Castellano Fish Co. unloads'],
   ['9:00 AM', 'First Juniper Savings Bank', 'Open until noon'],
   ['10:00 AM', 'Founders Square', 'Harbor Days fair opens — stalls, pies, the ring toss'],
-  ['11:00 AM', 'Maple Street', 'Engine Co. No. 1 attempts to rescue Mrs. Hatch\'s cat, Admiral'],
+  ['11:00 AM', 'Church Street', 'Engine Co. No. 1 attempts to rescue Mrs. Hatch\'s cat, Admiral'],
   ['2:00 PM', 'St. Brigid\'s Church', 'Wedding of Helen Novak and Robert Brennan'],
   ['2:00 PM', '14 Maple Street', 'Susie Moreau\'s seventh birthday party'],
   ['2:00 PM', 'The Rialto', '"Roman Holiday" matinee'],

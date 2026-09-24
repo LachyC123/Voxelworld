@@ -77,7 +77,8 @@ export function populate(ctx) {
     let surname = home.family || r.pick(SURNAMES);
     let tries = 0; while (usedSurnames.has(surname) && tries++ < 8 && !home.family) surname = r.pick(SURNAMES);
     usedSurnames.add(surname);
-    const type = r.weighted([['family', 6], ['couple', 2], ['elderly', 2], ['single', 1], ['widow', 1]]);
+    const lodging = home.lodger || home.single || home.size === 1 || beds === 1;
+    const type = lodging ? r.weighted([['lodger', 5], ['single', 2], ['widow', 1]]) : r.weighted([['family', 6], ['couple', 2], ['elderly', 2], ['single', 1], ['widow', 1]]);
     const members = [];
     const skinPick = r.chance(0.1) ? r.pick(['#a06a45', '#835236', '#653e28']) : null;
     const base = { last: surname, look: skinPick ? { skin: skinPick } : undefined };
@@ -90,7 +91,8 @@ export function populate(ctx) {
       const a = r.int(62, 80);
       members.push(make({ ...base, sex: 'M', age: a + r.int(0, 4) }, home));
       members.push(make({ ...base, sex: 'F', age: a }, home));
-    } else if (type === 'single') members.push(make({ ...base, age: r.int(22, 45) }, home));
+    } else if (type === 'lodger') members.push(make({ ...base, sex: r.chance(0.75) ? 'M' : 'F', age: r.int(19, 64) }, home));
+    else if (type === 'single') members.push(make({ ...base, age: r.int(22, 45) }, home));
     else members.push(make({ ...base, sex: 'F', age: r.int(60, 84) }, home));
     households.push({ home, members, surname });
   }
@@ -114,12 +116,20 @@ export function populate(ctx) {
       if (j) { j.person = m; m.job = j; }
     }
   }
+  // jobs that want a particular age (the shoeshine boy, the old net menders) are filled first
+  const inRange = (j, a) => !j.ageRange || (a.age >= j.ageRange[0] && a.age <= j.ageRange[1]);
+  const townsfolk = households.flatMap((h) => h.members);
+  for (const j of jobs) {
+    if (j.person || !j.ageRange) continue;
+    const c = townsfolk.filter((a) => !a.job && !a.notableBusy && inRange(j, a) && (!j.sex || a.sex === j.sex) && !(a.household && a.household.named));
+    if (c.length) { const a = rng.pick(c); j.person = a; a.job = j; }
+  }
   // fill remaining jobs with working-age adults (men mostly, some women) who aren't busy
-  const adults = households.flatMap((h) => h.members).filter((m) => !m.job && m.age >= 18 && m.age <= 66 && !m.notableBusy);
+  const adults = townsfolk.filter((m) => !m.job && m.age >= 18 && m.age <= 66 && !m.notableBusy);
   rng.shuffle(adults);
   const open = jobs.filter((j) => !j.person);
   for (const j of open) {
-    let idx = adults.findIndex((a) => (j.sex ? a.sex === j.sex : (a.sex === 'M' || rng.chance(0.35))) && !(a.household && a.household.named));
+    let idx = adults.findIndex((a) => (j.sex ? a.sex === j.sex : (a.sex === 'M' || rng.chance(0.35))) && inRange(j, a) && !(a.household && a.household.named));
     if (idx < 0) continue;
     const a = adults.splice(idx, 1)[0];
     j.person = a; a.job = j;
@@ -129,7 +139,7 @@ export function populate(ctx) {
   for (const j of jobs) {
     if (j.person) continue;
     const r = rng.fork('commuter' + j.building.name + j.role);
-    const p = make({ age: r.int(20, 58), role: j.outfit || null, sex: j.sex || (r.chance(0.7) ? 'M' : 'F') }, null);
+    const p = make({ age: j.ageRange ? r.int(j.ageRange[0], j.ageRange[1]) : r.int(20, 58), role: j.outfit || null, sex: j.sex || (r.chance(0.7) ? 'M' : 'F') }, null);
     p.commuter = true; j.person = p; p.job = j;
   }
   // outfits for jobs

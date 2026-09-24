@@ -127,6 +127,11 @@ function buildBuryingGround(ctx) {
   stone(graveType('abigail', ['ABIGAIL', 'HIS WIFE', '1806-1881'], 'marble'), 453, -232.5);
   stone(graveType('samuel_w', ['SAMUEL', 'WHITCOMB', '1844-1867', 'LOST AT SEA'], 'cenotaph'), 453, -229.5);
   stone(graveType('henry_w', ['HENRY L.', 'WHITCOMB', '1851-1924'], 'granite'), 459.5, -234.5);
+  stone(graveType('richard_w', ['RICHARD', 'WHITCOMB', '1895-1918', 'SEICHEPREY'], 'cenotaph'), 459.5, -231.5);
+  stone(graveType('elias3', ['ELIAS', 'WHITCOMB III', '1920-1944'], 'cenotaph'), 459.5, -229);
+  K.P('hb_grave_flag', 458.9, Y1, -230.3, 'W');
+  readStone(459.5, -231.5, 'Richard Whitcomb (cenotaph)', 'IN MEMORY OF\nLT. RICHARD WHITCOMB\n104th Infantry, 26th "Yankee" Division\nkilled at Seicheprey, France, April 20, 1918, aged 23\nburied at Thiaucourt\n\nMiss Augusta Whitcomb\'s nephew.');
+  readStone(459.5, -229, 'Elias Whitcomb III (cenotaph)', 'IN MEMORY OF\nELIAS WHITCOMB III\nLieutenant (j.g.), U.S.N.R.\nlost off Normandy, June 1944, aged 24\n\nThe last of the Whitcomb men. His great-aunt Augusta keeps his letters in the Historical Society safe.');
   K.P('vase_flowers', 452.2, Y1, -234.5, 'W', { tint: '#e0d0f0' });
   readStone(453, -234.5, 'Capt. Elias Whitcomb', 'CAPT. ELIAS WHITCOMB\nBorn Salem, Mass., March 3, 1809\nDied at Juniper Bay, November 18, 1889\n\nMaster of the schooner JUNIPER.\nHe found this cove in a storm, and kept his promise to come back.\nFOUNDER OF THIS TOWN\n\n"I have fought a good fight, I have finished my course."\n\n(A small bunch of asters has been left at the foot. The card says: "100 years, Great-Grandfather. — A.W.")');
   readStone(453, -232.5, 'Abigail Whitcomb', 'ABIGAIL (HALE) WHITCOMB\nwife of Capt. Elias Whitcomb\n1806 – 1881\n\nShe kept the first school in the chapel, 1853–1860,\nand the town\'s books for twenty years after.\n"Her children arise up, and call her blessed."');
@@ -135,24 +140,24 @@ function buildBuryingGround(ctx) {
   // -- the Dunmores: Hezekiah the miller, Mercy, and the two lost on the MARY ELLEN
   K.B(436, 1, -237.5, 446, 2, -237.25, MAT.granite); K.B(436, 1, -228.75, 446, 2, -228.5, MAT.granite); K.B(436, 1, -237.5, 436.25, 2, -228.5, MAT.granite); K.B(445.75, 1, -237.5, 446, 2, -228.5, MAT.granite);
   K.B(436, 1, -233.25, 436.25, 2, -232.75, 0);
-  stone(graveType('hezekiah', ['HEZEKIAH', 'DUNMORE', '1799-1872', 'MILLER'], 'slate'), 438, -235.5);
-  stone(graveType('mercy', ['MERCY', 'DUNMORE', '1803-1890'], 'slate'), 438, -233.5);
+  stone(graveType('enoch', ['ENOCH', 'DUNMORE', '1824-1896', 'MILLER'], 'slate'), 438, -235.5);
+  stone(graveType('mercy', ['MERCY', 'HIS WIFE', '1827-1901'], 'slate'), 438, -233.5);
   stone(graveType('josiah', ['CAPT. JOSIAH', 'DUNMORE', '1826-1867', 'LOST AT SEA'], 'cenotaph'), 442, -235.5);
   stone(graveType('nathaniel', ['NATHANIEL', 'DUNMORE', '1848-1867', 'LOST AT SEA'], 'cenotaph'), 442, -233.5);
   stone(graveType('hannah', ['HANNAH', 'WIFE OF JOSIAH', '1830-1911'], 'marble'), 442, -231);
-  readStone(438, -235.5, 'Hezekiah Dunmore', 'HEZEKIAH DUNMORE\n1799 – 1872\nHe built the sawmill on Mill Street in 1856 and sawed the timbers of half the town.\n"The hand of the diligent maketh rich."');
-  readStone(438, -233.5, 'Mercy Dunmore', 'MERCY, WIFE OF HEZEKIAH DUNMORE\n1803 – 1890\nShe outlived her husband, her son and her grandson,\nand went every October to the stone on the quay.');
+  readStone(438, -235.5, 'Enoch Dunmore', 'ENOCH DUNMORE\n1824 – 1896\nHe opened the sawmill on Mill Street in 1856 and sawed the timbers of half the town.\nHis brother Josiah and his nephew Nathaniel were lost with the MARY ELLEN; he paid for their stones.\n"The hand of the diligent maketh rich."');
+  readStone(438, -233.5, 'Mercy Dunmore', 'MERCY, WIFE OF ENOCH DUNMORE\n1827 – 1901\nEvery October she walked down to the stone on the quay with her sister-in-law Hannah,\nand every October they came back up Mill Street arm in arm, not speaking.');
   readStone(442, -235.5, 'Capt. Josiah Dunmore (cenotaph)', 'IN MEMORY OF\nCAPT. JOSIAH DUNMORE\nmaster of the schooner MARY ELLEN\nlost with all hands off Gannet Ledge\nin the Great Gale of October 1867\naged 41\n\n"They that go down to the sea in ships, that do business in great waters;\nthese see the works of the Lord, and his wonders in the deep."');
   readStone(442, -233.5, 'Nathaniel Dunmore (cenotaph)', 'NATHANIEL DUNMORE\nmate of the MARY ELLEN, aged 19\nlost with his father, October 1867\n\n"Father and son, in the same sea."');
-  readStone(442, -231, 'Hannah Dunmore', 'HANNAH (SNOW) DUNMORE\nwidow of Capt. Josiah Dunmore\n1830 – 1911\n\nWith the other widows of the MARY ELLEN she raised the memorial stone on the quay, 1869.\nShe kept her husband\'s sea-chest packed until she died.');
+  readStone(442, -231, 'Hannah Dunmore', 'HANNAH (SNOW) DUNMORE\nwidow of Capt. Josiah Dunmore\n1830 – 1911\n\nWith the other widows of the MARY ELLEN she raised the memorial stone on the quay, 1869.\nHer younger boy was twelve and home with the measles the week the schooner sailed; that is the only reason there are still Dunmores in Juniper Bay.\nShe kept her husband\'s sea-chest packed until she died.');
   // -- the MARY ELLEN cenotaphs along the south wall
   const me = [['Ezra Coffin', 35], ['Thomas Pruitt', 28], ['John Hallett', 44], ['William Doane', 31], ['Benjamin Crowell', 38], ['Hiram Nickerson', 52], ['Isaiah Snow', 14]];
   const lost = graveType('lost1867', ['LOST AT SEA', 'MARY ELLEN', 'OCT. 1867'], 'cenotaph', { w: 44, h: 50 });
   me.forEach(([n, a], i) => { const z = -219 + (i % 4) * 1.8, x = 424 + Math.floor(i / 4) * 5; stone(lost, x, z, { foot: false }); readStone(x, z, n + ' (cenotaph)', `IN MEMORY OF ${n.toUpperCase()}\naged ${a}\none of the eleven of the schooner MARY ELLEN\nlost off Gannet Ledge, October 1867\n\n"The sea gave them not back."\n\n(There is no grave here. His widow put up the stone so the family would have somewhere to stand.)`); });
   // -- the Civil War graves, with flags and G.A.R. markers
   const cw = [['CPL. AMOS', 'HALLETT', '22 MASS. INF.', '1838-1864', 'Cpl. Amos Hallett', 'Co. F, 22nd Massachusetts Infantry. Wounded at Petersburg, June 1864; died in hospital at City Point. Brought home by his brother in a coffin packed with salt.'],
-    ['PVT. WILLIAM', 'SNOW', '19 MASS. INF.', '1843-1863', 'Pvt. William Snow', 'Co. B, 19th Massachusetts Infantry. Killed at Gettysburg, July 3, 1863, at the stone wall. Uncle of Isaiah Snow, the cabin boy of the MARY ELLEN.'],
-    ['SGT. GEORGE', 'CROWELL', '35 MASS. INF.', '1835-1862', 'Sgt. George Crowell', 'Co. K, 35th Massachusetts Infantry. Killed at Antietam, September 17, 1862. "He carried the colors."'],
+    ['CPL. SILAS', 'FISK', '19 MASS. INF.', '1839-1863', 'Cpl. Silas Fisk', 'Co. B, 19th Massachusetts Infantry. Killed at Gettysburg, July 3, 1863, at the stone wall. Grandfather of Amos Fisk, keeper of Whitcomb Point Light, who leaves a sprig of bayberry here every Fourth of July.'],
+    ['SGT. ELISHA', 'CROWELL', '35 MASS. INF.', '1835-1862', 'Sgt. Elisha Crowell', 'Co. K, 35th Massachusetts Infantry. Killed at Antietam, September 17, 1862. "He carried the colors."'],
     ['PVT. THOMAS', 'COFFIN', '20 MASS. INF.', '1840-1864', 'Pvt. Thomas Coffin', 'Co. G, 20th Massachusetts Infantry. Killed in the Wilderness, May 1864. His body was not recovered; his mother had this stone cut anyway.'],
     ['PVT. JAMES', 'DOANE', '2 MASS. CAV.', '1845-1865', 'Pvt. James Doane', '2nd Massachusetts Cavalry. Died of fever at Richmond, April 1865, eleven days after the surrender. Aged 19.']];
   cw.forEach(([a, bb, c, d, t, body], i) => {
@@ -162,14 +167,14 @@ function buildBuryingGround(ctx) {
     readStone(x, z, t, `${t.toUpperCase()}\n${d}\n\n${body}\n\nA small flag and a bronze G.A.R. star mark the grave. The Legion post renews the flags every Memorial Day.`);
   });
   // -- the influenza row, 1918: plain granite, all the same autumn
-  const flu = [['DR. JOSIAH', 'PIKE', '1868-1918', 'Dr. Josiah Pike', 'Physician. He tended the sick of this town until he was one of them. Father of Dr. Nathaniel Pike.'],
-    ['ELLEN', 'MAYHEW', '1893-1918', 'Ellen Mayhew', 'Nurse, St. Luke\'s ward in the council chamber. Sister of Miss Harriet Mayhew, the librarian, who brings roses on the first Sunday of every month.'],
+  const flu = [['PVT. ARTHUR', 'PEMBERTON', '1896-1918', 'Pvt. Arthur Pemberton', 'Died of the influenza at Camp Devens, October 1918, before he could go to France. The Mayor\'s younger brother; his name is also on the Great War board at City Hall.'],
+    ['ELLEN', 'MAYHEW', '1893-1918', 'Ellen Mayhew', 'Nurse\'s aide in the council-chamber ward, with Dr. Josiah Pike and Nurse Duffy. Youngest sister of Miss Harriet Mayhew, the librarian (who read Dickens aloud on that ward), and of Mr. Theodore Mayhew, the pharmacist. Roses on the first Sunday of every month.'],
     ['ANNA', 'NOVAK', '1911-1918', 'Anna Novak', 'Aged 7. Casimir Novak\'s little sister. There is a china doll set into the stone behind a pane of glass.'],
-    ['MICHAEL', 'HALLORAN', '1891-1918', 'Michael Halloran', 'Baker. Brother of Patrick Halloran II. "Rest, Mick — we\'ll keep the ovens going."'],
+    ['OUR KATE', '', '1880-1918', 'Our Kate', 'The stone gives no surname: "Our Kate". Mrs. Bridget Halloran\'s sister, laid in the council chamber with the others. Bridget still asks people to say a prayer for her.'],
     ['MARY', 'DOANE', '1895-1918', 'Mary Doane', 'Telephone operator. She kept the switchboard open through the worst of October until she fell ill at it.'],
     ['BABY', 'KOWALSKI', 'OCT. 1918', 'Baby Kowalski', 'Infant son of Jan & Zofia Kowalski. "Our little one, three weeks."'],
     ['JOHN', 'SILVA', '1888-1918', 'John Silva', 'Fisherman, of the Azores and Pier 3.'],
-    ['ROSA', 'CASTELLANO', '1900-1918', 'Rosa Castellano', 'Aged 18, eldest daughter of Giuseppe Castellano. Sal Sr.\'s aunt; his wife Rosa was named for her.']];
+    ['ROSA', 'CASTELLANO', '1900-1918', 'Rosa Castellano', 'Aged 18, youngest daughter of Giuseppe Castellano of the Fish Co. The family brings her lilies on All Souls\' Day.']];
   flu.forEach(([a, bb, c, t, body], i) => {
     const x = 452 + i * 1.75, z = -216;
     stone(graveType('flu' + i, [a, bb, c], 'granite', { w: 40, h: 46 }), x, z, { foot: false });

@@ -60,7 +60,7 @@ export function buildMapCanvas(ctx) {
   rect(CITYHALL.x0 + 4, CITYHALL.z0 + 6, CITYHALL.x1 - 2, CITYHALL.z1 - 6, '#c9b27a');
   // rail line
   g.strokeStyle = '#6a5a4a'; g.lineWidth = 2; g.setLineDash([6, 3]);
-  g.beginPath(); g.moveTo(X(14), Z(300)); g.lineTo(X(14), Z(-236)); g.lineTo(X(480), Z(-236)); g.stroke(); g.setLineDash([]);
+  g.beginPath(); g.moveTo(X(14), Z(300)); g.lineTo(X(14), Z(-244)); g.lineTo(X(480), Z(-244)); g.stroke(); g.setLineDash([]);
   // street names
   g.fillStyle = 'rgba(60,40,20,0.8)'; g.font = `italic ${Math.round(5 * MAP.ppm)}px Georgia`;
   g.textAlign = 'center'; g.textBaseline = 'middle';
