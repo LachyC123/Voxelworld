@@ -6,8 +6,9 @@ import * as residential from './residential.js';
 import * as downtown from './downtown.js';
 import * as animals from './animals.js';
 import * as routines from './routines.js';
+import * as parking from './parking.js';
 
-const MODULES = [['residential', 'Neighbourhood life', residential], ['downtown', 'Downtown & waterfront life', downtown], ['animals', 'Dogs, cats and horses', animals], ['routines', 'Errands, strolls and visitors', routines]];
+const MODULES = [['residential', 'Neighbourhood life', residential], ['downtown', 'Downtown & waterfront life', downtown], ['animals', 'Dogs, cats and horses', animals], ['routines', 'Errands, strolls and visitors', routines], ['parking', 'Parked cars', parking]];
 
 export function setupLife(ctx) {
   ctx.life = new LifeWorld(ctx);
