@@ -194,11 +194,24 @@ export class People {
       const held = S.entry.held || p.carry || null;
       this.chars.setHeld(p.ch, held, heldTint(held, p));
       if (held) { P.aRp = -0.25; }
+      const arms = S.entry.arms;
+      if (arms === 'push') { P.aLp = P.aRp = -1.0; P.aLr = P.aRr = -0.12; P.lean = 0.1; }
+      else if (arms === 'carry') { P.aLp = P.aRp = -1.2; P.aLr = P.aRr = -0.3; P.lean = -0.05; }
+      else if (arms === 'pull') { P.aRp = 0.35; P.aRr = 0.1; }
+      else if (arms === 'arm') { P.aLp = -0.3; P.aLr = -0.45; }
     } else {
       const sp = S.spot;
       const a = applyActivity(P, S.act, { t, ph: p.ph, seat: sp.seat, s: sc, speaking });
       let x = S.x, z = S.z, yaw = S.yaw;
-      if (a.pace) { const L = a.pace, c = (t * 0.9 / L + p.ph) % 2, d = c < 1 ? c : 2 - c; const fx = Math.sin(yaw), fz = Math.cos(yaw); x += fx * d * L; z += fz * d * L; walkPose(P, t * 5 + p.ph, 0.8, sc); if (c >= 1) yaw += Math.PI; }
+      const paceL = (sp && sp.pace) || a.pace;
+      if (paceL) {
+        // back and forth along the spot's facing (mowing, hauling crates from a truck, pacing)
+        const L = paceL, c = (t * 0.9 / L + p.ph) % 2, d = c < 1 ? c : 2 - c; const fx = Math.sin(yaw), fz = Math.cos(yaw); x += fx * d * L; z += fz * d * L;
+        const keep = a.base !== 'walk' ? [P.aLp, P.aLr, P.aRp, P.aRr, P.headPitch] : null;
+        walkPose(P, t * 5 + p.ph, 0.8, sc);
+        if (keep) [P.aLp, P.aLr, P.aRp, P.aRr, P.headPitch] = keep;
+        if (c >= 1) yaw += Math.PI;
+      }
       else if (a.circle) { const r = a.circle, w = (a.speed || 2) / r; const ang = t * w * 0.5 + p.ph; x += Math.cos(ang) * r; z += Math.sin(ang) * r; yaw = Math.atan2(-Math.sin(ang), Math.cos(ang)); walkPose(P, t * 7 + p.ph, 1.2, sc); P.bob += Math.max(0, Math.sin(t * 6 + p.ph)) * 0.05; }
       else if (a.base === 'walk') { walkPose(P, t * 4 + p.ph, 0.5, sc); }
       if (P.swing) { const fx = Math.sin(yaw), fz = Math.cos(yaw); x += fx * P.swing * 0.5; z += fz * P.swing * 0.5; P.bob += (1 - Math.cos(P.swing * 1.2)) * 0.25; }

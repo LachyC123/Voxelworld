@@ -1780,3 +1780,14 @@ defineProp('horse_police', {
     m.box(0, 12, 17, 1, 5, 1, '#555555'); m.box(9, 12, 17, 1, 5, 1, '#555555'); m.box(0, 11, 17, 1, 1, 2, CHROME); m.box(9, 11, 17, 1, 1, 2, CHROME);
   },
 });
+
+// a galvanised bucket of soapy water with a sponge (car washing)
+defineProp('bucket_suds', {
+  size: [6, 6, 6], cat: 'exterior',
+  build(m) {
+    m.box(0, 0, 0, 6, 5, 6, '#9aa0a4'); m.box(1, 1, 1, 4, 4, 4, '#7a8084');
+    m.box(1, 5, 1, 4, 1, 4, '#f4f4f0'); m.box(2, 5, 2, 2, 1, 1, '#ffffff');
+    m.box(0, 5, 2, 1, 1, 2, '#5a5f62'); m.box(5, 5, 2, 1, 1, 2, '#5a5f62');
+    m.box(4, 5, 3, 2, 1, 2, '#e8c040');
+  },
+});

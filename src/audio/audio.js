@@ -7,6 +7,27 @@ import * as THREE from 'three';
 
 const NOTE = (n) => 440 * Math.pow(2, (n - 69) / 12); // midi -> Hz
 
+// Street-life sound patterns: (audio, channel, step, t0) => seconds until the next step.
+const R = Math.random;
+export const LIFE_SOUNDS = {
+  hammer: (a, ch, i, t) => { a.hit(ch, t, { type: 'bandpass', freq: 1400 + R() * 300, q: 3, vol: 0.35, dur: 0.06 }); a.tone(ch, 180, t, 0.05, { vol: 0.06 }); return i % 7 === 6 ? 1.6 + R() * 2 : 0.38 + R() * 0.08; },
+  saw: (a, ch, i, t) => { a.hit(ch, t, { type: 'bandpass', freq: 2600, q: 2, vol: 0.18, dur: 0.22 }); return i % 12 === 11 ? 2 + R() * 2 : 0.26; },
+  mower: (a, ch, i, t) => { for (let k = 0; k < 4; k++) a.hit(ch, t + k * 0.06, { type: 'bandpass', freq: 3200 + R() * 400, q: 4, vol: 0.05, dur: 0.05 }); return 0.24; },
+  bark: (a, ch, i, t) => { const n = 1 + (R() * 3 | 0); for (let k = 0; k < n; k++) { a.tone(ch, 520 + R() * 80, t + k * 0.28, 0.12, { type: 'sawtooth', vol: 0.16, filter: 1300, attack: 0.005, release: 0.06 }); a.hit(ch, t + k * 0.28, { type: 'bandpass', freq: 900, q: 1.5, vol: 0.12, dur: 0.1 }); } return 2.5 + R() * 5; },
+  kids: (a, ch, i, t) => { const f = 700 + R() * 500; a.tone(ch, f, t, 0.18, { type: 'triangle', vol: 0.05, vibrato: true }); if (R() < 0.4) a.tone(ch, f * 1.25, t + 0.2, 0.25, { type: 'triangle', vol: 0.05, vibrato: true }); return 0.5 + R() * 1.4; },
+  chatter: (a, ch, i, t) => { const f = 180 + R() * 160; a.tone(ch, f, t, 0.14, { type: 'sawtooth', vol: 0.025, filter: 900 }); return 0.16 + R() * (i % 9 === 8 ? 1.5 : 0.2); },
+  radio: (a, ch, i, t) => { a.jazzStep(ch, i, t, 0.4); return 0.4; },
+  piano: (a, ch, i, t) => { const sc = [60, 62, 64, 65, 67, 69, 71, 72]; a.tone(ch, NOTE(sc[(i * 3 + (i >> 2)) % 8]), t, 0.5, { vol: 0.06, decay: 0.2, sustain: 0.2 }); if (i % 4 === 0) a.tone(ch, NOTE(48 + (i >> 2) % 5), t, 0.9, { vol: 0.05, decay: 0.3, sustain: 0.2 }); return 0.32; },
+  whistle: (a, ch, i, t) => { const mel = [79, 76, 79, 81, 79, 76, 74, 72]; a.tone(ch, NOTE(mel[i % 8]), t, 0.3, { vol: 0.04, vibrato: true, attack: 0.03 }); return i % 8 === 7 ? 3 + R() * 3 : 0.34; },
+  bell: (a, ch, i, t) => { a.bell(ch, t, 1480, 0.05); return 1.2 + R() * 3; },
+  splash: (a, ch, i, t) => { a.hit(ch, t, { type: 'lowpass', freq: 900, vol: 0.2, dur: 0.4 }); return 1 + R() * 3; },
+  engine: (a, ch, i, t) => { a.tone(ch, 55 + R() * 6, t, 0.3, { type: 'sawtooth', vol: 0.05, filter: 300 }); return 0.28; },
+  sweep: (a, ch, i, t) => { a.hit(ch, t, { type: 'highpass', freq: 3500, vol: 0.06, dur: 0.35 }); return 0.9 + R() * 0.3; },
+  typewriter: (a, ch, i, t) => { a.hit(ch, t, { type: 'bandpass', freq: 2500, q: 4, vol: 0.12, dur: 0.03 }); if (i % 40 === 39) { a.bell(ch, t + 0.1, 2800, 0.02); return 1.2; } return 0.11 + R() * 0.1; },
+  hose: (a, ch, i, t) => { a.hit(ch, t, { type: 'highpass', freq: 5000, vol: 0.04, dur: 0.5 }); return 0.45; },
+  crowd: (a, ch, i, t) => { for (let k = 0; k < 3; k++) a.tone(ch, 150 + R() * 250, t + R() * 0.3, 0.15, { type: 'sawtooth', vol: 0.02, filter: 800 }); return 0.3; },
+};
+
 export class Audio {
   constructor() { this.ok = false; this.sources = []; this.lastStep = 0; this.lastHour = -1; }
 
@@ -185,6 +206,16 @@ export class Audio {
       const muffled = (s.room || 0) !== (g.playerRoom || 0);
       const vol = this.place(st.ch, s, listener, fwd, s.range, s.vol, muffled);
       if (vol > 0.001) while (st.next < now + 0.25) { this[s.pattern](st.ch, st.i++, st.next, s.beat); st.next += s.beat * (s.pattern === 'hymnStep' ? 2 : 1); }
+      else st.next = now + 0.1;
+    }
+    // street-life sources (hammering, a lawnmower, a dog, kids at play, a radio in a window…)
+    if (g.life) for (const s of g.life.soundSources(minutes, cam)) {
+      const pat = LIFE_SOUNDS[s.kind]; if (!pat) continue;
+      let st = this.sources.find((q) => q.id === s.id);
+      if (!st) { st = { id: s.id, ch: this.channel(), next: now + Math.random() * 0.5, i: 0 }; this.sources.push(st); }
+      st.alive = true;
+      const vol = this.place(st.ch, s, listener, fwd, s.range, s.vol, (s.room || 0) !== (g.playerRoom || 0));
+      if (vol > 0.001) while (st.next < now + 0.3) { st.next += pat(this, st.ch, st.i++, st.next) || 0.5; }
       else st.next = now + 0.1;
     }
     for (const st of this.sources) { if (!st.alive) st.ch.g.gain.setTargetAtTime(0, now, 0.3); st.alive = false; }

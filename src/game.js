@@ -24,6 +24,7 @@ import { Traffic, Trolleys, Trains } from './vehicles/traffic.js';
 import { Boats } from './vehicles/boats.js';
 import { Birds } from './sim/birds.js';
 import { Fireworks } from './render/fireworks.js';
+import { LifeRuntime } from './sim/life/runtime.js';
 import { Audio } from './audio/audio.js';
 import { LighthouseBeam } from './render/beam.js';
 import { LIGHTHOUSE } from './city/layout.js';
@@ -77,6 +78,7 @@ export class Game {
     this.boats = new Boats(ctx.props);
     this.birds = new Birds(ctx.props);
     this.fireworks = new Fireworks(R.scene, ctx.lights);
+    this.life = new LifeRuntime(ctx);
     this.beam = new LighthouseBeam(R.scene, LIGHTHOUSE.x, ctx.lighthouseLampY || 17.5, LIGHTHOUSE.z);
     this.audio = new Audio();
     this.fireworks.onBoom = (x, y, z) => this.audio.boom(x, y, z, this);
@@ -219,6 +221,7 @@ export class Game {
     this.boats.update(minutes, this.time);
     this.birds.update(dt, this.time, this.player.focus(), tod.night);
     this.fireworks.update(dt, minutes, !this.clock.paused);
+    this.life.update(this, dt);
     this.beam.update(this.time, tod.night);
     this.audio.update(this, dt);
     this.meshes.updateLOD(cam, aerial ? 150 : 190);
@@ -370,7 +373,7 @@ export class Game {
   }
 
   handleInteraction() {
-    if (this.player.mode === 'aerial') { this.hud.prompt(null); return; }
+    if (this.player.mode === 'aerial') { this.hud.prompt(null); if (this._capHtml) this.updateCaption(null); return; }
     const cam = this.R.camera;
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     const pos = this.player.pos;
@@ -386,6 +389,8 @@ export class Game {
     };
     for (const p of this.ctx.people.visible) { const S = p.state; if (S.camDist < 6) consider('person', S.x, S.y + 1, S.z, 2.6, p); }
     for (const it of this.ctx.interactables) { if (Math.abs(it.x - pos.x) < 4 && Math.abs(it.z - pos.z) < 4) consider(it.kind, it.x, it.y, it.z, it.r || 1.6, it); }
+    for (const it of this.life.interactables(this.clock.minutes)) { if (Math.abs(it.x - pos.x) < 4 && Math.abs(it.z - pos.z) < 4) consider(it.kind || 'life', it.x, it.y, it.z, it.r || 1.6, it); }
+    this.updateCaption(fwd);
     if (this.player.seated) { this.hud.prompt('<b>W</b>Stand up'); return; }
     if (!best) { this.hud.prompt(null); return; }
     const o = best.obj;
@@ -400,6 +405,22 @@ export class Game {
     else if (best.kind === 'read') this.hud.read(o.text);
     else if (best.kind === 'sit') this.player.sit({ x: o.x, y: o.seatY ?? o.y - 0.45, z: o.z, yaw: o.yaw, standAt: o.standAt, seatY: o.seatY ?? (o.y - 0.45) });
     else if (o.action) o.action(this);
+  }
+
+  // the small caption under the crosshair: who that is and what they're up to
+  updateCaption(fwd) {
+    const el = this._cap || (this._cap = document.getElementById('focus'));
+    if (!el) return;
+    this._capT = (this._capT || 0) + 1;
+    if (this._capT % 4) return;
+    const hit = this.player.mode === 'aerial' ? null : this.life.lookAt(this, this.R.camera.position, fwd);
+    let html = '';
+    if (hit && hit.obj.first !== undefined) {
+      const p = hit.obj;
+      const what = this.ctx.people.describeActivity(p);
+      html = `<b>${p.full}</b>${what ? ' · ' + what : ''}`;
+    } else if (hit) html = hit.obj.text;
+    if (html !== this._capHtml) { this._capHtml = html; el.innerHTML = html; el.classList.toggle('hidden', !html); }
   }
 
   talkTo(p) {

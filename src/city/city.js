@@ -5,6 +5,7 @@ import { PLAN, streetAt, GRID } from './layout.js';
 import { GEN, SITES } from './gen/index.js';
 import { populate } from '../sim/population.js';
 import { setupEvents } from '../sim/events.js';
+import { setupLife } from '../sim/life/index.js';
 
 const V = (m) => Math.round(m * 4);
 
@@ -59,6 +60,8 @@ export async function buildCity(onStatus = () => {}) {
   ctx.world.finalize();
   populate(ctx);
   setupEvents(ctx);
+  onStatus('Sending everybody about their business…', 0.49); await tick();
+  setupLife(ctx);
   return ctx;
 }
 

@@ -5,3 +5,6 @@ import './vehicles.js';
 import './shops.js';
 import './wearables.js';
 import './special.js';
+import './life_home.js';
+import './life_town.js';
+import './animals.js';
