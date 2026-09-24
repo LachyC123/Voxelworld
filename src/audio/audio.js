@@ -241,6 +241,23 @@ export class Audio {
     }
   }
 
+  // the diary: a page turning, and a pencil tick
+  page() {
+    if (!this.ok) return;
+    const ch = this.ui || (this.ui = this.channel()); ch.g.gain.value = 1;
+    const t = this.ac.currentTime;
+    this.hit(ch, t, { type: 'bandpass', freq: 2600, q: 0.8, vol: 0.12, dur: 0.22 });
+    this.hit(ch, t + 0.08, { type: 'bandpass', freq: 4200, q: 1.2, vol: 0.06, dur: 0.16 });
+  }
+  pencil() {
+    if (!this.ok) return;
+    const ch = this.ui || (this.ui = this.channel()); ch.g.gain.value = 1;
+    const t = this.ac.currentTime;
+    this.hit(ch, t, { type: 'bandpass', freq: 5200, q: 3, vol: 0.09, dur: 0.07 });
+    this.hit(ch, t + 0.09, { type: 'bandpass', freq: 4600, q: 3, vol: 0.12, dur: 0.12 });
+    this.tone(ch, 880, t + 0.25, 0.25, { type: 'sine', vol: 0.03 }); this.tone(ch, 1320, t + 0.36, 0.35, { type: 'sine', vol: 0.025 });
+  }
+
   boom(x, y, z, g) {
     if (!this.ok) return;
     const cam = g.R.camera.position;

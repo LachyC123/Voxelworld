@@ -26,6 +26,8 @@ import { Birds } from './sim/birds.js';
 import { Fireworks } from './render/fireworks.js';
 import { LifeRuntime } from './sim/life/runtime.js';
 import { Smoke } from './render/smoke.js';
+import { Hunt } from './sim/hunt.js';
+import { Diary } from './ui/diary.js';
 import { Audio } from './audio/audio.js';
 import { LighthouseBeam } from './render/beam.js';
 import { LIGHTHOUSE } from './city/layout.js';
@@ -95,6 +97,19 @@ export class Game {
     this.player.onSplash = () => this.hud.toast('Splash! A passing fisherman hauls you back onto the quay.');
     this.hud = new HUD(this);
     this.bubbles = new Bubbles($('bubbles'), R.camera);
+    // the Spotter's Diary (a model-village "things to spot" list)
+    this.hunt = new Hunt(this);
+    this.diary = new Diary(this, this.hunt);
+    this.hunt.onSpot = (it) => {
+      this.hud.toast(`✎ Spotted! ${it.what} — ${this.hunt.count} of ${this.hunt.total}`, 5);
+      this.audio.pencil();
+      this.diary.spottedPeek();
+      this.syncDiaryButton();
+      const n = this.hunt.count, N = this.hunt.total;
+      if (n === 10 || n === Math.ceil(N / 2) || n === N) setTimeout(() => this.hud.toast(n === N ? '★ Every last thing spotted! Open your diary — there\'s a certificate in the back.' : `★ A new stamp in your diary (${n} spotted)`, 6), 5200);
+    };
+    $('btn-diary').onclick = () => this.diary.toggle();
+    this.syncDiaryButton();
     // spawn: stepping off the train at Union Station, looking down Lantern Avenue
     const sp = this.params.get('spawn');
     if (sp) { const [x, y, z, yaw] = sp.split(',').map(Number); this.player.setPose(x, y, z, yaw || 0); }
@@ -134,6 +149,12 @@ export class Game {
     this.meshPromise = all.then((s) => console.log(`world meshed: ${s.regions} regions, ${Math.round(s.tris / 1000)}k tris in ${Math.round(s.ms)} ms`));
     this.hud.initMap(ctx);
     if (this.params.get('diag')) this.diagnostics();
+    if (this.params.get('diary')) {   // for screenshots: ?diary=<spread>[&spotted=<n>]
+      const n = Number(this.params.get('spotted') || 0);
+      this.hunt.items.slice(0, n).forEach((it, i) => this.hunt.spotted.set(it.id, 600 + i * 7));
+      this.diary.spread = Number(this.params.get('diary')) || 0;
+      setTimeout(() => this.diary.openBook(), 50);
+    }
     this.lastT = performance.now();
     this.ready = true;
     console.log(`ready in ${Math.round(performance.now() - t0)} ms`);
@@ -195,6 +216,7 @@ export class Game {
     if (inp.hit('BracketRight')) { this.clock.speed = Math.min(600, this.clock.speed * (this.clock.speed < 60 ? 60 : 2)); this.hud.syncButtons(); }
     if (inp.hit('BracketLeft')) { this.clock.speed = Math.max(1, this.clock.speed / (this.clock.speed <= 60 ? 60 : 2)); this.hud.syncButtons(); }
     if (inp.hit('Backquote')) $('stats').classList.toggle('hidden');
+    if (inp.hit('Tab') || inp.hit('KeyI')) this.diary.toggle();
     // simulation
     this.clock.advance(dt);
     const minutes = this.clock.minutes;
@@ -245,7 +267,9 @@ export class Game {
     this._lastMin = minutes;
     // where am I?
     this.updateLocation();
-    this.handleInteraction();
+    if (this.diary.isUp) { this.hud.prompt(null); if (this._capHtml) this.updateCaption(null); } else this.handleInteraction();
+    this.hunt.update(dt);
+    this.diary.update(dt);
     this.bubbles.update(ctx.people, this.player, this.time, minutes, this.playerRoom || 0);
     this.hud.update(dt);
     // shadows follow the player (or the view centre in aerial)
@@ -412,6 +436,8 @@ export class Game {
     else if (best.kind === 'sit') this.player.sit({ x: o.x, y: o.seatY ?? o.y - 0.45, z: o.z, yaw: o.yaw, standAt: o.standAt, seatY: o.seatY ?? (o.y - 0.45) });
     else if (o.action) o.action(this);
   }
+
+  syncDiaryButton() { const el = document.getElementById('diary-count'); if (el) el.textContent = `${this.hunt.count}/${this.hunt.total}`; }
 
   // the small caption under the crosshair: who that is and what they're up to
   updateCaption(fwd) {

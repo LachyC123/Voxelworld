@@ -146,7 +146,7 @@ export class LifeRuntime {
     if (!hit || hit.d < 2.5) return null;
     const b = this.ctx.buildings.find((q) => q.rect && hit.x >= q.rect.x0 && hit.x <= q.rect.x1 && hit.z >= q.rect.z0 && hit.z <= q.rect.z1);
     if (!b) return null;
-    return { ...hit, obj: { text: this.describeBuilding(b, m) } };
+    return { ...hit, building: b, obj: { text: this.describeBuilding(b, m) } };
   }
 
   describeBuilding(b, m) {

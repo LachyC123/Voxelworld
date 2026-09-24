@@ -1,3 +1,5 @@
+@font-face { font-family: 'Diary Hand'; src: url('vendor/fonts/caveat-latin.woff2') format('woff2'); font-weight: 400 700; font-display: block; }
+@font-face { font-family: 'Diary Type'; src: url('vendor/fonts/special-elite-latin.woff2') format('woff2'); font-display: block; }
 :root {
   --navy: #13232d;
   --navy2: #1b3140;
@@ -65,6 +67,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0f12; col
 #crosshair { position: fixed; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(255, 255, 255, 0.7); box-shadow: 0 0 2px #000; z-index: 2; pointer-events: none; }
 #focus { position: fixed; left: 50%; top: calc(50% + 16px); transform: translateX(-50%); max-width: min(560px, 80vw); padding: 2px 10px; font-size: 14px; font-style: italic; color: var(--cream); text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,0.8); text-align: center; z-index: 2; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #focus b { font-style: normal; color: #f3dfae; }
+#diary-nav { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 6; }
+#diary-count { opacity: 0.75; font-size: 0.85em; margin-left: 2px; }
 #view-buttons { position: fixed; left: 14px; bottom: 14px; display: flex; gap: 6px; z-index: 5; }
 
 .overlay { position: fixed; inset: 0; background: rgba(5, 9, 12, 0.6); display: flex; align-items: center; justify-content: center; z-index: 20; }
