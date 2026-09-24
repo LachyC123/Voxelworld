@@ -1,0 +1,15 @@
+{
+  "name": "juniper-bay",
+  "version": "1.0.0",
+  "description": "Juniper Bay — an explorable, living 3D voxel town (Saturday, September 26, 1953).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "check": "node tools/check.mjs"
+  },
+  "devDependencies": {
+    "three": "0.186.0"
+  },
+  "license": "MIT"
+}
