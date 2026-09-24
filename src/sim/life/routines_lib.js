@@ -23,14 +23,25 @@ export class RW {
     this.cache = new Map();       // misc spot caches
     this.count = {};              // scene counters (diagnostics)
     this.touched = new Set();     // people given a routine
+    this.wcache = new Map();      // person -> their free windows (invalidated by W.plan)
+    this.homeOf = new Map();      // person -> home place
   }
   tally(k, n = 1) { this.count[k] = (this.count[k] || 0) + n; }
 
   // ---------------------------------------------------------------- time
+  // every plan goes through here, so the windows cache stays honest
+  plan(p, t0, t1, entries, o = {}) { this.L.plan(p, t0, t1, entries, o); this.wcache.delete(p); this.touched.add(p); }
   // free stretches of p's day inside [lo, hi): not asleep, working, in an event or another scene
   windows(p, lo, hi, minLen = 10) {
     lo = T(lo); hi = T(hi);
     if (p.commuter || p.visitor || !p.schedule.length) return [];
+    let all = this.wcache.get(p);
+    if (!all || all.n !== p.schedule.length || all.b !== (p.busy || []).length) { all = { n: p.schedule.length, b: (p.busy || []).length, w: this._windows(p) }; this.wcache.set(p, all); }
+    const out = [];
+    for (const [a, b] of all.w) { const a2 = Math.max(a, lo), b2 = Math.min(b, hi); if (b2 - a2 >= minLen) out.push([a2, b2]); }
+    return out;
+  }
+  _windows(p) {
     const s = p.schedule; s.sort((a, b) => a.t - b.t);
     const segs = [];
     for (let k = 0; k < s.length; k++) {
@@ -39,8 +50,7 @@ export class RW {
       if (isHard(e)) continue;
       const lab = e.label || '';
       for (const [re, len] of MEALS) if (re.test(lab)) { a += len; break; }
-      const a2 = Math.max(a, lo), b2 = Math.min(b, hi);
-      if (b2 > a2) segs.push([a2, b2]);
+      if (b > a) segs.push([a, b]);
     }
     const merged = [];
     for (const g of segs) { const m = merged[merged.length - 1]; if (m && g[0] <= m[1] + 0.01) m[1] = Math.max(m[1], g[1]); else merged.push([g[0], g[1]]); }
@@ -50,7 +60,7 @@ export class RW {
       for (const [a, b] of out) { if (d <= a || c >= b) { nx.push([a, b]); continue; } if (c > a) nx.push([a, c]); if (d < b) nx.push([d, b]); }
       out = nx;
     }
-    return out.filter(([a, b]) => b - a >= minLen);
+    return out;
   }
   // the free window containing [t0, t1], or null
   windowAround(p, t0, t1) {
@@ -69,11 +79,24 @@ export class RW {
     if (cur.route) { const n = cur.route[cur.route.length - 1]; return { x: this.nav.x[n], z: this.nav.z[n], node: n }; }
     return cur.spot ? { x: cur.spot.x, z: cur.spot.z, spot: cur.spot } : null;
   }
+  // the earliest minute >= t by which p has finished walking to wherever they were heading at t
+  settle(p, t) {
+    const s = p.schedule; let k = -1;
+    for (let i = 0; i < s.length; i++) { if (s[i].t < t) k = i; else break; }
+    if (k < 0) return t;
+    const e = s[k], prev = s[(k - 1 + s.length) % s.length];
+    const to = e.route ? { x: this.nav.x[e.route[e.route.length - 1]], z: this.nav.z[e.route[e.route.length - 1]] } : e.spot;
+    const from = prev.route ? { x: this.nav.x[prev.route[prev.route.length - 1]], z: this.nav.z[prev.route[prev.route.length - 1]] } : prev.spot;
+    if (!to || !from) return t;
+    let need = walkMin(from, to, e.speed || p.speed);
+    if (e.route) { let len = 0; for (let i = 1; i < e.route.length; i++) len += Math.hypot(this.nav.x[e.route[i]] - this.nav.x[e.route[i - 1]], this.nav.z[e.route[i]] - this.nav.z[e.route[i - 1]]); need = len / ((e.speed || p.speed) * 0.8 * 60) + 0.5; }
+    return Math.max(t, e.t + need + 0.3);
+  }
   // the entry in force at minute t
   entryAt(p, t) { let cur = null; for (const e of p.schedule) { if (e.t <= t) cur = e; else break; } return cur; }
 
   // ---------------------------------------------------------------- places
-  home(p) { return this.L.homePlace(p); }
+  home(p) { let h = this.homeOf.get(p); if (h === undefined) { h = this.L.homePlace(p); this.homeOf.set(p, h); } return h; }
   homeSpot(p) { return p.lounge || p.seat || (p.home && p.home.lounge && p.home.lounge[0]) || null; }
   kitchenSpot(p) { const k = p.home && p.home.kitchen; return (k && (k.find((s) => s.act === 'cook') || k[0])) || this.homeSpot(p); }
   atHome(p, t) {
@@ -152,39 +175,61 @@ export class RW {
   route(fromSpot, metres, o = {}) {
     const nav = this.nav, rng = o.rng || this.rng;
     if (!fromSpot || fromSpot.node === undefined || fromSpot.node < 0) return null;
+    if (!this._wadj) {
+      // sidewalk/path adjacency, built once (spots added later are never part of a route's body)
+      const n = nav.count;
+      this._wadj = new Array(n);
+      for (let i = 0; i < n; i++) { const k = nav.info[i].kind; this._wadj[i] = WALKISH.has(k) || k === 'outside' ? nav.adj[i].filter((e) => WALKISH.has(nav.info[e[0]].kind)).map((e) => e[0]) : null; }
+      this._seen = new Int32Array(n); this._stamp = 0;
+    }
+    const wadj = this._wadj, seen = this._seen, X = nav.x, Z = nav.z, Y = nav.y;
     const start = fromSpot.node;
-    const ok = (v) => WALKISH.has(nav.info[v].kind);
     let cur = -1;
-    for (const [v] of nav.adj[start]) { if (ok(v) || nav.info[v].kind === 'outside') { cur = v; break; } }
+    for (const [v] of nav.adj[start]) { if (v < wadj.length && wadj[v]) { cur = v; break; } }
     if (cur < 0) return null;
-    const out = [start, cur], seen = new Set(out);
-    const d3 = (a, b) => Math.hypot(nav.x[a] - nav.x[b], nav.y[a] - nav.y[b], nav.z[a] - nav.z[b]);
-    let len = d3(start, cur), prev = start;
-    const to = o.to || null;
+    const stamp = ++this._stamp;
+    seen[cur] = stamp;
+    const out = [start, cur];
+    const d3 = (a, b) => Math.hypot(X[a] - X[b], Y[a] - Y[b], Z[a] - Z[b]);
+    let len = d3(start, cur), prev = -1;
+    const to = o.to || null, within2 = (o.within ?? 10) ** 2, jit = o.jitter ?? 3;
+    const cand = [];
     for (let guard = 0; guard < 900 && len < metres; guard++) {
-      if (to && Math.hypot(nav.x[cur] - to.x, nav.z[cur] - to.z) < (o.within ?? 10)) break;
-      const nb = nav.adj[cur].map((e) => e[0]).filter((v) => ok(v) && !seen.has(v));
-      if (!nb.length) break;
-      let next;
+      if (to) { const dx = X[cur] - to.x, dz = Z[cur] - to.z; if (dx * dx + dz * dz < within2) break; }
+      const nb = wadj[cur]; if (!nb) break;
+      cand.length = 0;
+      for (const v of nb) if (seen[v] !== stamp) cand.push(v);
+      if (!cand.length) break;
+      let next = cand[0];
       if (to) {
         let bs = Infinity;
-        for (const v of nb) { const d = Math.hypot(nav.x[v] - to.x, nav.z[v] - to.z) + rng.next() * (o.jitter ?? 3); if (d < bs) { bs = d; next = v; } }
+        for (const v of cand) { const d = Math.hypot(X[v] - to.x, Z[v] - to.z) + rng.next() * jit; if (d < bs) { bs = d; next = v; } }
       } else if (prev >= 0 && rng.chance(0.72)) {
-        const dx = nav.x[cur] - nav.x[prev], dz = nav.z[cur] - nav.z[prev];
-        next = nb.slice().sort((a, b) => ((nav.x[b] - nav.x[cur]) * dx + (nav.z[b] - nav.z[cur]) * dz) - ((nav.x[a] - nav.x[cur]) * dx + (nav.z[a] - nav.z[cur]) * dz))[0];
-      } else next = rng.pick(nb);
-      len += d3(cur, next); seen.add(next); out.push(next); prev = cur; cur = next;
+        const dx = X[cur] - X[prev], dz = Z[cur] - Z[prev];
+        let bs = -Infinity;
+        for (const v of cand) { const d = (X[v] - X[cur]) * dx + (Z[v] - Z[cur]) * dz; if (d > bs) { bs = d; next = v; } }
+      } else next = cand[Math.floor(rng.next() * cand.length)];
+      len += d3(cur, next); seen[next] = stamp; out.push(next); prev = cur; cur = next;
     }
     if (out.length < 3) return null;
-    return { route: out, len, end: { x: nav.x[cur], z: nav.z[cur], node: cur } };
+    return { route: out, len, end: { x: X[cur], z: Z[cur], node: cur } };
   }
-}
+  // one reusable outdoor spot per sidewalk node (pauses at the end of a walk, a place to set off from)
+  nodeSpot(node, o = {}) {
+    const k = 'n:' + node + ':' + (o.key || '');
+    let s = this.cache.get(k);
+    if (!s) { s = this.L.spot(this.nav.x[node], this.nav.z[node], { act: 'look', spread: 1.2, ...o, link: node }); this.cache.set(k, s); }
+    return s;
+  }}
 
-// walking time in minutes between two {x, z} points (streets are a grid; a little extra for doors and stairs)
+// walking time in minutes between two points ({x, z}, a spot, or {x, z, spot}): the streets are a grid;
+// add a little for doors, and more for getting out of (or into) a building, and for stairs
 export function walkMin(a, b, speed) {
   if (!a || !b) return 3;
+  const sa = a.spot || a, sb = b.spot || b;
   const d = Math.abs(a.x - b.x) + Math.abs(a.z - b.z);
-  return (d * 1.1 + 20) / (Math.max(0.4, speed) * 60);
+  const extra = 18 + (sa.room ? 24 : 0) + (sb.room ? 24 : 0) + Math.abs((sa.y ?? 0.3) - (sb.y ?? 0.3)) * 6;
+  return (d * 1.12 + extra) / (Math.max(0.4, speed) * 60);
 }
 
 // ------------------------------------------------------------------ trips
@@ -193,7 +238,10 @@ export function walkMin(a, b, speed) {
 export class Trip {
   constructor(W, people, t, o = {}) {
     this.W = W; this.people = people.filter(Boolean); this.t0 = T(t); this.t = this.t0;
+    // nobody sets off before they've got to where they were already going
+    if (!o.from) { this.t0 = Math.max(this.t0, ...this.people.map((p) => W.settle(p, this.t0))); this.t = this.t0; }
     this.pos = o.from || W.posAt(this.people[0], this.t0) || { x: 200, z: 0 };
+    this.starts = this.people.map((p, i) => (i === 0 ? this.pos : o.from || W.posAt(p, this.t0) || this.pos));
     this.speed = o.speed || Math.min(...this.people.map((p) => p.speed)) * (o.pace ?? 1);
     this.lag = o.lag ?? (this.people.length > 1 ? 0.012 : 0);
     this.E = this.people.map(() => []);
@@ -219,7 +267,9 @@ export class Trip {
     const each = (i) => (Array.isArray(spot) ? spot[i % spot.length] : typeof spot === 'function' ? spot(this.people[i], i) : spot);
     const first = each(0);
     if (!first) return this;
-    const arrive = this.t + walkMin(this.pos, first, this.speed) * (o.slow ?? 1);
+    let walk = walkMin(this.pos, first, this.speed);
+    if (!this.stops && this.people.length > 1) for (const q of this.starts) walk = Math.max(walk, walkMin(q, first, this.speed));
+    const arrive = this.t + walk * (o.slow ?? 1);
     this.people.forEach((p, i) => {
       const s = each(i) || first;
       this.E[i].push(this.entry(p, i, this.t + i * this.lag, s, o));
@@ -252,7 +302,8 @@ export class Trip {
   commit(end = null, o = {}) {
     const L = this.W.L;
     const t1 = end ?? this.t;
-    this.people.forEach((p, i) => { if (this.E[i].length) { L.plan(p, this.t0, t1, this.E[i], o); this.W.touched.add(p); } });
+    // never write past the end of the window (whatever comes next — an event, supper — keeps its time)
+    this.people.forEach((p, i) => { const E = this.E[i].filter((e) => e.t >= this.t0 - 0.001 && e.t < t1 - 0.01); if (E.length) this.W.plan(p, this.t0, t1, E, o); });
     return t1;
   }
 }

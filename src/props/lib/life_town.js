@@ -305,8 +305,8 @@ defineProp('town_peanut_wagon', {
     const red = '#a8261e', copper = '#b8703a';
     for (const x of [0, 28]) { ringX(m, x, 6, 16, 4.5, 6, 2, '#2a2a2a'); line(m, x, 1, 16, x, 11, 16, GOLD); line(m, x, 6, 11, x, 6, 21, GOLD); }
     m.box(2, 6, 15, 26, 1, 2, IRON);
-    m.box(3, 8, 5, 24, 11, 24, red); m.box(3, 8, 5, 24, 1, 24, GOLD); m.box(3, 18, 5, 24, 1, 24, GOLD);
-    m.box(4, 10, 29, 22, 6, 1, CREAM); m.text('PEANUTS', 15, 11, 30, red, { align: 'center' });
+    m.box(2, 8, 5, 26, 11, 24, red); m.box(2, 8, 5, 26, 1, 24, GOLD); m.box(2, 18, 5, 26, 1, 24, GOLD);
+    m.box(1, 10, 29, 28, 7, 1, CREAM); m.text('PEANUTS', 15, 11, 30, red, { align: 'center' });
     // glass case with peanuts
     m.box(4, 19, 16, 22, 9, 12, GLASS); m.box(5, 19, 17, 20, 3, 10, '#b08050'); m.box(4, 28, 16, 22, 1, 12, red);
     // roaster & stack
@@ -633,3 +633,27 @@ defineProp('town_hat_blown', {
     m.cyl(6, 1, 6, 3.5, 4, '#4a4038'); m.cyl(6, 1, 6, 3.6, 1, '#1a1a1e'); m.box(5, 5, 3, 3, 1, 6, '#3a3230');
   },
 });
+
+// the crossing guard's STOP paddle on a short pole (1/32)
+defineProp('town_stop_paddle', {
+  size: [14, 46, 3], scale: 1 / 32, origin: [7, 0, 1], cat: 'exterior',
+  build(m) {
+    m.box(6, 0, 1, 2, 34, 1, '#d8d0c0');
+    for (let y = 32; y < 46; y++) for (let x = 0; x < 14; x++) { const d = Math.hypot(x + 0.5 - 7, y + 0.5 - 39); if (d <= 6.8) m.box(x, y, 0, 1, 1, 3, d > 5.8 ? WHITE : RED); }
+    m.text('STOP', 7, 37, 3, WHITE, { align: 'center' }); m.textBack('STOP', 7, 37, 0, WHITE, { align: 'center' });
+  },
+});
+// gold-leaf window lettering, in the stages a sign painter gets through the day (1/24; faces +z, glass behind)
+function lettering(name, text) {
+  const full = 'CENTENNIAL SALE', W = full.length * 4 + 1;
+  defineProp(name, {
+    size: [W + 2, 8, 2], scale: 1 / 24, origin: [(W + 2) / 2, 0, 0], cat: 'exterior',
+    build(m) {
+      m.text(text, 2, 1, 0, '#3a2a12');
+      m.text(text, 1, 2, 1, { c: '#e8c050', emit: 0.25 });
+    },
+  });
+}
+lettering('town_lettering_1', 'CENTEN');
+lettering('town_lettering_2', 'CENTENNIAL');
+lettering('town_lettering_3', 'CENTENNIAL SALE');

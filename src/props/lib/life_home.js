@@ -6,6 +6,7 @@
 // the item's +y runs up the arm and +z points forward out of the fist (see wearables.js).
 import { defineProp } from '../props.js';
 import { layoutText } from '../../world/font.js';
+import { VoxModel } from '../voxModel.js';
 
 const A = (s = 0.5) => ({ tint: 1, shade: s });
 const B = (s = 0.5) => ({ tint: 2, shade: s });
@@ -638,5 +639,85 @@ defineProp('soapbox_racer', {
     m.box(1, 3, 4, 12, 1, 1, IRON); m.box(1, 3, 26, 12, 1, 1, IRON);
     line(m, 3, 5, 27, 1, 7, 18, '#d8ccb0'); line(m, 10, 5, 27, 12, 7, 18, '#d8ccb0'); // steering rope
     for (const [x, c] of [[4, '#e0b030'], [9, '#c83a2a']]) m.set(x, 9, 2, c);
+  },
+});
+
+// ================================================================ more carried things
+// Diaper-service pail: galvanized, lid clamped down (held; hangs from the bail)
+defineProp('diaper_pail', {
+  size: [9, 14, 9], scale: 1 / 32, origin: [4.5, 14, 4.5], cat: 'exterior',
+  build(m) {
+    const g = '#b8bec2', g2 = '#9aa0a4';
+    for (let y = 0; y < 9; y++) m.cyl(4.5, y, 4.5, 3.4 + y * 0.1, 1, y % 4 === 1 ? g2 : g);
+    m.cyl(4.5, 9, 4.5, 4.4, 1, '#2a4a7a'); m.box(4, 10, 4, 1, 1, 1, '#2a4a7a');
+    m.box(0, 6, 4, 1, 3, 1, g2); m.box(8, 6, 4, 1, 3, 1, g2);
+    m.box(0, 9, 4, 1, 3, 1, '#6a6e70'); m.box(8, 9, 4, 1, 3, 1, '#6a6e70'); m.box(1, 12, 4, 7, 1, 1, '#6a6e70'); m.box(3, 13, 4, 3, 1, 1, '#3a3a3a');
+  },
+});
+// A cardboard moving carton carried in both arms (rides in front of the chest as a follow prop)
+defineProp('carton', {
+  size: [9, 7, 7], cat: 'exterior',
+  build(m) {
+    m.box(0, 0, 0, 9, 7, 7, KRAFT); m.box(0, 6, 3, 9, 1, 1, '#d8c8a0'); m.box(0, 0, 0, 9, 1, 7, '#b89060');
+    m.box(2, 3, 6, 4, 1, 1, '#3a3a3a'); m.box(2, 3, 0, 3, 1, 1, '#3a3a3a');
+  },
+});
+// Floor lamp with its shade on, being carried (rides in front, tilted)
+defineProp('lamp_carried', {
+  size: [7, 26, 7], cat: 'exterior',
+  build(m) {
+    m.cyl(3.5, 0, 3.5, 2.5, 1, '#6a5030'); m.box(3, 1, 3, 1, 18, 1, '#c8a040');
+    for (let y = 18; y < 25; y++) m.cyl(3.5, y, 3.5, 3.4 - (y - 18) * 0.25, 1, y % 3 ? '#e8dcb8' : '#d8c8a0');
+  },
+});
+
+// ================================================================ held items posed for an activity
+// (same scheme as wearables.js defineHeld: the item is re-sampled into the arm frame of a pose so it
+// looks level when the arm is in that pose)
+function rotM(ax, a) { const c = Math.cos(a), s = Math.sin(a); if (ax === 'x') return [1, 0, 0, 0, c, -s, 0, s, c]; if (ax === 'y') return [c, 0, s, 0, 1, 0, -s, 0, c]; return [c, -s, 0, s, c, 0, 0, 0, 1]; }
+function mulM(A, B) { const C = new Array(9); for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) C[r * 3 + c] = A[r * 3] * B[c] + A[r * 3 + 1] * B[3 + c] + A[r * 3 + 2] * B[6 + c]; return C; }
+const apM = (M, v) => [M[0] * v[0] + M[1] * v[1] + M[2] * v[2], M[3] * v[0] + M[4] * v[1] + M[5] * v[2], M[6] * v[0] + M[7] * v[1] + M[8] * v[2]];
+const trM = (M) => [M[0], M[3], M[6], M[1], M[4], M[7], M[2], M[5], M[8]];
+function chainM(list) { let M = [1, 0, 0, 0, 1, 0, 0, 0, 1]; for (const r of list) M = mulM(rotM(r[0], r[1]), M); return M; }
+function heldProp(name, o) {
+  const scale = o.scale || 1 / 32, M = chainM(o.pose || []), Mi = trM(M), at = o.at || [0, 0, 0], g = o.grip;
+  const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+  for (const cx of [0, o.size[0]]) for (const cy of [0, o.size[1]]) for (const cz of [0, o.size[2]]) {
+    const v = apM(M, [cx - g[0], cy - g[1], cz - g[2]]);
+    for (let i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], v[i] + at[i]); mx[i] = Math.max(mx[i], v[i] + at[i]); }
+  }
+  const c0 = apM(M, g.map((q) => -q)).map((v, i) => v + at[i]);
+  for (let i = 0; i < 3; i++) { const f = c0[i] - Math.floor(c0[i]); mn[i] = Math.floor(mn[i] - f + 1e-6) + f; }
+  const size = mx.map((v, i) => Math.max(1, Math.ceil(v - mn[i] - 1e-6)));
+  const origin = mn.map((v) => -v);
+  defineProp(name, {
+    size, origin, scale, cat: 'exterior',
+    build(m) {
+      const s = new VoxModel(o.size[0], o.size[1], o.size[2]);
+      o.build(s);
+      const map = s.palette.map((e, i) => (i === 0 ? 0 : m.col(e.tint ? { tint: e.tint, shade: e.rgb[0] / 255 } : { c: e.rgb, emit: e.emit })));
+      for (let k = 0; k < size[2]; k++) for (let j = 0; j < size[1]; j++) for (let i = 0; i < size[0]; i++) {
+        const w = [i + 0.5 - origin[0] - at[0], j + 0.5 - origin[1] - at[1], k + 0.5 - origin[2] - at[2]];
+        const v = apM(Mi, w);
+        const c = s.get(Math.floor(v[0] + g[0] + 1e-7), Math.floor(v[1] + g[1] + 1e-7), Math.floor(v[2] + g[2] + 1e-7));
+        if (c) m.set(i, j, k, map[c]);
+      }
+    },
+  });
+}
+// 'carry' (both arms out in front): a taped moving carton
+heldProp('carton_carry', {
+  pose: [['x', Math.PI / 2]], at: [0, -1, 0], size: [13, 10, 10], grip: [2.3, 0, 7.5],
+  build(m) {
+    m.box(0, 0, 0, 13, 10, 10, KRAFT); m.box(0, 9, 4, 13, 1, 2, '#d8c8a0'); m.box(0, 0, 0, 13, 1, 10, '#b89060');
+    m.box(3, 4, 9, 6, 1, 1, '#3a3a3a'); m.box(3, 6, 9, 4, 1, 1, '#3a3a3a');
+  },
+});
+// 'carry': an armload of split oak
+heldProp('firewood_armload', {
+  pose: [['x', Math.PI / 2]], at: [0, -1, 0], size: [14, 8, 9], grip: [2.5, 0, 6.5],
+  build(m) {
+    const bark = ['#5a4430', '#6a5038', '#4e3a28'], face = '#d8b888';
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { const y = r * 2.6, z = c * 3; m.box(0, y, z, 14, 3, 3, bark[(r + c) % 3]); m.box(0, y, z, 1, 3, 3, face); m.box(13, y, z, 1, 3, 3, face); }
   },
 });

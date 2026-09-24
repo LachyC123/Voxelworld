@@ -9,7 +9,8 @@ import { visitors } from './routines_visitors.js';
 export function run(L) {
   const W = new RW(L);
   town.setupTown(W);
-  const step = (name, fn) => { const t0 = Date.now(); try { fn(W); } catch (e) { console.error('routines: ' + name + ' failed', e); } W.timing = W.timing || {}; W.timing[name] = Date.now() - t0; };
+  // each pass gets its own random stream, so changing one doesn't reshuffle the others
+  const step = (name, fn) => { const t0 = Date.now(); W.rng = L.rng.fork(name); try { fn(W); } catch (e) { console.error('routines: ' + name + ' failed', e); } W.timing = W.timing || {}; W.timing[name] = Date.now() - t0; };
   step('visitors', visitors);
   step('confession', town.confession);
   step('casseroles', town.casseroles);
@@ -23,5 +24,6 @@ export function run(L) {
   step('corners', town.cornerMen);
   step('fireworks', town.earlyFireworks);
   step('filler', town.filler);
+  step('kidfiller', town.kidFiller);
   L.ctx.life.routines = { count: W.count, timing: W.timing };
 }
