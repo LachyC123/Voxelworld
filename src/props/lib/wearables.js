@@ -262,7 +262,7 @@ hat('hat_sunhat', [12, 4, 12], [6, 1, 6], (m) => {
 
 hat('hat_party', [13, 25, 11], [6.5, 11, 5.5], (m) => { // 1/32 scale: paper cone, pompom, thin elastic
   const w = '#f4f0e6', el = '#d8d2c4';
-  for (let y = 0; y < 11; y++) { const r = 5.1 * (1 - y / 11.5) + 0.35; m.cyl(7.5, 11 + y, 5.5, r, 1, (y >> 1) & 1 ? w : T1(0.5)); }
+  for (let k = 0; k < 6; k++) { const r = 5.3 - k * 0.85; m.cyl(7.5, 11 + k * 2, 5.5, r, k === 5 ? 1 : 2, k & 1 ? w : T1(0.5)); }
   for (const [x, y, z] of [[5, 12, 9], [10, 14, 7], [7, 17, 8], [9, 19, 6]]) if (m.get(x, y, z)) m.set(x, y, z, T1(0.62));
   m.sphere(7.5, 22.8, 5.5, 2.0, '#f0c840');
   for (const x of [0, 12]) { line(m, x, 10, 5, x, 2, 7, el); m.set(x, 1, 7, el); }
@@ -614,22 +614,23 @@ defineHeld('crate_small', { // 'carry': held in front with both hands
   },
 });
 
-// fishing rod: rod angles up/forward ~35°, line hangs from the tip to about deck level
-const ROD_TILT = -0.61, ROD_LEN = 64, ROD_GRIP = 5;
-const rodTip = apM(chain([['x', ROD_TILT]]), [0, 0, ROD_LEN - 1 - ROD_GRIP]);
+// fishing rod: the rod runs along the arm frame's +z (crisp & cheap), which is ~63° up/forward in 'fish';
+// the line hangs plumb from the tip (pre-rotated for the 'fish' pose) down to about water level off a pier.
+const ROD_LEN = 64, ROD_GRIP = 5, FISH_POSE = pose(-1.1, -0.25);
+const rodTipN = apM(trM(chain(FISH_POSE)), [0, 0, ROD_LEN - 1 - ROD_GRIP]); // rod tip in natural (world) axes
 defineHeld('fishing_rod', {
-  pose: pose(-1.1, -0.25), at: [0, -1, 0],
+  pose: FISH_POSE, at: [0, -1, 0],
   parts: [
-    { rot: [['x', ROD_TILT]], size: [3, 4, ROD_LEN], grip: [1.5, 2.5, ROD_GRIP + 0.5], ss: false,
+    { rot: [['m', trM(chain(FISH_POSE))]], size: [3, 4, ROD_LEN], grip: [1.5, 2.5, ROD_GRIP + 0.5],
       build(m) {
         m.box(1, 2, 0, 1, 1, 2, BLACK); m.box(1, 2, 2, 1, 1, 7, '#c8a070');
         m.box(1, 2, 9, 1, 1, 24, '#6a4a2a'); m.box(1, 2, 33, 1, 1, ROD_LEN - 33, '#8a6a3a');
         for (const z of [16, 30, 44, 56]) m.set(1, 2, z, '#3a2a1a');
         m.box(0, 0, 6, 3, 2, 2, '#6a6e74'); m.set(0, 1, 5, CHROME); m.set(2, 0, 7, '#2a2a2e');
       } },
-    { atN: [rodTip[0], rodTip[1], rodTip[2]], size: [2, 80, 2], grip: [0.5, 79.5, 0.5], ss: false,
+    { atN: rodTipN, size: [2, 84, 2], grip: [0.5, 83.5, 0.5], ss: false,
       build(m) {
-        m.box(0, 3, 0, 1, 77, 1, '#d8d8d0');
+        m.box(0, 3, 0, 1, 81, 1, '#cfcfc6');
         m.box(0, 1, 0, 2, 1, 2, '#f2efe6'); m.box(0, 2, 0, 2, 1, 2, '#c8302a'); m.set(0, 0, 0, '#9a9a90');
       } },
   ],
@@ -735,15 +736,15 @@ defineHeld('clarinet', {
   },
 });
 
-defineHeld('tuba', {
-  pose: [['x', Math.PI / 2]], anchorPose: pose(-1.2, -0.2), atN: [7.6, 1.0, -5.2], size: [14, 22, 13], grip: [6.5, 7, 6.5],
+defineHeld('tuba', { // snapped upright (tilts ~20° forward in 'tuba'); bell rises beside the player's left cheek
+  pose: [['x', Math.PI / 2]], anchorPose: pose(-1.2, -0.2), atN: [7.3, -3, -5.5], size: [22, 22, 12], grip: [5.5, 6, 5.5],
   build(m) {
-    m.cyl(6.5, 1, 6.5, 3.6, 12, BRASS); m.cyl(6.5, 0, 6.5, 2.6, 1, BRASS_D);
-    for (let y = 2; y < 12; y += 4) m.cyl(6.5, y, 6.5, 3.6, 1, BRASS_L);
-    for (let y = 13; y < 22; y++) { const r = 3.4 + (y - 13) * 0.3; ring(m, 8, y, 6.5, r, y > 19 ? r - 1.2 : -1, y > 19 ? BRASS_L : BRASS); }
-    m.cyl(8, 20, 6.5, 4.6, 1, '#6a4a12');
-    for (const x of [3, 5]) m.box(x, 6, 10, 1, 4, 1, BRASS_D); for (const x of [3, 5]) m.set(x, 10, 10, CHROME);
-    line(m, 5.5, 12.5, 3.5, 4.6, 14.7, 2.1, BRASS); m.set(4, 14, 1, CHROME); m.set(4, 14, 2, CHROME);
+    m.cyl(5.5, 1, 5.5, 3.1, 11, BRASS); m.cyl(5.5, 0, 5.5, 2.2, 1, BRASS_D); m.cyl(5.5, 5, 5.5, 3.1, 1, BRASS_L);
+    for (const z of [2, 4, 6]) { m.box(2, 6, z, 1, 4, 1, BRASS_D); m.set(2, 10, z, CHROME); } // valves on the right side
+    line(m, 6.5, 12.5, 5.5, 14.5, 15.5, 5.5, BRASS); line(m, 7.5, 12.5, 5.5, 15.5, 15.5, 5.5, BRASS);
+    for (let y = 15; y < 22; y++) { const r = y < 17 ? 2.2 : y < 19 ? 3.4 : y < 21 ? 4.6 : 5.4; m.cyl(15.5, y, 5.5, r, 1, BRASS); }
+    m.cyl(15.5, 21, 5.5, 4.4, 1, '#6a4a12'); m.cyl(15.5, 20, 5.5, 3.4, 1, '#6a4a12');
+    line(m, 4.5, 11.5, 2.5, 4.5, 14.5, 0.5, BRASS); m.set(4, 15, 0, CHROME); // mouthpipe
   },
 });
 
@@ -771,7 +772,7 @@ defineHeld('fiddle', {
 });
 
 defineHeld('guitar', {
-  anchorPose: pose(-0.7, -0.3), atN: [1.4, 1.0, -2.2], size: [34, 12, 3], grip: [7, 6, 2], // arm-frame aligned: leans back on the lap
+  anchorPose: pose(-0.7, -0.3), atN: [1.4, 1.0, -2.2], rot: [['x', 0.55]], size: [34, 12, 3], grip: [7, 6, 2], // neck stays arm-aligned (cheap), body turned upright
   build(m) {
     const edge = '#4a2410', mid = '#9a4a1a', core = '#d0802e';
     for (let y = 0; y < 12; y++) for (let x = 0; x < 15; x++) {
@@ -899,12 +900,12 @@ defineHeld('cake_knife', {
   },
 });
 
-defineHeld('letter', { // envelope held by its corner, hanging forward from the fingers
-  size: [1, 6, 10], grip: [0.5, 5.5, 0.5], at: [0, -0.5, 0.5],
+defineHeld('letter', { // envelope pinched at one corner, face toward the front
+  size: [10, 6, 1], grip: [0.5, 5.5, 0.5], at: [0, -0.5, 2.5],
   build(m) {
-    m.box(0, 0, 0, 1, 6, 10, '#f2eee2');
-    m.box(0, 4, 7, 1, 1, 2, '#c83a2a'); m.set(0, 3, 8, '#2a4a8a');
-    m.box(0, 1, 3, 1, 1, 4, '#8e8a80'); m.box(0, 2, 3, 1, 1, 3, '#8e8a80');
+    m.box(0, 0, 0, 10, 6, 1, '#f2eee2');
+    m.box(7, 3, 0, 2, 2, 1, '#c83a2a'); m.set(8, 4, 0, '#2a4a8a');
+    m.box(2, 1, 0, 4, 1, 1, '#8e8a80'); m.box(2, 2, 0, 3, 1, 1, '#8e8a80');
   },
 });
 
@@ -936,9 +937,8 @@ defineHeld('balloon', { // string rises from the fist to a balloon ~1.5 m above 
   build(m) {
     for (let y = 0; y < 49; y++) m.set(5 + ((y >> 3) & 1), y, 5, '#e8e4d8');
     m.box(5, 49, 5, 1, 1, 1, T1(0.4));
-    m.sphere(5.5, 55, 5.5, 4.7, T1(0.5), (x, y) => y >= 50);
-    m.box(5, 50, 5, 1, 1, 1, T1(0.42));
-    m.set(3, 58, 8, T1(0.64)); m.set(3, 57, 8, T1(0.6)); m.set(2, 58, 7, T1(0.6));
+    for (const [y, h, r] of [[50, 1, 1.6], [51, 1, 3.2], [52, 2, 4.3], [54, 4, 4.9], [58, 2, 4.3], [60, 1, 3.2], [61, 1, 1.6]]) m.cyl(5.5, y, 5.5, r, h, T1(0.5));
+    m.box(3, 57, 9, 1, 2, 1, T1(0.66)); m.set(2, 58, 8, T1(0.62));
   },
 });
 
@@ -1016,7 +1016,7 @@ function signBuild(m, stick) {
   }
 }
 defineHeld('sign_placard_low', { // arms down: tall stick, sign above head height
-  scale: 1 / 48, at: [0, -1, 3], size: [32, 80, 2], grip: [16, 4, 1.5], build: (m) => signBuild(m, 54),
+  scale: 1 / 48, at: [0, -1, 3], size: [32, 86, 2], grip: [16, 4, 1.5], build: (m) => signBuild(m, 60),
 });
 defineHeld('sign_placard', { // held up high (cheer / wave)
   scale: 1 / 48, rot: [['z', Math.PI]], at: [0, -1, 0], size: [32, 56, 2], grip: [16, 4, 1.5], build: (m) => signBuild(m, 30),

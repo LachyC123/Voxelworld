@@ -88,68 +88,63 @@ export function createMesher(W) {
     return true;
   }
 
-  // axis order: d, u=(d+1)%3, v=(d+2)%3 ; strides x=1, y=P2, z=P
-  const STR = [1, P2, P];
-
-  function meshInto(cx, cy, cz, ox, oy, oz, outO, outG, minFaceY) {
-    if (!rasterize(cx, cy, cz)) return;
-    const baseX = cx * S - ox, baseY = cy * S - oy, baseZ = cz * S - oz;
+  // Greedy-mesh a padded voxel array. arr/rarr: (Sz+2)^3 arrays; positions are written as
+  // (local * scale + base) in world voxel units relative to the region origin.
+  function greedy(arr, rarr, Sz, Pz, scale, baseX, baseY, baseZ, outO, outG, skipBelowY) {
+    const STR = [1, Pz * Pz, Pz];
     for (let d = 0; d < 3; d++) {
       const u = (d + 1) % 3, v = (d + 2) % 3;
       const sd = STR[d], su = STR[u], sv = STR[v];
       for (let dir = -1; dir <= 1; dir += 2) {
         const faceDir = d * 2 + (dir > 0 ? 0 : 1);
         const nOff = dir * sd;
-        for (let i = 0; i < S; i++) {
-          // skip faces far underground pointing down
-          if (d === 1 && dir < 0 && (cy * S + i) <= minFaceY) continue;
+        for (let i = 0; i < Sz; i++) {
+          if (d === 1 && dir < 0 && (baseY + i * scale) <= skipBelowY) continue;
           let anyFace = false;
-          for (let k = 0; k < S; k++) {
-            for (let j = 0; j < S; j++) {
+          for (let k = 0; k < Sz; k++) {
+            for (let j = 0; j < Sz; j++) {
               const p = (i + 1) * sd + (j + 1) * su + (k + 1) * sv;
-              const a = vox[p];
-              const m = j + k * S;
+              const a = arr[p];
+              const m = j + k * Sz;
               if (a === 0) { maskKey[m] = 0; continue; }
               const q = p + nOff;
-              const nb = vox[q];
+              const nb = arr[q];
               let key = 0, room = 0;
               if (opaque[a]) {
                 if (opaque[nb]) { maskKey[m] = 0; continue; }
-                const um = opaque[vox[q - su]], up = opaque[vox[q + su]], vm = opaque[vox[q - sv]], vp = opaque[vox[q + sv]];
-                const cmm = opaque[vox[q - su - sv]], cpm = opaque[vox[q + su - sv]], cpp = opaque[vox[q + su + sv]], cmp = opaque[vox[q - su + sv]];
+                const um = opaque[arr[q - su]], up = opaque[arr[q + su]], vm = opaque[arr[q - sv]], vp = opaque[arr[q + sv]];
+                const cmm = opaque[arr[q - su - sv]], cpm = opaque[arr[q + su - sv]], cpp = opaque[arr[q + su + sv]], cmp = opaque[arr[q - su + sv]];
                 const a0 = (um && vm) ? 0 : 3 - (um + vm + cmm);
                 const a1 = (up && vm) ? 0 : 3 - (up + vm + cpm);
                 const a2 = (up && vp) ? 0 : 3 - (up + vp + cpp);
                 const a3 = (um && vp) ? 0 : 3 - (um + vp + cmp);
                 key = a | (a0 << 8) | (a1 << 10) | (a2 << 12) | (a3 << 14);
-                room = rooms[q];
+                room = rarr[q];
               } else {
-                // transparent: face only against air or a different transparent material
                 if (opaque[nb] || nb === a) { maskKey[m] = 0; continue; }
-                room = rooms[q];
+                room = rarr[q];
                 let inner = 1;
-                if (room === 0) { room = rooms[p - nOff]; inner = 0; }
+                if (room === 0) { room = rarr[p - nOff]; inner = 0; }
                 key = a | (255 << 8) | (inner << 16) | (1 << 17);
               }
               maskKey[m] = key; maskRoom[m] = room; anyFace = true;
             }
           }
           if (!anyFace) continue;
-          // greedy merge
-          for (let k = 0; k < S; k++) {
-            for (let j = 0; j < S;) {
-              const m = j + k * S;
+          for (let k = 0; k < Sz; k++) {
+            for (let j = 0; j < Sz;) {
+              const m = j + k * Sz;
               const key = maskKey[m];
               if (key === 0) { j++; continue; }
               const room = maskRoom[m];
               let w = 1;
-              while (j + w < S && maskKey[m + w] === key && maskRoom[m + w] === room) w++;
+              while (j + w < Sz && maskKey[m + w] === key && maskRoom[m + w] === room) w++;
               let h = 1;
-              outer: for (; k + h < S; h++) {
-                const row = m + h * S;
+              outer: for (; k + h < Sz; h++) {
+                const row = m + h * Sz;
                 for (let t = 0; t < w; t++) if (maskKey[row + t] !== key || maskRoom[row + t] !== room) break outer;
               }
-              for (let hh = 0; hh < h; hh++) maskKey.fill(0, m + hh * S, m + hh * S + w);
+              for (let hh = 0; hh < h; hh++) maskKey.fill(0, m + hh * Sz, m + hh * Sz + w);
               const isGlass = (key >> 17) & 1;
               const out = isGlass ? outG : outO;
               out.ensure(4, 6);
@@ -158,14 +153,13 @@ export function createMesher(W) {
               if (!isGlass) { ao0 = (key >> 8) & 3; ao1 = (key >> 10) & 3; ao2 = (key >> 12) & 3; ao3 = (key >> 14) & 3; }
               else flags = ((key >> 16) & 1) ? 1 : 0;
               const plane = i + (dir > 0 ? 1 : 0);
-              const cu = [j, j + w, j + w, j], cvv = [k, k, k + h, k + h], aos = [ao0, ao1, ao2, ao3];
               const nv = out.nv;
               for (let c = 0; c < 4; c++) {
-                const pp = [0, 0, 0];
-                pp[d] = plane; pp[u] = cu[c]; pp[v] = cvv[c];
+                const cu = (c === 1 || c === 2) ? j + w : j, cv = c >= 2 ? k + h : k;
+                PP[d] = plane; PP[u] = cu; PP[v] = cv;
                 const vi = out.nv * 3, di = out.nv * 4;
-                out.pos[vi] = pp[0] + baseX; out.pos[vi + 1] = pp[1] + baseY; out.pos[vi + 2] = pp[2] + baseZ;
-                out.dat[di] = mat; out.dat[di + 1] = faceDir; out.dat[di + 2] = aos[c]; out.dat[di + 3] = flags;
+                out.pos[vi] = PP[0] * scale + baseX; out.pos[vi + 1] = PP[1] * scale + baseY; out.pos[vi + 2] = PP[2] * scale + baseZ;
+                out.dat[di] = mat; out.dat[di + 1] = faceDir; out.dat[di + 2] = c === 0 ? ao0 : c === 1 ? ao1 : c === 2 ? ao2 : ao3; out.dat[di + 3] = flags;
                 out.room[out.nv] = room;
                 out.nv++;
               }
@@ -186,9 +180,40 @@ export function createMesher(W) {
       }
     }
   }
+  const PP = [0, 0, 0];
+
+  function meshInto(cx, cy, cz, ox, oy, oz, outO, outG, minFaceY) {
+    if (!rasterize(cx, cy, cz)) return;
+    greedy(vox, rooms, S, P, 1, cx * S - ox, cy * S - oy, cz * S - oz, outO, outG, minFaceY);
+  }
+
+  // half-resolution level of detail for distant regions
+  const LS = S >> 1, LP = LS + 2;
+  const lvox = new Uint8Array(LP * LP * LP), lroom = new Uint16Array(LP * LP * LP);
+  const votes = new Uint8Array(256);
+  function meshIntoLOD(cx, cy, cz, ox, oy, oz, outO, outG, minFaceY) {
+    if (!rasterize(cx, cy, cz)) return;
+    const cl = (q) => (q < 0 ? 0 : q > P - 1 ? P - 1 : q);
+    for (let y = 0; y < LP; y++) for (let z = 0; z < LP; z++) for (let x = 0; x < LP; x++) {
+      let solid = 0, glass = 0, best = 0, bestN = 0;
+      const used = [];
+      for (let k = 0; k < 8; k++) {
+        const sx = cl(2 * (x - 1) + 1 + (k & 1)), sy = cl(2 * (y - 1) + 1 + ((k >> 1) & 1)), sz = cl(2 * (z - 1) + 1 + ((k >> 2) & 1));
+        const a = vox[sx + P * (sz + P * sy)];
+        if (!a) continue;
+        if (opaque[a]) { solid++; if (++votes[a] > bestN) { bestN = votes[a]; best = a; } used.push(a); }
+        else glass = a;
+      }
+      for (const a of used) votes[a] = 0;
+      const li = x + LP * (z + LP * y);
+      lvox[li] = solid >= 3 ? best : (glass || 0);
+      lroom[li] = rooms[cl(2 * (x - 1) + 1) + P * (cl(2 * (z - 1) + 1) + P * cl(2 * (y - 1) + 1))];
+    }
+    greedy(lvox, lroom, LS, LP, 2, cx * S - ox, cy * S - oy, cz * S - oz, outO, outG, minFaceY);
+  }
 
   // Mesh a whole render region: columns [rcx0, rcx0+n) x [rcz0, rcz0+n)
-  function meshRegion(rcx0, rcz0, n, minFaceY = -40) {
+  function meshRegion(rcx0, rcz0, n, minFaceY = -40, lod = false) {
     const outO = new Out(), outG = new Out();
     const ox = rcx0 * S, oy = 0, oz = rcz0 * S;
     for (let cz = rcz0; cz < rcz0 + n; cz++) for (let cx = rcx0; cx < rcx0 + n; cx++) {
@@ -204,7 +229,7 @@ export function createMesher(W) {
       }
       if (yMin > yMax) continue;
       const cy0 = Math.floor((yMin - 1) / S), cy1 = Math.floor(yMax / S);
-      for (let cy = cy0; cy <= cy1; cy++) meshInto(cx, cy, cz, ox, oy, oz, outO, outG, minFaceY);
+      for (let cy = cy0; cy <= cy1; cy++) (lod ? meshIntoLOD : meshInto)(cx, cy, cz, ox, oy, oz, outO, outG, minFaceY);
     }
     return { opaque: outO.result(), glass: outG.result(), origin: [ox, oy, oz] };
   }

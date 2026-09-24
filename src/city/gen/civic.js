@@ -2,7 +2,7 @@
 // St. Brigid's rectory & parish hall, the high school, St. Luke's, Engine Co. No. 1, Police HQ,
 // the WPA post office and the Maritime Museum. See docs/BUILDINGS.md.
 import { Building } from '../building.js';
-import { MAT, shell, slab, win, winRow, doorway, stairs, partitionX, partitionZ, roomTrim, cornice, beltCourse, pilaster, quoins, chimney, flatRoof, cornerstone, officeDesk, kitchenRun, bathroom } from './common.js';
+import { MAT, shell, slab, win, winRow, doorway, stairs, partitionX, partitionZ, roomTrim, cornice, beltCourse, pilaster, quoins, chimney, flatRoof, cornerstone, officeDesk, kitchenRun, bathroom, smallSign } from './common.js';
 import { linkToSidewalk } from '../streets.js';
 import { textSignType } from '../../props/lib/special.js';
 
@@ -171,6 +171,39 @@ function outdoorNav(b, x0, z0, x1, z1, step, blocked, o = {}) {
     return best ? best.n : null;
   };
   return { list, near };
+}
+// Convert (along-wall coordinate a, local plane coordinate) into a face frame's (x, z) for a wall facing dir.
+// a0 = min edge along the wall of something `w` wide; face = the local coordinate of the wall's OUTER surface.
+function onWall(f, dir, a0, w, face) {
+  if (dir === 0) return [f, a0, face];
+  if (dir === 2) return [f.faceFrame('back'), f.W - a0 - w, f.D - face];
+  if (dir === 3) return [f.faceFrame('left'), f.D - a0 - w, face];
+  return [f.faceFrame('right'), a0, f.W - face];
+}
+function winSide(f, dir, a0, y, face, w, h, o = {}) { const [F, x, z] = onWall(f, dir, a0, w, face); win(F, x, y, z, w, h, o); }
+function doorSide(f, dir, a0, y, face, w, h, o = {}) { const [F, x, z] = onWall(f, dir, a0, w, face); return doorway(F, x, y, z, w, h, o); }
+// Filled disc (clock face, medallion, rose window) on a wall facing dir; c = centre along the wall, layer = voxel layer index.
+function discOn(f, dir, c, cy, layer, r, mat) {
+  for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) {
+    const t = dy + 0.5 - (cy - Math.floor(cy));
+    const half = Math.sqrt(Math.max(0, r * r - t * t));
+    if (half < 0.5) continue;
+    const a = Math.round(c - half), bb = Math.round(c + half);
+    if (dir === 0 || dir === 2) f.box(a, Math.floor(cy) + dy, layer, bb - a, 1, 1, mat);
+    else f.box(layer, Math.floor(cy) + dy, a, 1, 1, bb - a, mat);
+  }
+}
+// Tower clock: dial, rim, hour marks and hands (showing 5 o'clock) on a face.
+function clockOn(f, dir, c, cy, layer, r) {
+  const out = dir === 0 ? -1 : dir === 2 ? 1 : dir === 3 ? -1 : 1;
+  discOn(f, dir, c, cy, layer, r + 1, MAT.trim_gold);
+  discOn(f, dir, c, cy, layer + out, r, MAT.clock_face);
+  const L = layer + out * 2;
+  const bx = (a, y, w, h, m) => (dir === 0 || dir === 2 ? f.box(Math.round(a), Math.round(y), L, w, h, 1, m) : f.box(L, Math.round(y), Math.round(a), 1, h, w, m));
+  for (let k = 0; k < 12; k++) { const an = k / 12 * 2 * PI; bx(c + Math.sin(an) * (r - 1) - 0.5, cy + Math.cos(an) * (r - 1) - 0.5, 1, 1, MAT.trim_black); }
+  bx(c - 0.5, cy, 1, Math.round(r * 0.8), MAT.trim_black);             // minute hand at 12
+  const s = dir === 0 || dir === 1 ? 1 : -1;                           // hour hand toward 5 o'clock (viewer's right)
+  for (let k = 1; k <= Math.round(r * 0.5); k++) bx(c + s * k * 0.5 - 0.5, cy - k, 1, 1, MAT.trim_black);
 }
 // Spot outdoors (room 0) linked into an outdoor nav grid
 function outSpot(b, grid, pose, x, y, z, rot, o = {}) {
@@ -642,10 +675,424 @@ function buildSquare(ctx, lot, spec) {
   return b;
 }
 
+
+// =====================================================================================
+// CITY HALL (1876) — "the Old Granite Lady", facing Founders Square
+// =====================================================================================
+function buildCityHall(ctx, lot, spec) {
+  const b = new Building(ctx, { name: spec.name || 'City Hall', kind: 'cityhall', lot, address: lot.address, established: spec.est || 1876,
+    lore: 'The "Old Granite Lady", completed 1876. The council chamber served as an influenza ward in 1918.', hours: [8 * 60, 18 * 60] });
+  const f = b.f, W = lot.w, D = lot.d;
+  const rng = ctx.rng.fork('cityhall' + lot.x);
+  const bw = Math.min(128, W - 40), bx0 = Math.round((W - bw) / 2), bx1 = bx0 + bw;
+  const bz0 = Math.min(34, Math.round(D * 0.22)), bd = Math.min(96, D - bz0 - 26), bz1 = bz0 + bd;
+  const cxm = Math.round(W / 2);
+  const TY = 7, FH = 18, y2 = TY + FH, roofY = y2 + FH - 1;
+  const tz0 = bz0 - 18, tx0 = bx0 + 12, tx1 = bx1 - 12;
+  const sx0 = cxm - 36, sx1 = cxm + 36;
+
+  // ---------------------------------------------------------------- grounds
+  f.box(0, -1, 0, W, 1, D, MAT.grass_lawn);
+  f.box(0, -1, 0, W, 1, tz0 + 2, MAT.plaza_cream);
+  f.box(0, -1, 0, W, 1, 2, MAT.plaza_dark);
+  f.box(sx0 - 6, -1, 2, sx1 - sx0 + 12, 1, tz0 - 2, MAT.granite);
+  f.box(bx0 - 4, -1, bz0 - 2, bw + 8, 1, bd + 6, MAT.sidewalk);          // walk around the building
+  f.box(bx0 - 4, -1, bz1 + 4, bw + 8, 1, D - bz1 - 4, MAT.asphalt_old);  // back lot
+  for (let x = bx0; x < bx1; x += 12) f.box(x, -1, bz1 + 10, 1, 1, 10, MAT.road_white);
+  // terrace & grand steps
+  f.box(tx0, 0, tz0, tx1 - tx0, TY, bz0 - tz0 + 1, MAT.granite);
+  pave(f, tx0, tz0, tx1, bz0, 4, (x, z) => (((Math.floor(x / 4) + Math.floor(z / 4)) % 2) ? MAT.granite : MAT.granite_pink), TY - 1, MAT.granite);
+  for (let k = 0; k < TY; k++) f.box(sx0, 0, tz0 - 2 * (TY - k), sx1 - sx0, k + 1, 2, MAT.granite);
+  for (let k = 0; k < TY; k++) for (const x of [sx0 - 3, sx1]) f.box(x, 0, tz0 - 2 * (TY - k), 3, k + 3, 2, MAT.granite_pink);
+  // balustrade
+  const balus = (x0, z0, x1, z1) => {
+    const alongX = z0 === z1;
+    const n = alongX ? x1 - x0 : z1 - z0;
+    for (let i = 0; i < n; i += 2) f.box(alongX ? x0 + i : x0, TY, alongX ? z0 : z0 + i, 1, 3, 1, MAT.limestone);
+    f.box(x0, TY + 3, z0, alongX ? n : 1, 1, alongX ? 1 : n, MAT.granite_pink);
+  };
+  balus(tx0, tz0, sx0 - 3, tz0); balus(sx1 + 3, tz0, tx1, tz0);
+  balus(tx0, tz0, tx0, bz0); balus(tx1 - 1, tz0, tx1 - 1, bz0);
+  // lamp standards at the foot of the steps
+  for (const x of [sx0 - 2, sx1 + 2]) b.prop('street_lamp_double', x, 0, tz0 - 16, 0, {});
+  for (const x of [sx0 - 2, sx1 + 1]) b.prop('street_lamp', x, TY + 4, tz0 - 1, 0, { scale: 0.8 });
+
+  // ---------------------------------------------------------------- the building
+  f.box(bx0, 0, bz0, bw, TY, bd, MAT.granite);
+  shell(f, bx0, TY, bz0, bw, roofY - TY, bd, MAT.granite, MAT.plaster_cream, 2);
+  f.box(bx0, TY - 1, bz0, bw, 1, 1, MAT.granite_pink);
+  beltCourse(f, bx0, y2 - 1, bw, MAT.limestone, bz0);
+  for (const x of [bx0, bx1 - 2]) quoins(f, x, TY, roofY - TY, MAT.limestone, bz0);
+  cornice(f, bx0, roofY - 1, bw, MAT.limestone, { z: bz0, brackets: 4 });
+  f.box(bx0, roofY, bz0, bw, 1, bd, MAT.ceiling);
+  // mansard roof with iron cresting and dormers
+  for (let i = 0; i < 4; i++) f.walls(bx0 - 1 + i, roofY + 1 + i * 3, bz0 - 1 + i, bw + 2 - 2 * i, 3, bd + 2 - 2 * i, MAT.roof_slate, 1);
+  f.box(bx0 + 3, roofY + 12, bz0 + 3, bw - 6, 1, bd - 6, MAT.roof_tar);
+  for (let x = bx0 + 3; x < bx1 - 3; x += 2) { f.box(x, roofY + 13, bz0 + 3, 1, 2, 1, MAT.iron); f.box(x, roofY + 13, bz1 - 4, 1, 2, 1, MAT.iron); }
+  for (const dx of [bx0 + 8, bx0 + 22, bx1 - 28, bx1 - 14]) {
+    f.box(dx, roofY + 1, bz0 - 2, 6, 7, 4, MAT.roof_slate);
+    f.box(dx - 1, roofY + 8, bz0 - 3, 8, 1, 5, MAT.limestone);
+    win(f, dx + 1, roofY + 2, bz0 - 2, 4, 5, { t: 2, frame: MAT.trim_white, style: 'arch', sill: false });
+  }
+  for (const zz of [bz0 + 20, bz0 + 48, bz0 + 76]) for (const dir of [1, 3]) {
+    const face = dir === 3 ? bx0 - 1 : bx1 + 1;
+    const x = dir === 3 ? face - 1 : face - 3;
+    f.box(x, roofY + 1, zz, 4, 7, 6, MAT.roof_slate);
+    winSide(f, dir, zz + 1, roofY + 2, dir === 3 ? face - 1 : face + 1, 4, 5, { t: 1, frame: MAT.trim_white, sill: false });
+  }
+  chimney(f, bx0 + 6, roofY, bz1 - 12, 4, 4, 20, MAT.granite, MAT.limestone);
+  chimney(f, bx1 - 10, roofY, bz1 - 12, 4, 4, 20, MAT.granite, MAT.limestone);
+
+  // ---------------------------------------------------------------- portico, pediment & lettering
+  const px0 = cxm - 40, px1 = cxm + 40, pz0 = tz0 + 2;
+  const colX = [px0 + 4, px0 + 18, px0 + 32, px1 - 32, px1 - 18, px1 - 4];
+  for (const x of colX) {
+    f.cylinder(x, TY, pz0 + 3, 3.2, 2, MAT.granite);
+    f.cylinder(x, TY + 2, pz0 + 3, 2.3, 25, MAT.limestone);
+    f.cylinder(x, TY + 27, pz0 + 3, 3.2, 2, MAT.granite);
+  }
+  const eY = TY + 29;
+  f.box(px0, eY, pz0, px1 - px0, 7, bz0 - pz0, MAT.granite);
+  f.box(px0 - 1, eY + 6, pz0 - 1, px1 - px0 + 2, 1, bz0 - pz0 + 1, MAT.limestone);
+  f.box(px0, eY, pz0 - 1, px1 - px0, 1, 1, MAT.limestone);
+  f.text('CITY OF JUNIPER BAY', cxm, eY + 1, pz0 - 1, MAT.trim_gold, { align: 'center', font: 'small' });
+  for (let i = 0; i < 10; i++) {
+    f.box(px0 + 4 * i, eY + 7 + i, pz0, px1 - px0 - 8 * i, 1, bz0 - pz0 + 3, MAT.granite);
+    f.box(px0 + 4 * i - 1, eY + 7 + i, pz0 - 1, 5, 1, 1, MAT.limestone);
+    f.box(px1 - 4 * i - 4, eY + 7 + i, pz0 - 1, 5, 1, 1, MAT.limestone);
+  }
+  discOn(f, 0, cxm, eY + 11, pz0 - 1, 3.2, MAT.trim_gold);
+  discOn(f, 0, cxm, eY + 11, pz0 - 2, 2.2, MAT.sign_navy);
+  f.box(cxm - 2, eY + 10, pz0 - 3, 4, 1, 1, MAT.trim_gold); f.box(cxm, eY + 11, pz0 - 3, 1, 2, 1, MAT.canvas_white);
+  f.text('1876', cxm - 16, eY + 8, pz0 - 1, MAT.trim_gold, { align: 'center', font: 'small' });
+  f.text('1953', cxm + 16, eY + 8, pz0 - 1, MAT.trim_gold, { align: 'center', font: 'small' });
+  // Centennial bunting swagged between the columns and along the entablature
+  for (let i = 0; i < colX.length - 1; i++) bunting(f, [colX[i], eY - 1, pz0], [colX[i + 1], eY - 1, pz0], 3);
+  for (const x of [cxm - 30, cxm, cxm + 30]) b.prop('bunting_fan', x, eY - 5, pz0 - 0.2, 0, { cat: 'exterior' });
+  for (const x of [tx0 + 8, sx0 - 10, sx1 + 10, tx1 - 8]) b.prop('bunting_fan', x, TY - 3, tz0 - 0.2, 0, { cat: 'exterior' });
+
+  // ---------------------------------------------------------------- clock tower
+  const twx0 = cxm - 12, twz0 = bz0 + 4, tw = 24, tY0 = roofY + 1, tY1 = roofY + 30;
+  shell(f, twx0, tY0, twz0, tw, tY1 - tY0, tw, MAT.granite, null, 1);
+  f.box(twx0 + 1, tY0, twz0 + 1, tw - 2, 1, tw - 2, MAT.wood_mid);
+  for (const [x, z] of [[twx0, twz0], [twx0 + tw - 2, twz0]]) quoins(f, x, tY0, tY1 - tY0, MAT.limestone, z);
+  f.box(twx0 - 1, tY1 - 16, twz0 - 1, tw + 2, 1, tw + 2, MAT.limestone);
+  f.box(twx0 - 1, tY1, twz0 - 1, tw + 2, 1, tw + 2, MAT.limestone);
+  const clockY = tY1 - 8;
+  clockOn(f, 0, cxm, clockY, twz0 - 1, 6);
+  clockOn(f, 2, cxm, clockY, twz0 + tw, 6);
+  clockOn(f, 3, twz0 + tw / 2, clockY, twx0 - 1, 6);
+  clockOn(f, 1, twz0 + tw / 2, clockY, twx0 + tw, 6);
+  f.text('1876', cxm, tY0 + 5, twz0 - 1, MAT.trim_gold, { align: 'center', font: 'small' });
+  for (const dir of [0, 2]) win(dir === 0 ? f : f.faceFrame('back'), dir === 0 ? cxm - 2 : W - cxm - 2, tY0 + 2, dir === 0 ? twz0 : D - twz0 - tw, 4, 1, { t: 1, frame: MAT.limestone, sill: false });
+  // belfry: corner piers and arches, the bell, then a copper cap and flagpole
+  const bY0 = tY1 + 1;
+  for (const [x, z] of [[twx0, twz0], [twx0 + tw - 4, twz0], [twx0, twz0 + tw - 4], [twx0 + tw - 4, twz0 + tw - 4]]) f.box(x, bY0, z, 4, 12, 4, MAT.granite);
+  f.box(twx0, bY0 + 9, twz0, tw, 3, tw, MAT.granite);
+  f.archCarve(twx0 + 5, bY0, twz0, tw - 10, 9, tw);
+  f.faceFrame('left').archCarve(D - twz0 - tw + 5, bY0, twx0, tw - 10, 9, tw);
+  f.box(twx0, bY0 - 1, twz0, tw, 1, tw, MAT.limestone);
+  f.box(twx0 - 1, bY0 + 12, twz0 - 1, tw + 2, 1, tw + 2, MAT.limestone);
+  f.box(cxm - 1, bY0 + 6, twz0 + 11, 2, 3, 2, MAT.wood_dark);
+  f.cylinder(cxm, bY0 + 2, twz0 + 12, 3, 4, MAT.trim_gold, 1);
+  f.box(cxm - 1, bY0 + 1, twz0 + 11, 2, 1, 2, MAT.trim_gold);
+  const capTop = bY0 + 13 + f.hip(twx0 + 1, bY0 + 13, twz0 + 1, tw - 2, tw - 2, MAT.roof_copper, { overhang: 1, rise: 2 });
+  f.box(cxm, capTop - 2, twz0 + 12, 1, 14, 1, MAT.steel_white);
+  f.box(cxm, capTop + 9, twz0 + 13, 1, 3, 5, MAT.flag_red); f.box(cxm, capTop + 10, twz0 + 13, 1, 1, 5, MAT.flag_white);
+  f.box(cxm, capTop + 10, twz0 + 13, 1, 2, 2, MAT.flag_blue);
+  b.light(cxm, clockY, twz0 - 3, { color: [1, 0.95, 0.8], radius: 6, mode: 'night' });
+
+  // ---------------------------------------------------------------- facade openings
+  doorway(f, cxm - 4, TY, bz0, 8, 13, { frame: MAT.limestone, t: 2, transom: true, step: false });
+  f.box(cxm - 6, TY + 15, bz0 - 1, 12, 1, 1, MAT.limestone);
+  const wo = { t: 2, frame: MAT.limestone, lintelWide: true, glass: MAT.glass };
+  const LX0 = cxm - 20, LX1 = cxm + 20;
+  winRow(f, bx0 + 2, LX0, TY + 3, bz0, 5, 10, 3, wo);
+  winRow(f, LX1 + 1, bx1 - 2, TY + 3, bz0, 5, 10, 3, wo);
+  winRow(f, bx0 + 2, LX0, y2 + 3, bz0, 5, 10, 3, { ...wo, style: 'arch' });
+  winRow(f, LX1 + 1, bx1 - 2, y2 + 3, bz0, 5, 10, 3, { ...wo, style: 'arch' });
+  for (const x of [LX0 + 4, LX1 - 9]) { win(f, x, TY + 3, bz0, 5, 10, wo); win(f, x, y2 + 3, bz0, 5, 10, { ...wo, style: 'arch' }); }
+  win(f, cxm - 4, y2 + 3, bz0, 8, 10, { ...wo, style: 'arch', glass: MAT.glass_stained_gold });
+  for (const dir of [1, 3]) {
+    const face = dir === 3 ? bx0 : bx1;
+    for (const zz of [bz0 + 8, bz0 + 22, bz0 + 36, bz0 + 56, bz0 + 70, bz0 + 84]) {
+      winSide(f, dir, zz, TY + 3, face, 5, 10, wo);
+      winSide(f, dir, zz, y2 + 3, face, 5, 10, { ...wo, style: 'arch' });
+    }
+  }
+  for (const x of [bx0 + 8, bx0 + 22, LX0 + 6, LX1 - 11, bx1 - 27, bx1 - 13]) { winSide(f, 2, x, TY + 3, bz1, 5, 10, wo); winSide(f, 2, x, y2 + 3, bz1, 5, 10, { ...wo, style: 'arch' }); }
+  // cornerstone & dedication stones
+  f.box(bx0 + 2, TY, bz0 - 1, 10, 4, 1, MAT.granite_pink);
+  signLine(b, 'A.D. 1874', bx0 + 7, TY + 1.4, bz0 - 1.05, 0, { bg: '#b39488', fg: '#3a2a22', border: '#b39488', scale: 0.4 });
+  readAt(b, bx0 + 7, TY + 2, bz0 - 1, 0, 'Cornerstone', 'THIS CORNER STONE\nWAS LAID JULY 4, 1874\nBY THE TOWN OF JUNIPER BAY\n\nHammatt & Loring, Architects, Boston\nGranite from the Crowell Quarry, Juniper Hill\nCompleted December 1876, at a cost of $86,300\n\n(Sealed within: a Courier of that date, a list of the 1,904 inhabitants,\nand a silver dollar given by Capt. Elias Whitcomb.)', 2.6);
+
+  // ---------------------------------------------------------------- the 1934 strike plaque, on the steps
+  f.box(sx0 - 3, 4, tz0 - 3, 3, 3, 1, MAT.granite_pink);
+  plaque(b, 'JULY 1934', sx0 - 1.5, 4.6, tz0 - 3.05, 0, 'ON THESE STEPS\nIn July 1934 the men and women of the Harbor Canning Company\nstood for nineteen days.\n\nOn July 9, Casimir Novak, 29, cannery hand, spoke here\nto three thousand people:\n"We do not ask for charity. We ask for a nickel, and to be counted."\n\nThe strike was settled on July 27, 1934.\nThe union won a nickel an hour.\n\nPlaced by Local 1188, Cannery Workers\' Union, Labor Day 1946.', { scale: 0.4 });
+
+  // ---------------------------------------------------------------- the Mayor's platform for the Centennial address
+  const podZ = tz0 + 4;
+  b.prop('podium_outdoor', cxm, TY, podZ, 0, {});
+  b.prop('mic_stand', cxm + 1.5, TY, podZ - 1.2, 0, {});
+  for (const x of [cxm - 7, cxm + 7]) b.prop('flag_stand', x, TY, podZ + 2, 0, {});
+  const terr = [b.navPoint(0, cxm - 12, TY, tz0 + 7), b.navPoint(0, cxm + 12, TY, tz0 + 7), b.navPoint(0, cxm, TY, tz0 + 14)];
+  ctx.nav.chain([terr[0], terr[2], terr[1]]);
+  const tSpot = (pose, x, z, rot, o) => { const s = b.spot(pose, x, TY, z, rot, { room: 0, ...o }); let best = terr[0], bd2 = 1e9; for (const n of terr) { const p = ctx.nav.pos(n), q = b.m(x, TY, z); const d = Math.hypot(p[0] - q[0], p[2] - q[2]); if (d < bd2) { bd2 = d; best = n; } } ctx.nav.link(s.node, best); s.pendingLink = false; return s; };
+  tSpot('stand', cxm, podZ + 2.4, 0, { act: 'speech', tags: ['podium'], label: 'At the podium' });
+  for (const x of [cxm - 17, cxm - 11, cxm + 11, cxm + 17]) tSpot('stand', x, tz0 + 8, 0, { act: 'listen', tags: ['stage_guest'], label: 'On the platform' });
+  for (let x = cxm - 22; x <= cxm + 22; x += 4) if (Math.abs(x - cxm) > 5) b.prop('chair_folding', x, TY, tz0 + 11, 0, {});
+  // the time capsule on its draped table
+  b.prop('table_dining', cxm + 27, TY, tz0 + 5, 0, { tint: '#f0ece0' });
+  b.prop('time_capsule', cxm + 27, TY + 3, tz0 + 5, 0, {});
+  b.prop('vase_flowers', cxm + 24.5, TY + 3, tz0 + 5, 0, { tint: '#b3302a' });
+  tSpot('stand', cxm + 27, tz0 + 8, 0, { act: 'stand', tags: ['time_capsule'], label: 'Guarding the time capsule' });
+  readAt(b, cxm + 27, TY + 4, tz0 + 5, 0, 'The Centennial Time Capsule', 'THE JUNIPER BAY CENTENNIAL TIME CAPSULE\nSealed September 26, 1953\nTO BE OPENED SEPTEMBER 26, 2053\n\nCopper, made by the apprentices of Bayside Boat Works.\nIt will lie beneath the Soldiers\' Monument for one hundred years.\n\nCONTENTS\nA letter from Mayor Walter Pemberton to the Mayor of 2053\nA letter from Miss Augusta Whitcomb, great-granddaughter of the founder\n312 letters from the schoolchildren of Juniper Bay\nThe Courier, Sunday Centennial edition (48 pages)\nA Harbor Canning Co. sardine tin (empty, by request of the committee)\nA Halloran & Sons centennial loaf stamp\nThe 1953 telephone directory (4,212 listings)\nA program from the Rialto: "Shane"\nPhotographs of every street in town, by Lowell Photography Studio\nThe Centennial Book, with every signature collected at the fair\n\n"Be kind to us, 2053." - A.W.', 3);
+
+  // ---------------------------------------------------------------- side lawns: trees, the Liberty Elm, benches, flags
+  const lawnSpots = [];
+  for (const [x0, x1] of [[2, bx0 - 6], [bx1 + 6, W - 2]]) {
+    if (x1 - x0 < 10) continue;
+    const mx = (x0 + x1) / 2;
+    b.prop('tree_elm_yellow', mx, 0, bz0 + 20, 0, { cat: 'far', scale: 1.2 });
+    b.prop('tree_maple_red', mx, 0, bz0 + 62, 0, { cat: 'far' });
+    f.box(Math.round(mx) - 5, -1, bz0 + 36, 10, 1, 10, MAT.flowerbed_red);
+    b.prop('flag_pole', mx, 0, bz0 + 41, 0, { cat: 'far' });
+    b.prop('bench_park', mx, 0, bz0 + 30, 0, {}); b.playerSeat(mx, 0, bz0 + 30, 0, 0.45);
+    lawnSpots.push([mx, bz0 + 30.4]);
+  }
+  if (bx0 > 16) readAt(b, bx0 / 2, 3, bz0 + 20, 0, 'The Liberty Elm', 'THE LIBERTY ELM\nPlanted by the schoolchildren of Juniper Bay\non the dedication of City Hall, December 1876.\nIt survived the Great Gale of 1898 and the hurricane of 1938.\n"It is the oldest thing on this lawn, including the Council." - Courier, 1949', 3);
+  b.prop('car_sedan', bx0 + 20, 0, bz1 + 15, 2, { tint: '#1c1c20', cat: 'far' });
+  b.prop('car_police', bx0 + 44, 0, bz1 + 15, 2, { cat: 'far' });
+  smallSign(b, 'RESERVED - MAYOR', bx0 + 20, 0, bz1 + 21);
+
+  // ---------------------------------------------------------------- interior
+  const IX0 = bx0 + 2, IX1 = bx1 - 2, IZ0 = bz0 + 2, IZ1 = bz1 - 2;
+  const ZB = IZ1 - 30, ZW = bz0 + 50;       // back of the lobby/stair top; wing front/back split
+  const stairX = cxm - 5, stairZ = ZB - FH * 2;
+  // floors
+  f.box(IX0, TY - 1, IZ0, IX1 - IX0, 1, IZ1 - IZ0, MAT.floor_marble);
+  pave(f, LX0 + 1, IZ0, LX1, ZB, 4, (x, z) => ((Math.floor(x / 4) + Math.floor(z / 4)) % 2 ? MAT.floor_marble : MAT.marble), TY - 1, MAT.floor_marble);
+  f.box(cxm - 6, TY - 1, IZ0, 12, 1, stairZ - IZ0, MAT.carpet_red);
+  f.box(IX0, TY - 1, IZ0, LX0 - IX0, 1, IZ1 - IZ0, MAT.floor_oak);
+  f.box(LX1 + 1, TY - 1, IZ0, IX1 - LX1 - 1, 1, IZ1 - IZ0, MAT.floor_oak);
+  f.box(IX0, TY - 1, ZW + 1, LX0 - IX0, 1, IZ1 - ZW - 1, MAT.floor_concrete);  // vault
+  // second floor slabs (wings + landing over the back hall)
+  f.box(IX0, y2 - 1, IZ0, LX0 - IX0, 1, IZ1 - IZ0, MAT.floor_walnut);
+  f.box(LX1 + 1, y2 - 1, IZ0, IX1 - LX1 - 1, 1, IZ1 - IZ0, MAT.floor_oak_z);
+  f.box(LX0 + 1, y2 - 1, ZB, LX1 - LX0 - 1, 1, IZ1 - ZB, MAT.floor_marble);
+  f.box(IX0, y2 - 1, IZ0, 1, 1, 1, MAT.floor_oak);
+  // partitions: lobby side walls (full height), wing splits, back hall wall
+  partitionZ(f, IZ0, IZ1, TY, LX0, roofY - TY, MAT.marble, [{ at: IZ0 + 18, w: 6, h: 12 }, { at: ZB + 10, w: 4 }]);
+  partitionZ(f, IZ0, IZ1, TY, LX1, roofY - TY, MAT.marble, [{ at: IZ0 + 18, w: 6, h: 12 }, { at: ZB + 10, w: 4 }]);
+  f.box(LX0, y2, ZB + 6, 1, 10, 6, 0); f.box(LX1, y2, ZB + 6, 1, 10, 6, 0);            // upstairs doorways off the landing
+  f.box(LX0, y2 + 10, ZB + 6, 1, FH - 11, 6, MAT.marble); f.box(LX1, y2 + 10, ZB + 6, 1, FH - 11, 6, MAT.marble);
+  partitionX(f, IX0, LX0, TY, ZW, FH - 1, MAT.plaster_cream, [{ at: IX0 + 18, w: 4 }]);
+  partitionX(f, LX1 + 1, IX1, TY, ZW, FH - 1, MAT.plaster_cream, [{ at: IX1 - 22, w: 4 }]);
+  partitionX(f, IX0, LX0, y2, ZW, FH - 1, MAT.wood_panel, [{ at: IX0 + 18, w: 4 }]);
+  partitionX(f, LX0 + 1, LX1, TY, ZB, FH - 1, MAT.marble, [{ at: LX0 + 3, w: 5 }, { at: LX1 - 8, w: 5 }]);
+  // lobby wainscot & pilasters
+  f.walls(LX0 + 1, TY, IZ0, LX1 - LX0 - 1, 4, ZB - IZ0, MAT.marble, 1);
+  for (let z = IZ0 + 6; z < ZB - 2; z += 10) for (const x of [LX0 + 1, LX1 - 1]) f.box(x, TY, z, 1, roofY - TY, 2, MAT.limestone);
+  f.walls(LX0 + 1, roofY - 3, IZ0, LX1 - LX0 - 1, 2, ZB - IZ0, MAT.trim_gold, 1);
+  // re-open doorways the wainscot closed
+  f.carve(LX0, TY, IZ0 + 18, 2, 12, 6); f.carve(LX1 - 1, TY, IZ0 + 18, 2, 12, 6);
+  f.carve(cxm - 4, TY, bz0, 8, 13, 3);
+
+  // rooms
+  const lobby = b.room('Grand Lobby', LX0 + 1, TY, IZ0, LX1 - LX0 - 1, roofY - TY, ZB - IZ0, { lightMode: 'always', kind: 'hall', nav: [cxm, IZ0 + 8] });
+  const clerk = b.room("Town Clerk's Office", IX0, TY, IZ0, LX0 - IX0, FH - 1, ZW - IZ0, { lightMode: 'always' });
+  const vault = b.room('Town Records Vault', IX0, TY, ZW + 1, LX0 - IX0, FH - 1, IZ1 - ZW - 1, { lightMode: 'auto', ambient: 0.1 });
+  const mural = b.room('WPA Mural Room', LX1 + 1, TY, IZ0, IX1 - LX1 - 1, FH - 1, ZW - IZ0, { lightMode: 'always' });
+  const deeds = b.room('Registry of Deeds', LX1 + 1, TY, ZW + 1, IX1 - LX1 - 1, FH - 1, IZ1 - ZW - 1, { lightMode: 'auto' });
+  const back = b.room('Back Hall', LX0 + 1, TY, ZB + 1, LX1 - LX0 - 1, FH - 1, IZ1 - ZB - 1, { lightMode: 'auto' });
+  const landing = b.room('Upper Landing', LX0 + 1, y2, ZB, LX1 - LX0 - 1, FH - 1, IZ1 - ZB, { lightMode: 'auto' });
+  const mayor = b.room("Mayor's Office", IX0, y2, IZ0, LX0 - IX0, FH - 1, ZW - IZ0, { lightMode: 'auto' });
+  const ante = b.room("Mayor's Anteroom", IX0, y2, ZW + 1, LX0 - IX0, FH - 1, IZ1 - ZW - 1, { lightMode: 'auto' });
+  const council = b.room('Council Chamber', LX1 + 1, y2, IZ0, IX1 - LX1 - 1, FH - 1, IZ1 - IZ0, { lightMode: 'auto', kind: 'hall' });
+  // doors & stairs
+  const main = b.entrance(lobby, cxm - 2, TY, bz0, { outZ: 1, outY: 0, leaf: 'door_wood', tint: '#4a3020', main: true });
+  b.door(null, null, cxm + 2, TY, bz0, { leaf: 'door_wood', tint: '#4a3020' });
+  for (const n of terr) ctx.nav.link(n, main);
+  b.door(lobby, clerk, LX0, TY, IZ0 + 21, { axis: 'z', leaf: false });
+  b.door(lobby, mural, LX1, TY, IZ0 + 21, { axis: 'z', leaf: false });
+  b.door(clerk, vault, IX0 + 20, TY, ZW, { leaf: false });
+  b.door(mural, deeds, IX1 - 20, TY, ZW, { leaf: 'door_wood' });
+  b.door(lobby, back, LX0 + 5.5, TY, ZB, { leaf: 'door_wood' });
+  b.door(lobby, back, LX1 - 5.5, TY, ZB, { leaf: 'door_wood' });
+  b.door(back, vault, LX0, TY, ZB + 12, { axis: 'z', leaf: 'door_wood' });
+  b.door(back, deeds, LX1, TY, ZB + 12, { axis: 'z', leaf: 'door_wood' });
+  b.door(landing, ante, LX0, y2, ZB + 9, { axis: 'z', leaf: 'door_wood', tint: '#3a2418' });
+  b.door(landing, council, LX1, y2, ZB + 9, { axis: 'z', leaf: false });
+  b.door(ante, mayor, IX0 + 20, y2, ZW, { leaf: 'door_wood', tint: '#3a2418' });
+  // grand staircase (carpeted) from the lobby up to the landing, with brass-capped balustrades
+  stairs(f, stairX, TY, stairZ, '+z', FH, { w: 10, run: 2, mat: MAT.marble, rail: false });
+  for (let i = 0; i < FH; i++) f.box(stairX + 2, TY + i, stairZ + 2 * i, 6, 1, 2, MAT.carpet_red);
+  for (let i = 0; i < FH; i += 1) for (const x of [stairX - 1, stairX + 10]) f.box(x, TY + i + 1, stairZ + 2 * i, 1, i % 2 ? 1 : 3, 2, MAT.wood_dark);
+  for (const x of [stairX - 1, stairX + 10]) { f.box(x, TY, stairZ - 2, 1, 5, 1, MAT.wood_dark); f.box(x, TY + 5, stairZ - 2, 1, 1, 1, MAT.trim_gold); }
+  b.stairs(lobby, [cxm, TY, stairZ - 2], landing, [cxm, y2, ZB + 2]);
+  // gallery railing along the landing edge over the lobby
+  for (let x = LX0 + 1; x < LX1; x += 2) if (x < stairX - 1 || x > stairX + 10) f.box(x, y2, ZB, 1, 3, 1, MAT.wood_dark);
+  f.box(LX0 + 1, y2 + 3, ZB, stairX - LX0 - 2, 1, 1, MAT.wood_dark); f.box(stairX + 11, y2 + 3, ZB, LX1 - stairX - 11, 1, 1, MAT.wood_dark);
+  // rear entrance down to the back lot
+  doorSide(f, 2, cxm - 2, TY, bz1, 4, 9, { frame: MAT.limestone, t: 2, step: false });
+  for (let k = 0; k < TY; k++) f.box(cxm - 4, 0, bz1 + 2 * (TY - 1 - k), 8, k + 1, 2, MAT.granite);
+  const rear = b.entrance(back, cxm, TY, bz1 - 1, { inside: -3, outZ: bz1 + 16, outY: 0, leaf: 'door_wood', tint: '#4a3020', main: false });
+  linkToSidewalk(ctx, main); linkToSidewalk(ctx, rear, 30);
+
+  // ---------------------------------------------------------------- lobby furnishings
+  for (const z of [IZ0 + 14, IZ0 + 34]) b.prop('chandelier', cxm, roofY - 8, z, 0, {});
+  b.light(cxm, roofY - 10, IZ0 + 24, { mode: 'room', room: lobby, radius: 16, color: [1, 0.88, 0.7] });
+  for (const z of [IZ0 + 10, IZ0 + 30]) for (const [x, rot] of [[LX0 + 3, 1], [LX1 - 3, 3]]) { b.prop('bench_station', x, TY, z, rot, {}); b.spot('sit', x, TY, z, rot, { room: lobby, act: rng.pick(['read', 'sit', 'wait']), tags: ['civic', 'wait'], seat: 0.45 }); b.playerSeat(x, TY, z, rot, 0.45); }
+  b.prop('display_case_museum', cxm - 12, TY, IZ0 + 22, 1, {});
+  readAt(b, cxm - 12, TY + 4, IZ0 + 22, 1, 'The Town Charter (facsimile)', 'AN ACT TO INCORPORATE THE TOWN OF JUNIPER BAY\n(Facsimile. The original is kept in the Records Vault.)\n\nBe it enacted by the Senate and House of Representatives, in General Court assembled:\nThat the territory lying about the cove called Juniper Bay, with the inhabitants thereon,\nis hereby incorporated into a town by the name of JUNIPER BAY,\nwith all the powers, privileges and immunities which other towns do enjoy.\n\nApproved March 4, 1853.\n\nFirst selectmen: Elias Whitcomb, Obadiah Crowell, Jonas Beal.\nInhabitants at incorporation: 212.');
+  b.prop('display_case_museum', cxm + 12, TY, IZ0 + 22, 3, {});
+  readAt(b, cxm + 12, TY + 4, IZ0 + 22, 3, 'The Centennial in Pictures', 'CENTENNIAL EXHIBIT: A HUNDRED YEARS OF CITY HALL\n\n1. The dedication, December 1876: the Hibernian band and 2,000 in the snow.\n2. The Great Fire, June 11, 1902: bucket lines on these steps, the sky black over Market Street.\n3. November 11, 1918: the Armistice, announced from the portico while the influenza ward\n    was still open upstairs.\n4. July 1934: the strikers on the steps. Casimir Novak at the top, hat in hand.\n5. September 22, 1938: the morning after the hurricane. Rowboats on Harbor Street.\n6. August 14, 1945: V-J Day. You cannot see the square for the people.\n\nLent by Lowell Photography Studio and the Historical Society.');
+  b.prop('clock_grandfather', LX1 - 2, TY, ZB - 3, 3, {});
+  b.prop('flag_stand', cxm - 8, TY, ZB - 38, 0, {}); b.prop('flag_stand', cxm + 8, TY, ZB - 38, 0, {});
+  b.prop('palm_pot', LX0 + 3, TY, IZ0 + 2, 0, {}); b.prop('palm_pot', LX1 - 3, TY, IZ0 + 2, 0, {});
+  b.prop('umbrella_stand', cxm + 6, TY, IZ0 + 1.5, 0, {});
+  signLine(b, 'DIRECTORY', LX0 + 1.05, TY + 8.5, IZ0 + 10, 1, { bg: '#1d1d22', fg: '#e8c870', border: '#c9a24a', scale: 0.6 });
+  tablet(b, ['TOWN CLERK .......... 1', 'RECORDS VAULT ....... 1', 'WPA MURAL ROOM ...... 1', 'REGISTRY OF DEEDS ... 1', 'MAYOR ............... 2', 'COUNCIL CHAMBER ..... 2'], LX0 + 1.05, TY + 3.5, IZ0 + 10, 1, { scale: 0.32, bg: '#1d1d22', fg: '#f0ece0', border: '#1d1d22' });
+  const custodian = b.spot('stand', cxm + 6, TY, IZ0 + 26, 1, { room: lobby, act: 'mop', tags: ['work'] });
+  const custodian2 = b.spot('stand', cxm - 8, TY, ZB + 10, 1, { room: back, act: 'sweep', tags: ['work'] });
+  b.job('custodian', [custodian, custodian2], { shift: ['8:00', '19:30'], title: 'custodian', outfit: 'mechanic' });
+  for (let i = 0; i < 3; i++) b.spot('stand', cxm + rng.float(-10, 10), TY, IZ0 + 18 + i * 6, rng.int(0, 3), { room: lobby, act: 'look', tags: ['civic', 'visit'] });
+
+  // ---------------------------------------------------------------- Town Clerk's office
+  const cW = LX0 - IX0;
+  for (let x = IX0 + 3; x < LX0 - 3; x += 4) b.prop('counter_shop', x + 2, TY, IZ0 + 20, 2, { tint: '#6a4a30' });
+  f.box(IX0 + 2, TY + 3, IZ0 + 20, cW - 6, 1, 1, MAT.wood_dark);
+  const clerkSpot = b.spot('stand', IX0 + cW / 2, TY, IZ0 + 17, 2, { room: clerk, act: 'counter', tags: ['clerk'] });
+  const clerkDesk = officeDesk(b, clerk, IX0 + 10, TY, IZ0 + 8, 1, {});
+  officeDesk(b, clerk, IX0 + 26, TY, IZ0 + 8, 3, { typewriter: true });
+  b.job('town clerk', [clerkSpot, clerkDesk], { shift: ['9:00', '13:00'], title: 'town clerk', outfit: 'clerk' });
+  b.spot('stand', IX0 + cW / 2, TY, IZ0 + 24, 0, { room: clerk, act: 'talk', tags: ['customer', 'civic'] });
+  for (let z = IZ0 + 26; z < ZW - 2; z += 4) b.prop('filing_cabinet', IX0 + 1.2, TY, z, 1, {});
+  for (let x = IX0 + 4; x < LX0 - 4; x += 5) b.prop('bookshelf', x, TY, ZW - 1.2, 0, { tint: '#3a2a1c' });
+  b.prop('books_stack', IX0 + 12, TY + 3.8, IZ0 + 20, 0, {});
+  b.prop('clock_wall', IX0 + cW / 2, TY + 11, IZ0 + 0.6, 2, {});
+  b.prop('ceiling_lamp', IX0 + cW / 2, TY + 13, IZ0 + 12, 0, {});
+  b.prop('ceiling_lamp', IX0 + cW / 2, TY + 13, IZ0 + 36, 0, {});
+  signLine(b, 'TOWN CLERK - LICENSES - VITAL RECORDS', IX0 + cW / 2, TY + 9, IZ0 + 20.6, 2, { bg: '#1d1d22', fg: '#e8c870', border: '#c9a24a', scale: 0.4 });
+  readAt(b, IX0 + cW / 2, TY + 5, IZ0 + 21, 2, 'Notices at the Clerk\'s counter', 'NOTICES\n\nMARRIAGE INTENTIONS FILED\nHelen Stella Novak, 22, bookkeeper, of Maple Street, and\nRobert Joseph Brennan, 26, linotype operator, of Church Street.\nIntentions filed September 4; license issued September 9, 1953.\n\nDOG LICENSES are due April 1. "Admiral" (cat, Mrs. M. Hatch) is not a dog\nand does not require a license, the Clerk has explained twice.\n\nBIRTHS may be registered weekdays 9 to 5. Fathers please remain calm.\n\nThis office is open Saturday until 1 o\'clock for the Centennial.');
+  readAt(b, IX0 + 26, TY + 4, IZ0 + 8, 0, 'Open ledger: Vital Records, Vol. XLI', 'BIRTHS REGISTERED, SEPTEMBER 1953\n\nSept. 2 - Dominic Paul Russo, son of Vincent & Anna Russo, Market St.\nSept. 7 - Linda Mae Gould, dau. of Henry & Frances Gould, Orchard St.\nSept. 14 - Theresa Silva, dau. of Manuel & Maria Silva, Harbor St.\nSept. 19 - twins, John and James Tremblay, sons of Lucien & Rose Tremblay, Mill St.\nSept. 26 - (space left blank. Mrs. Carol Kaminski is at St. Luke\'s.)');
+
+  // ---------------------------------------------------------------- Town Records Vault
+  b.prop('bank_vault_door', IX0 + 20, TY, ZW + 1.4, 0, {});
+  for (let z = ZW + 5; z < IZ1 - 2; z += 5) for (const x of [IX0 + 1.5, LX0 - 1.5]) b.prop('bookshelf', x, TY, z, x < IX0 + 5 ? 1 : 3, { tint: '#5a4a3a' });
+  for (let z = ZW + 8; z < IZ1 - 6; z += 8) { f.box(IX0 + 10, TY, z, cW - 20, 7, 2, MAT.wood_dark); f.box(IX0 + 10, TY + 1, z, cW - 20, 5, 2, MAT.bookshelf_books); }
+  b.prop('display_case_museum', IX0 + cW / 2, TY, IZ1 - 4, 0, {});
+  readAt(b, IX0 + cW / 2, TY + 4, IZ1 - 4, 0, 'The original charter', 'THE ORIGINAL CHARTER OF THE TOWN, 1853\nParchment, signed by the Governor. Water-stained at one corner:\nit was carried up to the church loft in the Great Fire of 1902\nand again in the hurricane of 1938, by the same clerk, Miss Lydia Beal.\n\nBeside it: the first tax list (1854), 43 names, total assessment $11,860,\nand the minute book of the first Town Meeting, opened with these words:\n"Voted, that we are a town."');
+  b.prop('ceiling_lamp', IX0 + cW / 2, TY + 13, ZW + 20, 0, {});
+  b.spot('stand', IX0 + cW / 2, TY, IZ1 - 8, 2, { room: vault, act: 'read_stand', tags: ['civic'] });
+
+  // ---------------------------------------------------------------- WPA Mural Room: "The Founding of Juniper Bay" painted across the back wall
+  {
+    const mx0 = LX1 + 2, mx1 = IX1 - 1, mz = ZW - 1, my0 = TY + 2, mh = 12;
+    const mw = mx1 - mx0;
+    f.box(mx0, my0, mz, mw, mh, 1, MAT.plaster_blue);                       // sky
+    f.box(mx0, my0 + mh - 3, mz, mw, 3, 1, MAT.plaster_yellow);             // sunrise band
+    f.box(mx0, my0, mz, mw, 4, 1, MAT.sign_blue);                           // the bay
+    f.box(mx0, my0, mz, Math.round(mw * 0.35), 6, 1, MAT.grass);            // the meadow shore
+    f.box(mx0, my0 + 6, mz, Math.round(mw * 0.22), 3, 1, MAT.leaves_dark); // junipers on the hill
+    // the schooner JUNIPER
+    const sx = mx0 + Math.round(mw * 0.62);
+    f.box(sx - 6, my0 + 3, mz, 12, 2, 1, MAT.sign_brown); f.box(sx - 5, my0 + 2, mz, 10, 1, 1, MAT.sign_black);
+    f.box(sx - 2, my0 + 5, mz, 1, 7, 1, MAT.wood_dark); f.box(sx + 2, my0 + 5, mz, 1, 6, 1, MAT.wood_dark);
+    f.box(sx - 5, my0 + 6, mz, 3, 5, 1, MAT.canvas_white); f.box(sx - 1, my0 + 6, mz, 3, 4, 1, MAT.canvas_white); f.box(sx + 3, my0 + 5, mz, 2, 3, 1, MAT.canvas_white);
+    // settlers on the shore, the salt house and the first houses
+    for (let i = 0; i < 6; i++) { const px = mx0 + 3 + i * 2; f.box(px, my0 + 6, mz, 1, 2, 1, [MAT.sign_red, MAT.sign_navy, MAT.sign_brown][i % 3]); f.box(px, my0 + 8, mz, 1, 1, 1, MAT.plaster_pink); }
+    f.box(mx0 + 16, my0 + 6, mz, 5, 3, 1, MAT.wood_gray); f.box(mx0 + 16, my0 + 9, mz, 5, 1, 1, MAT.roof_shingle_brown);
+    f.box(mx0 + 23, my0 + 6, mz, 3, 2, 1, MAT.siding_white); f.box(mx0 + 23, my0 + 8, mz, 3, 1, 1, MAT.roof_shingle_gray);
+    f.box(mx0, my0 + mh, mz, mw, 1, 1, MAT.trim_gold); f.box(mx0, my0 - 1, mz, mw, 1, 1, MAT.trim_gold);
+    readAt(b, (mx0 + mx1) / 2, TY + 4, mz, 2, '"The Founding of Juniper Bay" (WPA mural)', '"THE FOUNDING OF JUNIPER BAY, 1853"\nOil on canvas, mounted on plaster. Ilse Jorgensen, 1937.\nFederal Art Project of the Works Progress Administration.\n\nCaptain Whitcomb\'s JUNIPER rides at anchor in the cove. On the meadow\n(now Founders Square) the first settlers raise the salt house.\nThe artist used real faces: the cooper is Jorgensen\'s landlord, Mr. Pruitt;\nthe woman with the child is Nora Halloran\'s granddaughter;\nthe boy on the rock is a cannery striker\'s son, Casimir Novak\'s nephew.\n\nThe Council voted 4 to 3 to accept it. It has been admired ever since\nby everyone except Councilman Crowell, who still says the sky is too blue.', 3.4);
+    for (let z = IZ0 + 8; z < ZW - 8; z += 10) { b.prop('bench_station', LX1 + (IX1 - LX1) / 2, TY, z, 2, {}); b.spot('sit', LX1 + (IX1 - LX1) / 2, TY, z, 2, { room: mural, act: 'look', tags: ['civic'], seat: 0.45 }); }
+    b.prop('ceiling_lamp', (LX1 + IX1) / 2, TY + 13, IZ0 + 20, 0, {});
+    framed(b, 'painting', IX1 - 0.6, TY + 7, IZ0 + 12, 3, 'Sketch for the mural', 'Charcoal study for "The Founding of Juniper Bay" by Ilse Jorgensen, 1936.\nIn the margin, in her hand: "More sky. Always more sky."', { tint: '#8ab0d0' });
+    framed(b, 'photo_frames', IX1 - 0.6, TY + 6, IZ0 + 28, 3, 'WPA crews, 1936', 'Photograph: WPA Project No. 2-117 crew building the seawall, Harbor Street, 1936.\nForty-one men, $1.10 a day. Front row, third from left: Casimir Novak.');
+  }
+  // ---------------------------------------------------------------- Registry of Deeds
+  for (let z = ZW + 5; z < IZ1 - 2; z += 5) b.prop('filing_cabinet', IX1 - 1.2, TY, z, 3, {});
+  officeDesk(b, deeds, LX1 + 12, TY, ZW + 14, 0, {});
+  b.prop('bookshelf', LX1 + 4, TY, IZ1 - 1.2, 0, {}); b.prop('bookshelf', LX1 + 9, TY, IZ1 - 1.2, 0, {});
+  b.prop('ceiling_lamp', (LX1 + IX1) / 2, TY + 13, ZW + 20, 0, {});
+  readAt(b, LX1 + 12, TY + 4, ZW + 14, 0, 'Deed Book 212, page 40', 'DEED BOOK 212, PAGE 40 (open on the desk)\n\nPruitt to Town of Juniper Bay, 1911: "the lower orchard lot on Orchard Street,\nexcepting the three oldest apple trees, which shall stand so long as they bear."\n(They still bear. The school children pick them every October.)');
+  // ---------------------------------------------------------------- back hall
+  b.prop('coat_rack', LX0 + 3, TY, IZ1 - 2, 0, {}); b.prop('umbrella_stand', LX0 + 5, TY, IZ1 - 2, 0, {});
+  b.prop('office_water_cooler', LX1 - 3, TY, IZ1 - 2, 0, {});
+  readAt(b, LX1 - 6, TY + 5, IZ1 - 1, 2, 'Bulletin board', 'CITY HALL BULLETIN BOARD\n\n- Centennial volunteers: sign in with Mrs. Pemberton by 9 A.M.\n- The Board of Health reminds all restaurateurs that chowder is not a beverage.\n- LOST: one brass key, Records Vault. Return to Miss Beal. NO QUESTIONS.\n- Softball: City Hall vs. Engine Co. No. 1, Sunday after church. The firemen are favored.\n- Civil Defense: air raid drill Thursday 10 A.M. Duck and cover.', 2.4);
+
+  // ---------------------------------------------------------------- Mayor's office
+  const mW = LX0 - IX0;
+  b.prop('rug_rect', IX0 + mW / 2, y2, IZ0 + 22, 0, { tint: '#6a1f24', scale: 1.6 });
+  b.prop('desk_wood', IX0 + mW / 2, y2, IZ0 + 12, 0, {});
+  b.prop('chair_office', IX0 + mW / 2, y2, IZ0 + 8.8, 2, {});
+  const mayorSeat = b.spot('sit', IX0 + mW / 2, y2, IZ0 + 8.8, 2, { room: mayor, act: 'write', tags: ['mayor'], seat: 0.46 });
+  void mayorSeat;
+  b.prop('lamp_desk', IX0 + mW / 2 + 2, y2 + 3, IZ0 + 12, 2, {}); b.prop('telephone', IX0 + mW / 2 - 2, y2 + 3, IZ0 + 12, 2, {});
+  readAt(b, IX0 + mW / 2, y2 + 4, IZ0 + 12, 2, 'The Mayor\'s speech (draft)', 'CENTENNIAL ADDRESS - DRAFT No. 4\n(eleven pages; pages 7 through 11 crossed out in Mrs. Pemberton\'s green ink)\n\n"Fellow citizens of Juniper Bay! One hundred years ago, Captain Elias Whitcomb\nanchored in this cove, with nothing but a schooner, a stubborn heart\nand the promise he had made to the sea..."\n\nIn the margin, in green: "Walter. Six pages. They will be standing."', 2);
+  for (const x of [IX0 + mW / 2 - 3.2, IX0 + mW / 2 + 3.2]) b.prop('chair_wood', x, y2, IZ0 + 16, 0, {});
+  b.prop('portrait', IX0 + mW / 2, y2 + 6, IZ0 + 0.6, 2, { tint: '#3a4a5a' });
+  readAt(b, IX0 + mW / 2, y2 + 6, IZ0 + 1, 2, 'Portrait of Capt. Elias Whitcomb', 'CAPTAIN ELIAS WHITCOMB (1809 - 1884)\nFounder and first Selectman of Juniper Bay.\nOil on canvas by William M. Prior, 1858.\n\nHe is painted with his hand on a chart of the cove and the JUNIPER\nat anchor behind him. The artist charged $25 and a barrel of salt mackerel.\nEvery mayor since 1876 has worked beneath this picture.', 2.6);
+  for (const x of [IX0 + 3, IX0 + mW - 3]) b.prop('flag_stand', x, y2, IZ0 + 2, 0, {});
+  b.prop('bookshelf', IX0 + 1.2, y2, IZ0 + 26, 1, {}); b.prop('bookshelf', IX0 + 1.2, y2, IZ0 + 31, 1, {});
+  b.prop('globe_desk', LX0 - 3, y2, IZ0 + 28, 3, {});
+  b.prop('sofa', IX0 + mW / 2, y2, ZW - 3, 0, { tint: '#5a2a24' });
+  b.prop('table_coffee', IX0 + mW / 2, y2, ZW - 8, 0, {});
+  b.prop('clock_grandfather', LX0 - 2, y2, IZ0 + 3, 3, {});
+  b.prop('chandelier', IX0 + mW / 2, y2 + 12, IZ0 + 20, 0, {});
+  framed(b, 'photo_frames', LX0 - 0.6, y2 + 6, IZ0 + 18, 3, 'Photographs on the Mayor\'s wall', 'Mayor Pemberton with Governor Herter, 1953.\nThe 1938 hurricane: the Mayor (then Councilman) in hip boots on Harbor Street.\nEleanor Pemberton launching the minesweeper YMS-412 at Bayside Boat Works, 1943.');
+  // anteroom (secretary)
+  const sec = officeDesk(b, ante, IX0 + 12, y2, ZW + 14, 0, {});
+  b.job('secretary', sec, { shift: ['9:00', '12:30'], title: "mayor's secretary", sex: 'F', outfit: 'clerk' });
+  for (let x = IX0 + 4; x < LX0 - 4; x += 5) b.prop('chair_wood', x, y2, IZ1 - 2, 0, {});
+  b.prop('filing_cabinet', LX0 - 2, y2, ZW + 3, 3, {}); b.prop('coat_rack', IX0 + 2, y2, IZ1 - 2, 0, {});
+  b.prop('ceiling_lamp', IX0 + mW / 2, y2 + 12, ZW + 20, 0, {});
+  // landing
+  b.prop('chandelier', cxm, y2 + 12, ZB + 16, 0, {});
+  framed(b, 'painting', cxm, y2 + 7, IZ1 - 0.6, 2, 'The Great Gale, 1867', 'THE GREAT GALE OF OCTOBER 1867\nOil, attributed to Fitz Henry Lane\'s circle. Gift of the Beal family, 1901.\nThe MARY ELLEN is the small schooner at the left, already half hidden in the spray.\nEleven men. The widows raised the stone on the quay the following spring.', { tint: '#5a6a7a' });
+
+  // ---------------------------------------------------------------- Council Chamber (an influenza ward in 1918)
+  const kX0 = LX1 + 1, kW = IX1 - kX0, kmx = kX0 + kW / 2;
+  f.box(kX0, y2, IZ0, kW, 2, 12, MAT.wood_mid);                                  // the dais
+  f.box(kX0 + 4, y2, IZ0 + 12, kW - 8, 1, 2, MAT.wood_mid);                      // step
+  f.box(kX0, y2 + 2, IZ0, kW, 1, 12, MAT.carpet_blue);
+  f.walls(kX0, y2, IZ0, kW, 5, IZ1 - IZ0, MAT.wood_panel, 1);
+  f.carve(LX1, y2, ZB + 6, 2, 10, 6);
+  for (let i = 0; i < 7; i++) {
+    const x = kX0 + 5 + i * (kW - 10) / 6;
+    b.prop('desk_wood', x, y2 + 2, IZ0 + 8, 0, {});
+    b.prop('chair_office', x, y2 + 2, IZ0 + 4.5, 0, { tint: '#3a2418' });
+    b.spot('sit', x, y2 + 2, IZ0 + 4.5, 2, { room: council, act: 'listen_sit', tags: ['council'], seat: 0.46 });
+  }
+  b.prop('flag_stand', kX0 + 2, y2 + 2, IZ0 + 1.5, 0, {}); b.prop('flag_stand', IX1 - 2, y2 + 2, IZ0 + 1.5, 0, {});
+  signLine(b, 'CITY OF JUNIPER BAY - STEADFAST IN FAIR WEATHER AND FOUL', kmx, y2 + 11, IZ0 + 0.6, 2, { bg: '#1f2f4f', fg: '#e8c870', border: '#c9a24a', scale: 0.5 });
+  discOn(f, 2, kmx, y2 + 13, IZ0, 3, MAT.trim_gold);
+  b.prop('lectern', kmx, y2, IZ0 + 17, 2, {});
+  for (let r = 0; r < 6; r++) for (const side of [-1, 1]) {
+    const z = IZ0 + 24 + r * 7;
+    for (let k = 0; k < 3; k++) {
+      const x = kmx + side * (4 + k * 3.2);
+      b.prop('chair_wood', x, y2, z, 0, { tint: '#5a3a24' });
+      b.spot('sit', x, y2, z, 0, { room: council, act: 'listen_sit', tags: ['council', 'civic'], seat: 0.45 });
+    }
+  }
+  for (const z of [IZ0 + 22, IZ0 + 50, IZ0 + 76]) b.prop('chandelier', kmx, y2 + 12, z, 0, {});
+  b.light(kmx, y2 + 10, IZ0 + 45, { mode: 'room', room: council, radius: 14 });
+  for (let i = 0; i < 4; i++) b.prop('portrait', IX1 - 0.6, y2 + 7, IZ0 + 26 + i * 16, 3, { tint: ['#3a4a3a', '#4a3a2a', '#2a3a4a', '#3a2a3a'][i] });
+  readAt(b, IX1 - 1, y2 + 6, IZ0 + 42, 3, 'Portraits of former mayors', 'FORMER MAYORS OF JUNIPER BAY\n(Juniper Bay became a city in 1896)\n\nHon. Josiah Crowell, 1896 - 1902\nHon. Patrick J. Kearney, 1902 - 1910 ("the Fire Mayor")\nHon. Edmund Pruitt, 1910 - 1922\nHon. Margaret Beal Doyle, 1922 - 1926 (the first woman mayor in the county)\nHon. Arthur Gould, 1926 - 1942\nHon. Walter Pemberton, 1942 -', 2.6);
+  // the influenza plaque
+  signLine(b, 'OCTOBER - NOVEMBER 1918', kX0 + 0.6, y2 + 7, IZ0 + 60, 1, { scale: 0.45 });
+  signLine(b, 'IN THIS ROOM', kX0 + 0.6, y2 + 8, IZ0 + 60, 1, { scale: 0.45 });
+  readAt(b, kX0 + 1, y2 + 6, IZ0 + 60, 1, 'The influenza plaque', 'IN THIS ROOM\nfrom October 3 to November 14, 1918,\nthe Council Chamber served as an emergency hospital ward\nduring the influenza epidemic.\n\nSixty-one beds. Eleven nurses, four of them volunteers from the cannery.\nDr. Josiah Pike and Nurse Honora Duffy never left the building.\nOne hundred and forty townspeople died that autumn.\nOut of that grief the town raised St. Luke\'s Hospital by public subscription (1920).\n\n"They came up these stairs when there was nowhere else to go,\nand the town did not turn them away."\n\nPlaced by the Council, 1920.', 3);
+  for (let z = IZ0 + 20; z < IZ1 - 6; z += 14) for (const dir of [1]) framed(b, 'radiator', IX1 - 0.8, y2, z + 7, 3, null, null);
+  b.spot('stand', kmx, y2, IZ0 + 17, 2, { room: council, act: 'speech', tags: ['council_chair'] });
+  return b;
+}
+
 // =====================================================================================
 // placeholders for the remaining generators (filled in below)
 // =====================================================================================
-function buildCityHall(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
 function buildPark(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
 function buildLibrary(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }
 function buildStBrigid(ctx, lot, spec) { return GEN_FALLBACK(ctx, lot, spec); }

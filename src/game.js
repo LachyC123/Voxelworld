@@ -25,6 +25,8 @@ import { Boats } from './vehicles/boats.js';
 import { Birds } from './sim/birds.js';
 import { Fireworks } from './render/fireworks.js';
 import { Audio } from './audio/audio.js';
+import { LighthouseBeam } from './render/beam.js';
+import { LIGHTHOUSE } from './city/layout.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -75,6 +77,7 @@ export class Game {
     this.boats = new Boats(ctx.props);
     this.birds = new Birds(ctx.props);
     this.fireworks = new Fireworks(R.scene, ctx.lights);
+    this.beam = new LighthouseBeam(R.scene, LIGHTHOUSE.x, ctx.lighthouseLampY || 17.5, LIGHTHOUSE.z);
     this.audio = new Audio();
     this.fireworks.onBoom = (x, y, z) => this.audio.boom(x, y, z, this);
     this.locateSoundSources();
@@ -194,6 +197,7 @@ export class Game {
     const cam = R.camera.position;
     const Q = QUALITY[this.qualityName];
     const aerial = this.player.mode === 'aerial';
+    ctx.people.playerPos = this.player.mode === 'aerial' ? null : this.player.pos;
     ctx.people.update(this.clock.abs, this.time, cam, aerial ? [0, Q.peopleRadius * 1.6] : [Q.interiorRadius, Q.peopleRadius]);
     // player body in third person
     const pc = this.playerChar.pose;
@@ -213,10 +217,21 @@ export class Game {
     this.boats.update(minutes, this.time);
     this.birds.update(dt, this.time, this.player.focus(), tod.night);
     this.fireworks.update(dt, minutes, !this.clock.paused);
+    this.beam.update(this.time, tod.night);
     this.audio.update(this, dt);
+    this.meshes.updateLOD(cam, aerial ? 150 : 190);
     ctx.props.update(cam, aerial ? [0, Q.propRadius * 1.3, 900] : [Q.interiorRadius, Q.propRadius, 800]);
     ctx.lights.update(R.common, cam, tod.night, ctx.world.rooms, this.time, Q.lights);
     this.roomLights.update(dt, minutes, tod.night, ctx.people, this.time);
+    // announce events as they begin
+    if (this._lastMin !== undefined && !this.clock.jumped) {
+      for (const ev of ctx.events) {
+        const crossed = (this._lastMin < ev.start && minutes >= ev.start) || (this._lastMin > minutes && ev.start <= minutes);
+        if (crossed && minutes - ev.start < 5) this.hud.toast(`${ev.icon || '★'} ${ev.title} — now at ${ev.place}. (M to find it)`, 7);
+      }
+    }
+    this.clock.jumped = false;
+    this._lastMin = minutes;
     // where am I?
     this.updateLocation();
     this.handleInteraction();

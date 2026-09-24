@@ -1098,3 +1098,499 @@ defineProp('lumber_rack', {
     for (let z = 4; z < 8; z += 2) m.box(1, 25, z, 38, 1, 1, pine[(z + 1) % 3]);
   },
 });
+
+// =====================================================================================================
+// BARBER, SODA FOUNTAIN, DINER, BAR & AMUSEMENTS
+// =====================================================================================================
+
+// Hydraulic barber chair: porcelain & chrome pedestal, oxblood-red leather seat (top at 0.5 m), padded
+// arms, tall back with a paper-covered headrest and a chrome footrest in front. Customer faces +z.
+defineProp('barber_chair', {
+  size: [14, 23, 17], collide: [0.85, 1.1, 0.95],
+  build(m) {
+    const lea = '#8a1e22', leaD = '#6a1418', por = '#f0ece4';
+    m.cyl(7, 0, 7, 4.2, 1, por); m.cyl(7, 1, 7, 3.2, 1, CHROME_M); m.cyl(7, 2, 7, 2, 3, por); m.cyl(7, 5, 7, 2.4, 1, CHROME);
+    m.box(10, 2, 7, 3, 1, 1, CHROME_D); m.box(12, 2, 7, 1, 3, 1, CHROME_D);        // pump pedal
+    m.box(2, 6, 2, 10, 1, 10, CHROME_D);                     // seat pan
+    m.box(2, 7, 3, 10, 1, 9, lea); m.box(3, 8, 3, 8, 1, 8, lea); m.box(2, 7, 12, 10, 1, 1, CHROME);
+    for (const x of [3, 5, 7, 9]) m.set(x + 0.5, 8, 11, leaD);                   // tufting
+    // arms
+    for (const x of [0, 12]) {
+      m.box(x + 0.5, 7, 3, 1, 4, 1, CHROME); m.box(x + 0.5, 7, 10, 1, 4, 1, CHROME);
+      m.box(x, 11, 2, 2, 1, 10, lea); m.box(x, 10, 11, 2, 1, 1, CHROME);
+    }
+    // back (leans slightly back toward -z)
+    for (let y = 8; y < 19; y++) { const z = 2 - Math.floor((y - 8) / 6); m.box(2, y, z, 10, 1, 2, lea); m.box(1, y, z, 1, 1, 2, CHROME_M); m.box(12, y, z, 1, 1, 2, CHROME_M); }
+    for (const y of [11, 14, 17]) m.box(3, y, 3 - (y > 13 ? 1 : 0), 8, 1, 1, leaD);   // channel tufts
+    m.box(6, 19, 0, 2, 1, 1, CHROME); m.box(4, 20, 0, 6, 3, 2, lea); m.box(4, 20, 2, 6, 3, 1, '#f8f8f4');  // headrest + paper
+    // footrest: chrome bars to a ribbed plate in front
+    m.box(5, 4, 11, 1, 1, 4, CHROME_D); m.box(8, 4, 11, 1, 1, 4, CHROME_D);
+    m.box(3, 3, 14, 8, 1, 3, CHROME_M); for (let x = 3; x < 11; x += 2) m.box(x, 4, 14, 1, 1, 3, CHROME); m.box(3, 4, 16, 8, 1, 1, CHROME);
+  },
+});
+
+// Barber's back-bar station, back at z=0 (1.25 m): porcelain counter with a sink & drawers, big mirror
+// with glass shelf of tonics (bay rum, lilac, amber), shaving mug & brush, a blue Barbicide jar of combs,
+// clippers, and a razor strop hanging at the side.
+defineProp('barber_mirror_station', {
+  size: [20, 34, 8], origin: [10, 0, 0], collide: [1.25, 0.95, 0.5],
+  build(m) {
+    const top = '#f2eee6', wd = OAK_D;
+    m.box(0, 0, 0, 20, 1, 7, WALNUT_D); m.box(0, 1, 0, 20, 13, 7, wd);
+    for (const [x, w] of [[1, 5], [14, 5]]) for (const y of [2, 6, 10]) { m.box(x, y, 7, w, 3, 1, OAK); m.set(x + (w >> 1), y + 1, 8, BRASS); }
+    m.box(7, 2, 7, 6, 11, 1, OAK); m.box(8, 3, 7, 4, 9, 1, OAK_D);               // door
+    m.box(0, 14, 0, 20, 1, 8, top); m.box(0, 14, 7, 20, 1, 1, CHROME_M);
+    m.box(8, 13, 2, 5, 2, 4, 0); m.box(8, 12, 2, 5, 1, 4, '#dcd8d0'); m.set(10, 12, 3, '#6a6a6a');   // sink
+    m.box(10, 15, 1, 1, 2, 1, CHROME); m.box(10, 17, 1, 1, 1, 2, CHROME); m.set(9, 15, 1, CHROME); m.set(11, 15, 1, CHROME);
+    // mirror
+    m.box(0, 15, 0, 20, 19, 1, OAK_D); m.box(1, 17, 0, 18, 15, 1, '#a8bcc6');
+    for (let i = 0; i < 6; i++) { m.set(3 + i, 22 + i, 0, '#d8e8ee'); m.set(4 + i, 22 + i, 0, '#d8e8ee'); }
+    m.box(0, 33, 0, 20, 1, 2, OAK); m.box(7, 32, 0, 6, 2, 1, OAK);
+    m.box(1, 18, 1, 18, 1, 2, '#c8dce0');                    // glass shelf
+    const tonics = ['#3a8a4a', '#b8782a', '#8a4aa8', '#c83a2a', '#3a8a4a', '#e8d070', '#2a6a9a'];
+    tonics.forEach((c, i) => { const x = 2 + i * 2 + (i > 3 ? 3 : 0); m.box(x, 19, 1, 1, 2, 1, c); m.set(x, 21, 1, CHROME); });
+    // counter-top clutter
+    m.box(2, 15, 3, 2, 3, 2, '#3a6ad0'); m.box(2, 17, 3, 2, 1, 2, '#6a9ae8');    // Barbicide jar
+    m.set(2, 18, 3, '#1a1a1a'); m.set(3, 18, 4, '#1a1a1a'); m.set(3, 19, 3, '#1a1a1a');   // combs
+    m.box(5, 15, 3, 1, 2, 1, '#f4f0e6'); m.set(5, 17, 3, '#c8a878');              // shaving mug & brush
+    m.box(15, 15, 3, 2, 1, 3, '#2a2a2a'); m.set(16, 15, 6, CHROME);               // clippers
+    m.box(17, 15, 2, 2, 2, 2, '#f0ece0'); m.set(17, 16, 3, '#c8202a');            // talc tin
+    m.box(19, 6, 7, 1, 8, 1, '#6a3a1a'); m.set(19, 14, 7, CHROME_D);              // razor strop
+  },
+});
+
+// Barber pole, 1/32 m voxels (~1.1 m): wall-mounted. Origin = centre-bottom of the wall mount, i.e. the
+// back face (z=0) sits on the wall and the pole stands 0.2 m out from it. Red/white/blue spiral in a
+// glass cylinder, chrome caps, milk-glass globe on top that glows at night.
+defineProp('barber_pole', {
+  size: [12, 36, 12], scale: 1 / 32, origin: [6, 0, 0], cat: 'exterior',
+  light: lampLight(0, 1.02, 0.19, [1.0, 0.9, 0.8], 3, 'night'),
+  build(m) {
+    const cx = 6, cz = 6;
+    m.box(3, 5, 0, 6, 3, 1, CHROME_D); m.box(5, 6, 1, 2, 1, 3, CHROME);           // lower bracket
+    m.box(3, 27, 0, 6, 3, 1, CHROME_D); m.box(5, 28, 1, 2, 1, 3, CHROME);         // upper bracket
+    m.set(cx, 0, cz, CHROME); m.cyl(cx, 1, cz, 2, 1, CHROME); m.cyl(cx, 2, cz, 3.6, 3, CHROME_M); m.cyl(cx, 4, cz, 3.9, 1, CHROME);
+    const R = '#c8202a', W = '#f4f4f0', B = '#2a4ab0', cols = [R, R, R, W, B, B, B, W];
+    for (let y = 5; y < 27; y++) for (let z = 0; z < 12; z++) for (let x = 0; x < 12; x++) {
+      const dx = x + 0.5 - cx, dz = z + 0.5 - cz, r = Math.hypot(dx, dz);
+      if (r > 3.5) continue;
+      const a = (Math.atan2(dz, dx) / (2 * Math.PI) + 1) % 1;
+      m.set(x, y, z, r < 2.6 ? W : cols[Math.floor(a * 8 + y / 1.3) % 8]);
+    }
+    m.cyl(cx, 27, cz, 3.9, 1, CHROME); m.cyl(cx, 28, cz, 3.2, 1, CHROME_M);
+    m.sphere(cx, 31.5, cz, 3.4, { c: '#f8f4ea', emit: 0.55 });
+    m.cyl(cx, 34, cz, 1.5, 1, CHROME); m.set(cx, 35, cz, CHROME);
+  },
+});
+
+// Shoeshine stand: raised oak platform with steps, a leather armchair on top, brass shoe-shaped foot
+// rests, and a drawer of polish tins & brushes in front. Customer faces +z (the shiner kneels at +z).
+defineProp('shoeshine_stand', {
+  size: [16, 32, 18], collide: [1.0, 1.6, 1.1],
+  build(m) {
+    const lea = '#5a2a1a';
+    m.box(0, 0, 0, 16, 7, 14, OAK_D); m.box(0, 7, 0, 16, 1, 14, OAK);
+    m.box(1, 1, 14, 14, 3, 3, OAK_D); m.box(1, 4, 14, 14, 1, 3, OAK);          // step
+    m.box(2, 1, 17, 12, 2, 1, OAK); m.box(3, 2, 17, 10, 1, 1, OAK_D);           // polish drawer
+    m.box(3, 3, 17, 2, 1, 1, '#1a1a1a'); m.box(6, 3, 17, 2, 1, 1, '#6a3a1a'); m.box(9, 3, 17, 2, 1, 1, '#b8202a'); m.box(12, 3, 17, 1, 1, 1, '#c8a878');
+    for (const x of [1, 14]) m.box(x, 8, 0, 1, 5, 11, OAK_D);                   // chair sides
+    m.box(1, 8, 1, 14, 5, 10, OAK_D);
+    m.box(2, 13, 2, 12, 2, 9, lea); m.box(2, 15, 1, 12, 13, 2, lea);           // seat & back
+    for (const y of [18, 22]) m.box(3, y, 3, 10, 1, 1, '#4a2014');
+    for (const x of [0, 14]) { m.box(x, 13, 1, 2, 8, 1, OAK_D); m.box(x, 20, 1, 2, 1, 11, OAK); m.box(x, 13, 10, 2, 7, 1, OAK_D); }
+    m.box(1, 28, 0, 14, 2, 3, OAK); m.box(4, 30, 1, 8, 1, 1, OAK);
+    // foot rests on brass posts
+    for (const x of [4, 10]) { m.box(x + 0.5, 7, 11, 1, 4, 1, BRASS); m.box(x, 11, 11, 2, 1, 3, BRASS_L); m.box(x, 12, 11, 2, 1, 1, BRASS); }
+  },
+});
+
+// Soda-fountain counter module (1.0 m): customers sit at +z (red & cream enamel front, marble top with
+// chrome nosing); on the server's side (-z) stand chrome soda taps, syrup pumps and a green milkshake
+// mixer with its steel cup, plus a stack of sundae dishes.
+defineProp('soda_fountain', {
+  size: [16, 26, 12], collide: [1.0, 1.05, 0.75],
+  build(m) {
+    const red = '#b8202a', cream = '#f2ead6', marble = '#f0ece6';
+    m.box(0, 0, 1, 16, 1, 10, '#2a2a2a');
+    m.box(0, 1, 0, 16, 14, 11, '#c8ccd0');                   // stainless server-side body
+    m.box(0, 1, 11, 16, 14, 1, cream);                        // customer front
+    for (let x = 0; x < 16; x += 4) m.box(x + 1, 2, 11, 2, 12, 1, red);          // red enamel flutes
+    m.box(0, 1, 11, 16, 1, 1, CHROME); m.box(0, 13, 11, 16, 1, 1, CHROME);
+    m.box(0, 15, 0, 16, 1, 12, marble); m.box(0, 15, 11, 16, 1, 1, CHROME);      // top & nosing
+    for (const x of [3, 9]) m.set(x, 15, 8, '#dcd4cc');                           // marble veins
+    // server side: ice-cream cabinet lids below the counter edge
+    for (const x of [1, 6, 11]) { m.box(x, 13, 0, 4, 1, 1, CHROME_M); m.set(x + 1, 12, 0, '#2a2a2a'); }
+    // fountain head: chrome taps on a pedestal
+    m.box(4, 16, 3, 8, 3, 2, CHROME_M); m.box(4, 19, 3, 8, 1, 2, CHROME);
+    for (const x of [5, 8, 11]) { m.box(x - 0.5, 20, 3, 1, 3, 1, CHROME); m.box(x - 0.5, 22, 2, 1, 1, 2, CHROME); m.set(x - 0.5, 21, 2, CHROME_D); m.set(x - 0.5, 23, 4, '#1a1a1a'); }
+    // syrup pumps with coloured labels
+    for (const [x, c] of [[1, '#6a3a1a'], [2.5, '#c8202a'], [14, '#f0d23a']]) { m.box(x, 16, 1, 1, 3, 1, c); m.box(x, 19, 1, 1, 1, 1, CHROME); m.set(x, 20, 1, CHROME_D); }
+    // milkshake mixer (green) on the right
+    m.box(13, 16, 5, 2, 1, 3, '#3a8a5a'); m.box(13, 17, 5, 2, 6, 1, '#3a8a5a'); m.box(13, 22, 5, 2, 2, 3, '#3a8a5a');
+    m.box(13.5, 17, 6, 1, 3, 1, CHROME); m.set(13.5, 21, 7, CHROME_D);
+    // stack of sundae dishes & a glass holder
+    m.box(1, 16, 5, 2, 1, 2, GLASS); m.box(1, 17, 5, 2, 1, 2, GLASS); m.box(1, 18, 5, 2, 1, 2, '#e4f0f2');
+    m.box(6, 16, 7, 1, 2, 1, GLASS); m.box(8, 16, 7, 1, 2, 1, GLASS); m.box(10, 16, 7, 1, 2, 1, GLASS);
+  },
+});
+
+// Soda-fountain / lunch-counter stool: chrome pedestal, red vinyl cushion with a chrome band, seat at
+// 0.7 m. Bolted to the floor; rotationally symmetric.
+defineProp('soda_stool', {
+  size: [8, 12, 8], collide: [0.4, 0.72, 0.4],
+  build(m) {
+    m.cyl(4, 0, 4, 3, 1, CHROME_M); m.cyl(4, 1, 4, 1.6, 1, CHROME);
+    m.cyl(4, 2, 4, 1, 7, CHROME); m.cyl(4, 5, 4, 3.2, 1, CHROME_D);
+    m.cyl(4, 5, 4, 2.5, 1, 0);
+    m.box(1, 5, 3.5, 6, 1, 1, CHROME_D); m.box(3.5, 5, 1, 1, 1, 6, CHROME_D);     // foot ring spokes
+    m.cyl(4, 9, 4, 3.2, 1, CHROME); m.cyl(4, 10, 4, 3.2, 1, '#b8202a'); m.cyl(4, 11, 4, 2.6, 1, '#c8303a');
+  },
+});
+
+// A pair of tall fluted soda glasses — chocolate & strawberry milkshakes with whipped cream, cherries
+// and striped straws — and the steel mixing cup. 1/32 m voxels, for a counter top.
+defineProp('milkshake_glasses', {
+  size: [18, 22, 8], scale: 1 / 32, collide: false,
+  build(m) {
+    const glass = (x, fill) => {
+      m.box(x + 1, 0, 3, 3, 1, 3, GLASS); m.box(x + 2, 1, 4, 1, 2, 1, GLASS);
+      for (let y = 3; y < 13; y++) { const w = y < 6 ? 3 : 5, o = y < 6 ? 1 : 0; m.box(x + o, y, 2 + o, w, 1, w, y < 12 ? fill : GLASS); }
+      m.box(x, 13, 2, 5, 2, 5, '#fbf8f0'); m.box(x + 1, 15, 3, 3, 1, 3, '#fbf8f0'); m.set(x + 2, 16, 4, '#fbf8f0');
+      m.set(x + 2, 17, 4, '#c8102a'); m.set(x + 2, 18, 5, '#3a6a2a');
+      for (let i = 0; i < 6; i++) m.set(x + 3 + (i >> 2), 13 + i, 3, i & 1 ? '#f8f8f8' : '#d8202a');
+    };
+    glass(0, '#7a4a2a'); glass(6, '#f0a0b0');
+    m.box(12, 0, 2, 5, 12, 5, CHROME_M); m.box(12, 11, 2, 5, 1, 5, CHROME); m.clear(13, 11, 3, 3, 1, 3); m.box(13, 10, 3, 3, 1, 3, '#e8d0b8');
+    m.box(13, 3, 3, 3, 4, 3, CHROME_D);
+  },
+});
+
+// Wurlitzer-style jukebox (1.55 m): walnut cabinet, glowing coloured arch and bubble-tube pilasters,
+// window onto the record changer, chrome title-strip panel & selector buttons, gilt speaker grille.
+// Casts a warm coloured glow into the room when the room lamps are on.
+defineProp('jukebox', {
+  size: [16, 25, 11], collide: [1.0, 1.55, 0.7], light: lampLight(0, 1.1, 0.45, [1.0, 0.62, 0.35], 4.5, 'room'),
+  build(m) {
+    const wal = '#6a3a1e', walD = '#4a2814';
+    m.box(0, 0, 0, 16, 1, 11, walD); m.box(1, 1, 0, 14, 16, 10, wal);
+    // gilt grille
+    m.box(4, 2, 10, 8, 7, 1, '#3a2a1a');
+    for (let y = 2; y < 9; y++) for (let x = 4; x < 12; x++) if ((x + y) % 2 === 0) m.set(x, y, 10, BRASS_L);
+    // bubble-tube pilasters
+    const tube = [{ c: '#ff7a2a', emit: 0.95 }, { c: '#ffd040', emit: 0.95 }, { c: '#ff4040', emit: 0.95 }];
+    for (const x of [0, 14]) { m.box(x, 1, 1, 2, 16, 9, wal); for (let y = 2; y < 17; y++) m.box(x, y, 9, 2, 1, 2, tube[(y >> 1) % 3]); }
+    // selector panel & title strips
+    m.box(3, 9, 10, 10, 1, 1, CHROME); m.box(3, 10, 9, 10, 2, 2, CHROME_M);
+    for (let x = 4; x < 12; x++) m.set(x, 11, 10, x & 1 ? '#f8f4e8' : '#e8e0c8');
+    for (let x = 4; x < 12; x += 2) m.set(x, 10, 11, '#c8202a');
+    // record changer window
+    m.box(3, 12, 3, 10, 5, 7, { c: '#2a2030', emit: 0.2 });
+    m.clear(3, 12, 8, 10, 5, 3);
+    m.box(5, 13, 5, 6, 1, 3, '#101010'); m.box(5, 14, 5, 6, 1, 3, '#181818'); m.set(8, 15, 6, CHROME); m.box(7, 13, 7, 3, 1, 1, { c: '#ffd040', emit: 0.6 });
+    m.box(3, 12, 10, 10, 1, 1, CHROME); frame(m, 2, 12, 8, 12, 5, 3, CHROME_D);
+    // glowing arch on top
+    for (let y = 16; y < 25; y++) for (let x = 0; x < 16; x++) {
+      const r = Math.hypot(x + 0.5 - 8, y + 0.5 - 16);
+      if (r > 8.2) continue;
+      const c = r > 7.2 ? wal : r > 6.2 ? { c: '#ff3a3a', emit: 0.95 } : r > 5.2 ? { c: '#ff9a2a', emit: 0.95 } : r > 4.2 ? { c: '#ffe070', emit: 0.95 } : r > 3.2 ? { c: '#50c8ff', emit: 0.9 } : CHROME;
+      m.box(x, y, r > 7.2 ? 0 : 1, 1, 1, r > 7.2 ? 11 : 10, c);
+    }
+    m.box(7, 17, 10, 2, 2, 1, '#c8202a'); m.set(7.5, 18, 11, BRASS_L);
+  },
+});
+
+// 1950s pinball machine: chrome legs, walnut & red cabinet, glass-covered playfield sloping up toward
+// the back with bumpers, flippers & rails, and an illuminated backbox (rocket-and-stars backglass,
+// score window) standing at the far end. The player stands at +z.
+defineProp('pinball_machine', {
+  size: [12, 30, 24], collide: [0.75, 1.1, 1.45],
+  build(m) {
+    const cab = '#a82a2a', cabD = '#7a1a1a';
+    for (const [x, z] of [[0, 1], [11, 1], [0, 22], [11, 22]]) { m.box(x, 0, z, 1, 11, 1, CHROME); m.box(x, 0, z, 1, 1, 1, CHROME_D); }
+    // cabinet slopes: 3 high at front, rising to the back
+    for (let z = 0; z < 24; z++) {
+      const top = 14 + Math.floor((23 - z) / 8);
+      m.box(0, 11, z, 12, top - 11, 1, cab); m.box(0, top, z, 1, 1, 1, CHROME_M); m.box(11, top, z, 1, 1, 1, CHROME_M);
+      m.box(1, top - 1, z, 10, 1, 1, z % 6 < 3 ? '#1e3a6a' : '#2a4a8a');      // playfield
+    }
+    m.box(0, 11, 23, 12, 3, 1, cabD); m.box(4, 12, 23, 4, 2, 1, CHROME_M); m.set(5, 12, 23, '#1a1a1a'); m.set(6, 12, 23, '#1a1a1a');  // coin door
+    m.box(5, 14, 23, 2, 1, 1, CHROME);                       // plunger
+    const pf = (z) => 14 + Math.floor((23 - z) / 8) - 1;
+    // bumpers (mushroom caps), flippers, rails, targets
+    for (const [x, z, c] of [[3, 8, '#e84040'], [8, 8, '#f0d040'], [5.5, 5, '#40c0f0'], [3, 13, '#f0d040'], [8, 13, '#e84040']]) {
+      m.set(x, pf(z) + 1, z, CHROME); m.set(x, pf(z) + 2, z, { c, emit: 0.6 });
+    }
+    m.box(3, pf(19) + 1, 19, 2, 1, 1, '#f4f0e6'); m.box(7, pf(19) + 1, 19, 2, 1, 1, '#f4f0e6');
+    m.box(1, pf(16) + 1, 16, 1, 1, 3, CHROME_M); m.box(10, pf(16) + 1, 16, 1, 1, 3, CHROME_M);
+    for (let x = 2; x < 10; x += 2) m.set(x, pf(2) + 1, 2, { c: '#ff8040', emit: 0.5 });
+    m.set(6, pf(17) + 1, 17, CHROME);                         // the ball
+    // backbox
+    m.box(0, 16, 0, 12, 14, 3, cabD); m.box(0, 29, 0, 12, 1, 3, CHROME_M);
+    m.box(1, 17, 3, 10, 12, 0, 0);
+    m.box(1, 18, 2, 10, 10, 1, { c: '#1a1a4a', emit: 0.7 });
+    for (const [x, y] of [[2, 26], [9, 25], [3, 21], [8, 19], [5, 27]]) m.set(x, y, 3, { c: '#fff8c0', emit: 0.95 });
+    m.box(5, 20, 3, 2, 5, 1, { c: '#e0e0e0', emit: 0.8 }); m.set(5.5, 25, 3, { c: '#e84040', emit: 0.9 }); m.box(4, 20, 3, 4, 1, 1, { c: '#e84040', emit: 0.9 });
+    m.box(5, 19, 3, 2, 1, 1, { c: '#ffa020', emit: 0.95 });
+    m.box(2, 16, 3, 8, 2, 1, '#101010'); for (const x of [3, 5, 7]) m.set(x, 17, 3, { c: '#f8f4e0', emit: 0.8 });
+  },
+});
+
+// Pool table (2.5 x 1.35 m, long axis along x): mahogany rails with mother-of-pearl sights, green felt,
+// six leather pockets, fifteen balls racked at the -x end, cue ball at the +x end, a cue & chalk.
+defineProp('pool_table', {
+  size: [40, 14, 22], collide: [2.5, 0.85, 1.375],
+  build(m) {
+    const mah = '#5a2616', mahD = '#401a0e', felt = '#2e7a4a', feltD = '#246a3e', pocket = '#1a1410';
+    for (const x of [2, 19, 36]) for (const z of [2, 18]) { m.box(x, 0, z, 2, 1, 2, mahD); m.box(x + 0.5, 1, z + 0.5, 1, 7, 1, mah); m.box(x, 4, z, 2, 1, 2, mahD); }
+    m.box(1, 8, 1, 38, 3, 20, mah); m.box(1, 8, 1, 38, 1, 20, mahD);          // apron
+    m.box(0, 11, 0, 40, 2, 22, mah);                          // rails
+    m.box(2, 11, 2, 36, 2, 18, feltD); m.box(3, 12, 3, 34, 1, 16, 0);           // cushions
+    m.box(3, 11, 3, 34, 1, 16, felt);                         // bed
+    for (const [x, z] of [[1, 1], [38, 1], [1, 20], [38, 20], [19.5, 0], [19.5, 21]]) m.box(x, 11, z, x === 19.5 ? 1 : 1, 2, 1, pocket);
+    for (const [x, z] of [[1, 1], [37, 1], [1, 19], [37, 19]]) m.box(x, 10, z, 2, 1, 2, pocket);
+    for (const x of [8, 14, 25, 31]) { m.set(x, 12, 0, '#f0ece0'); m.set(x, 12, 21, '#f0ece0'); }
+    for (const z of [6, 11, 16]) { m.set(0, 12, z, '#f0ece0'); m.set(39, 12, z, '#f0ece0'); }
+    // racked balls
+    const balls = ['#e8c020', '#2a4ab0', '#c8202a', '#5a2a7a', '#e87020', '#2a7a3a', '#7a1a1a', '#101010', '#e8c020', '#2a4ab0', '#c8202a', '#5a2a7a', '#e87020', '#2a7a3a', '#7a1a1a'];
+    let k = 0;
+    for (let row = 0; row < 5; row++) for (let i = 0; i <= row; i++) {
+      const x = 10 - row, z = 11 - row / 2 + i - 0.5 + (row % 2 ? 0.5 : 0);
+      m.set(x, 12, Math.round(z), row === 2 && i === 1 ? '#101010' : balls[k % 15]); k++;
+    }
+    m.set(29, 12, 11, '#f8f6f0');                            // cue ball
+    m.box(18, 12, 16, 15, 1, 1, '#d8b878'); m.box(18, 12, 16, 5, 1, 1, '#2a1a10'); m.set(32, 12, 16, '#f0ece0');   // cue on the felt
+    m.set(38, 13, 3, '#3a6ad0');                             // chalk on the rail
+  },
+});
+
+// Tavern bar counter module (1.0 m): dark walnut with raised panels facing the patrons (+z), a brass
+// foot rail on posts, bar top with a bull-nose edge; bartender's shelf & glass-washing well at -z.
+defineProp('bar_counter', {
+  size: [16, 18, 12], collide: [1.0, 1.1, 0.72],
+  build(m) {
+    m.box(0, 0, 1, 16, 1, 9, WALNUT_D); m.box(0, 1, 0, 16, 16, 10, WALNUT);
+    m.clear(1, 1, 0, 14, 12, 4); m.box(1, 6, 0, 14, 1, 4, WALNUT_D);          // back shelves
+    for (const x of [2, 4, 6]) m.box(x, 7, 1, 1, 2, 1, GLASS);                  // glasses
+    m.box(9, 7, 0, 5, 3, 3, '#b8c0c6'); m.box(10, 9, 1, 3, 1, 1, '#8ab0c0');    // washing well
+    m.box(3, 1, 1, 3, 3, 3, '#6a4a2a'); m.box(3, 4, 1, 3, 1, 3, '#4a3018');     // keg
+    for (const x0 of [0.5, 8.5]) { m.box(x0, 3, 10, 7, 12, 1, WALNUT_L); m.box(x0 + 1, 4, 10, 5, 10, 1, WALNUT); }
+    m.box(0, 15, 10, 16, 1, 1, WALNUT_D);
+    m.box(0, 17, 0, 16, 1, 12, WALNUT_D); m.box(0, 16, 11, 16, 1, 1, WALNUT_D);   // top & bull-nose
+    m.box(0, 17, 11, 16, 1, 1, '#6a4a2e');
+    // brass foot rail
+    for (const x of [3, 12]) { m.box(x, 1, 11, 1, 2, 1, BRASS_D); }
+    m.box(0, 2, 11, 16, 1, 1, BRASS);
+    m.box(0, 0, 10, 16, 1, 2, '#3a3a3a');                   // spittoon-proof kick plate
+  },
+});
+
+// Back bar, back at z=0 (1.5 m x 2.2 m): walnut cabinet, arched mirror, two glass shelves of bottles
+// (whiskey amber, gin clear, green, red), stacked glasses, a cash drawer & a small neon beer sign.
+defineProp('bar_back_shelf', {
+  size: [24, 36, 8], origin: [12, 0, 0], collide: [1.5, 1.0, 0.5],
+  build(m) {
+    m.box(0, 0, 0, 24, 1, 7, WALNUT_D); m.box(0, 1, 0, 24, 14, 7, WALNUT);
+    for (const x of [1, 9, 17]) { m.box(x, 3, 7, 6, 10, 1, WALNUT_L); m.box(x + 1, 4, 7, 4, 8, 1, WALNUT); m.set(x + 3, 8, 8, BRASS); }
+    m.box(0, 15, 0, 24, 1, 8, WALNUT_D);
+    // mirror with arched top, pilasters
+    m.box(0, 16, 0, 2, 19, 2, WALNUT); m.box(22, 16, 0, 2, 19, 2, WALNUT); m.box(0, 33, 0, 24, 3, 2, WALNUT_D);
+    m.box(2, 16, 0, 20, 17, 1, '#9ab0b8');
+    for (let x = 2; x < 22; x++) { const h = Math.round(Math.sqrt(Math.max(0, 100 - (x + 0.5 - 12) ** 2)) * 0.3); m.box(x, 33 - (3 - h), 0, 1, 3 - h, 1, WALNUT_D); }
+    for (let i = 0; i < 5; i++) m.set(5 + i, 22 + i, 0, '#c8dce2');
+    // glass shelves & bottles
+    const bot = ['#9a5a1a', '#b87a2a', '#e8eef0', '#2a6a3a', '#7a1a1a', '#c8902a', '#e8eef0', '#5a3a1a', '#2a6a3a', '#b87a2a'];
+    for (const y of [16, 23]) {
+      m.box(2, y, 1, 20, 1, 3, '#c8dce0');
+      for (let i = 0; i < 10; i++) { const x = 2 + i * 2, h = 3 + (i % 3 === 0 ? 1 : 0); bottle(m, x, y + 1, 2, h, bot[(i + (y > 20 ? 3 : 0)) % 10], i % 2 ? '#d8b040' : '#1a1a1a'); if (i % 3 === 1) m.set(x, y + 2, 3, '#f0e8d0'); }
+    }
+    // stacked glasses & a neon sign
+    for (const x of [4, 6, 8]) { m.box(x, 16, 5, 1, 1, 1, GLASS); m.box(x, 17, 5, 1, 1, 1, GLASS); }
+    m.box(9, 28, 1, 6, 4, 1, '#1a1a1a'); label(m, 'ALE', 12, 28, 2, { c: '#ff5a3a', emit: 0.95 }, { align: 'center' });
+    m.box(18, 16, 4, 3, 2, 3, BRASS); m.box(18, 18, 5, 3, 1, 1, BRASS_L);        // cash drawer
+  },
+});
+
+// Three-tap beer tower for the bar top: chrome column with drip tray and wooden tap handles
+// (enamel badges). 1/32 m voxels. Badges face +z (the patrons); the bartender pulls from -z.
+defineProp('beer_taps', {
+  size: [16, 22, 8], scale: 1 / 32, collide: false,
+  build(m) {
+    m.box(0, 0, 3, 16, 1, 5, CHROME_D); for (let x = 1; x < 16; x += 2) m.box(x, 1, 4, 1, 1, 3, CHROME_M);
+    m.box(2, 1, 1, 12, 9, 2, CHROME); m.box(1, 10, 1, 14, 2, 2, CHROME_M);
+    for (const [x, c] of [[3, '#c8202a'], [7.5, '#2a4ab0'], [12, '#e8c020']]) {
+      m.box(x, 7, 3, 1, 1, 2, CHROME_M); m.box(x, 5, 4, 1, 2, 1, CHROME);       // spout
+      m.box(x, 12, 2, 1, 7, 1, '#3a2418'); m.box(x - 0.5, 16, 3, 2, 3, 1, c); m.set(x, 17, 4, '#f8f4e0');   // handle & badge
+    }
+  },
+});
+
+// Bar stool: turned walnut legs with a brass-capped foot ring, round seat at 0.75 m.
+defineProp('bar_stool', {
+  size: [8, 13, 8], collide: [0.42, 0.78, 0.42],
+  build(m) {
+    for (const [x, z] of [[1, 1], [6, 1], [1, 6], [6, 6]]) { m.box(x, 0, z, 1, 11, 1, WALNUT); m.set(x, 0, z, WALNUT_D); }
+    m.box(1, 4, 1, 6, 1, 1, BRASS); m.box(1, 4, 6, 6, 1, 1, BRASS); m.box(1, 4, 1, 1, 1, 6, BRASS); m.box(6, 4, 1, 1, 1, 6, BRASS);
+    m.box(1, 10, 1, 6, 1, 6, WALNUT_D);
+    m.cyl(4, 11, 4, 3.6, 1, WALNUT); m.cyl(4, 12, 4, 3.1, 1, '#6a3a1e');
+  },
+});
+
+// ---------------------------------------------------------------- diner
+
+// Diner booth for four. LAYOUT: the table is centred on the origin; the two benches run along x at
+// z = -0.6 m and z = +0.6 m (seat centres), high backs on the outside. Diners on the -z bench face +z,
+// diners on the +z bench face -z, looking at each other across the table. Seat 0.45 m, table 0.75 m,
+// footprint 1.25 x 1.85 m. Benches are tint A vinyl (red in the classic scheme) with chrome trim; a
+// wall-box jukebox selector, napkin dispenser, sugar pourer, salt & pepper and ketchup on the table.
+defineProp('diner_booth', {
+  size: [20, 18, 30], origin: [10, 0, 15], collide: [1.25, 1.1, 1.85],
+  build(m) {
+    const v = TA(0.5), vD = TA(0.4), vL = TA(0.58);
+    const bench = (zSeat, zBack, zFront) => {
+      m.box(0, 0, Math.min(zSeat, zBack), 20, 6, 8, '#5a3a24');                 // wooden base
+      m.box(0, 0, zFront, 20, 1, 1, CHROME_D);
+      m.box(0, 6, zSeat, 20, 1, 7, v); m.box(0, 7, zSeat, 20, 1, 7, vL);           // seat cushion
+      m.box(0, 7, zFront, 20, 1, 1, CHROME);
+      m.box(0, 8, zBack, 20, 10, 2, v);                                              // back
+      for (let x = 2; x < 20; x += 3) m.box(x, 9, zBack + (zBack === 0 ? 2 : -1), 1, 8, 1, vD);   // channel tufts
+      m.box(0, 17, zBack, 20, 1, 2, CHROME); m.box(0, 8, zBack, 20, 1, 2, CHROME_D);
+    };
+    bench(1, 0, 8); bench(22, 28, 21);
+    // table: chrome pedestal, formica top with ribbed chrome edge
+    m.box(7, 0, 12, 6, 1, 6, CHROME_M); m.box(9, 1, 14, 2, 10, 2, CHROME);
+    m.box(1, 11, 9, 18, 1, 12, '#e8e2d4'); m.box(0, 11, 9, 20, 1, 1, CHROME); m.box(0, 11, 20, 20, 1, 1, CHROME);
+    m.box(0, 11, 9, 1, 1, 12, CHROME); m.box(19, 11, 9, 1, 1, 12, CHROME);
+    for (const [x, z] of [[5, 12], [12, 17], [15, 11]]) m.set(x, 11, z, '#c8d0d8');   // boomerang flecks
+    // wall-box jukebox selector at the -x end, condiments
+    m.box(1, 12, 13, 3, 3, 4, CHROME_M); m.box(1, 13, 13, 3, 1, 4, { c: '#f8f0d0', emit: 0.4 }); m.box(1, 15, 14, 3, 1, 2, CHROME);
+    m.set(2, 12, 17, '#c8202a');
+    m.box(5, 12, 14, 2, 2, 2, CHROME); m.set(5, 13, 16, '#f8f8f8');              // napkin dispenser
+    m.set(8, 12, 15, GLASS); m.set(8, 13, 15, CHROME);                            // sugar pourer
+    m.set(10, 12, 14, '#f4f4f0'); m.set(10, 12, 16, '#2a2a2a');                   // salt & pepper
+    m.box(12, 12, 15, 1, 2, 1, '#b8201a'); m.set(12, 14, 15, '#f4f0e0');           // ketchup
+  },
+});
+
+// Diner counter module (1.0 m): customers at +z. Ribbed stainless front with a red stripe, chrome kick,
+// grey-blue formica top with chrome edge; on top toward the server a two-tier pie shelf (cherry pie &
+// a cut lemon meringue), napkin holder & sugar shaker; server's shelf of plates & cups below at -z.
+defineProp('diner_counter', {
+  size: [16, 24, 12], collide: [1.0, 1.05, 0.75],
+  build(m) {
+    const ss = '#c4cad0', ssD = '#9aa2a8';
+    m.box(0, 0, 1, 16, 1, 10, '#2a2a2a');
+    m.box(0, 1, 0, 16, 15, 11, ss);
+    m.clear(1, 2, 0, 14, 11, 4); m.box(1, 7, 0, 14, 1, 4, ssD);
+    for (let x = 2; x < 14; x += 3) { m.box(x, 2, 1, 2, 1, 2, '#f4f2ec'); m.box(x, 3, 1, 2, 1, 2, '#f4f2ec'); }      // plates
+    for (let x = 2; x < 14; x += 3) { m.set(x, 8, 2, '#f4f2ec'); m.set(x + 1, 8, 2, '#f4f2ec'); }                    // cups
+    for (let x = 0; x < 16; x += 2) m.box(x, 1, 11, 1, 14, 1, ssD);                                                 // ribbing
+    m.box(0, 1, 11, 16, 1, 1, CHROME); m.box(0, 9, 11, 16, 2, 1, '#b8202a');
+    m.box(0, 15, 0, 16, 1, 12, '#a8b8c0'); m.box(0, 15, 11, 16, 1, 1, CHROME);
+    for (const [x, z] of [[3, 8], [9, 10], [13, 7]]) m.set(x, 15, z, '#c8d4da');
+    // pie shelf
+    m.box(3, 16, 1, 10, 1, 5, CHROME_M); m.box(3, 17, 1, 1, 6, 1, CHROME); m.box(12, 17, 1, 1, 6, 1, CHROME);
+    m.box(3, 20, 1, 10, 1, 5, '#d0e0e4'); m.box(3, 23, 1, 10, 1, 5, CHROME_M);
+    m.box(4, 17, 2, 4, 1, 3, '#c89048'); m.box(4, 18, 2, 4, 1, 3, '#a8202a'); m.set(5, 18, 3, '#c89048'); m.set(7, 18, 2, '#c89048');
+    m.box(8, 21, 2, 4, 1, 3, '#c89048'); m.box(8, 22, 2, 4, 1, 3, '#f0d860'); m.set(9, 22, 3, '#fbf6e8'); m.set(11, 22, 2, '#fbf6e8');
+    m.clear(10, 21, 4, 2, 2, 1);
+    // napkins & sugar
+    m.box(1, 16, 8, 2, 2, 1, CHROME); m.set(1, 17, 9, '#f8f8f8');
+    m.set(14, 16, 8, GLASS); m.set(14, 17, 8, CHROME);
+  },
+});
+
+// Restaurant coffee urn, 1/32 m voxels (0.8 m): polished chrome tank on stubby legs, sight-glass gauge,
+// spigot with a black handle facing +z, domed lid & knob, brass nameplate, cups at its foot.
+defineProp('coffee_urn', {
+  size: [16, 27, 16], scale: 1 / 32, collide: [0.45, 0.85, 0.45],
+  build(m) {
+    m.cyl(8, 0, 8, 7, 1, CHROME_D);
+    for (const [x, z] of [[4, 4], [11, 4], [4, 11], [11, 11]]) m.box(x, 1, z, 1, 3, 1, CHROME_D);
+    m.cyl(8, 4, 8, 6.2, 1, CHROME_M); m.cyl(8, 5, 8, 6, 15, CHROME); m.cyl(8, 20, 8, 6.2, 1, CHROME_M);
+    m.cyl(8, 12, 8, 6.1, 1, '#c8d0d6');                                              // band
+    m.cyl(8, 21, 8, 5, 2, CHROME); m.cyl(8, 23, 8, 3, 1, CHROME_M); m.cyl(8, 24, 8, 1.2, 2, '#1a1a1a');
+    // spigot & gauge on the front
+    m.box(7, 7, 14, 2, 2, 2, CHROME_M); m.box(7.5, 6, 15, 1, 1, 1, CHROME_D); m.box(7, 9, 15, 2, 3, 1, '#1a1a1a');
+    m.box(11, 7, 14, 1, 11, 1, GLASS); m.box(11, 7, 14, 1, 7, 1, '#4a2a14'); m.set(11, 6, 14, CHROME_M); m.set(11, 18, 14, CHROME_M);
+    m.box(4, 14, 14, 5, 2, 1, BRASS);
+    m.box(1, 1, 13, 2, 2, 2, '#f4f2ec'); m.set(1, 3, 13, '#f4f2ec');
+  },
+});
+
+// Rotating pie case, 1/32 m voxels (0.55 m dia, 0.8 m): chrome base with a red band, lit cap, glass
+// sides (posts only), three turning shelves of pies & cakes — cherry lattice, lemon meringue,
+// chocolate cream, apple, coconut layer cake.
+defineProp('pie_display', {
+  size: [18, 27, 18], scale: 1 / 32, collide: [0.55, 0.85, 0.55], light: lampLight(0, 0.75, 0, [1.0, 0.9, 0.75], 2.5, 'room'),
+  build(m) {
+    m.cyl(9, 0, 9, 8.5, 1, CHROME_D); m.cyl(9, 1, 9, 8.2, 2, '#b8202a'); m.cyl(9, 3, 9, 8.5, 1, CHROME);
+    for (const [x, z] of [[1.5, 8.5], [15.5, 8.5], [8.5, 1.5], [8.5, 15.5]]) m.box(x, 4, z, 1, 20, 1, CHROME_M);
+    m.cyl(9, 24, 9, 8.5, 1, CHROME); m.cyl(9, 23, 9, 7, 1, { c: '#fff4d8', emit: 0.6 }); m.cyl(9, 25, 9, 6, 1, CHROME_M); m.cyl(9, 26, 9, 2, 1, '#b8202a');
+    m.box(8.5, 4, 8.5, 1, 19, 1, CHROME_D);
+    const pie = (x, y, z, top, crust = '#c89048', lat = false) => {
+      m.box(x, y, z, 5, 1, 5, crust); m.box(x + 1, y + 1, z + 1, 3, 1, 3, top);
+      m.set(x, y + 1, z + 2, crust); m.set(x + 4, y + 1, z + 2, crust); m.set(x + 2, y + 1, z, crust); m.set(x + 2, y + 1, z + 4, crust);
+      if (lat) { m.set(x + 1, y + 1, z + 1, crust); m.set(x + 3, y + 1, z + 3, crust); m.set(x + 1, y + 1, z + 3, crust); m.set(x + 3, y + 1, z + 1, crust); }
+    };
+    for (const y of [4, 10, 16]) m.cyl(9, y, 9, 7.2, 1, '#dce8ec');
+    pie(3, 5, 9, '#a8202a', '#c89048', true); pie(10, 5, 9, '#c8a060', '#c89048', true); pie(6, 5, 3, '#6a3a1e');
+    pie(3, 11, 4, '#f0d860'); m.set(4, 13, 5, '#fbf6e8'); m.set(6, 13, 7, '#fbf6e8'); m.set(5, 13, 6, '#fbf6e8');
+    pie(10, 11, 10, '#5a2e18'); m.set(12, 13, 12, '#fbf6e8');
+    m.cyl(9, 17, 9, 4, 4, '#fbf8f0'); m.cyl(9, 21, 9, 3, 1, '#f4f0e6'); m.set(9, 22, 9, '#c8102a');
+    m.clear(9, 17, 9, 4, 4, 4); m.box(9, 17, 9, 1, 4, 1, '#f0d898'); m.box(9, 19, 10, 1, 1, 3, '#f8f0f0');
+  },
+});
+
+// Diner menu board, back at z=0, 1/32 m voxels (1.5 x 1.4 m): black felt letter-board in a chrome
+// frame with white letters and prices (small pixel font), red "MENU" header.
+defineProp('menu_board', {
+  size: [48, 46, 2], scale: 1 / 32, origin: [24, 0, 0],
+  build(m) {
+    m.box(0, 0, 0, 48, 46, 2, CHROME_M); m.box(1, 1, 1, 46, 44, 1, '#1c1c1e');
+    m.text('MENU', 24, 37, 1, '#d83a2a', { font: 'big', align: 'center' });       // letters set flush in the felt
+    const rows = [['CHOWDER', '25¢'], ['HOT DOG', '15¢'], ['HAMBURG', '20¢'], ['PIE', '15¢'], ['COFFEE', '5¢'], ['FRAPPE', '20¢']];
+    rows.forEach(([a, p], i) => {
+      const y = 30 - i * 6;
+      label(m, a, 3, y, 1, '#f4f2ea');
+      const w = label(m, p, 0, -10, 1, '#f4f2ea');        // measure only (drawn below the grid, discarded)
+      label(m, p, 45 - w, y, 1, '#f4f2ea');
+      const x0 = 3 + layoutText(a, 'small').width + 2;
+      m.box(x0, y, 1, 45 - w - 2 - x0, 1, 1, '#5a5a58');   // leader line
+    });
+  },
+});
+
+// A-frame sidewalk chalkboard for the diner, 1/48 m voxels (0.63 m wide, 0.92 m): slate faces in a
+// wooden frame reading "FRESH / CHOWDER / 25¢" with a chalk bowl doodle; the back reads "OPEN".
+function slantText(m, str, cx, y, zf, col) {
+  const L = layoutText(str, 'small'); const x0 = Math.round(cx - L.width / 2);
+  for (const p of L.pixels) m.set(x0 + p.x, y + p.y, zf(y + p.y), col);
+}
+function buildChalkboard(m) {
+  const H = 44, fr = '#8a6a48', slate = '#2c322e', chalk = '#f0ece0';
+  const zf = (y) => 22 - Math.floor(y * 10 / H), zb = (y) => 1 + Math.floor(y * 10 / H);
+  for (let y = 0; y < H; y++) {
+    m.box(0, y, zf(y), 30, 1, 1, y < 3 || y > H - 4 ? fr : slate); m.box(0, y, zb(y), 30, 1, 1, y < 3 || y > H - 4 ? fr : slate);
+    for (const x of [0, 1, 28, 29]) { m.set(x, y, zf(y), fr); m.set(x, y, zb(y), fr); }
+  }
+  for (let z = zb(H - 1); z <= zf(H - 1); z++) m.box(0, H - 1, z, 30, 1, 1, fr);
+  const f = (y) => zf(y) + 1, b = (y) => zb(y) - 1;
+  slantText(m, 'FRESH', 15, 34, f, '#f0d060'); slantText(m, 'CHOWDER', 15, 26, f, chalk);
+  // "25¢"
+  const L = layoutText('25', 'small'); for (const p of L.pixels) m.set(9 + p.x, 18 + p.y, f(18 + p.y), chalk);
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (CENT[r][c] === '#') m.set(17 + c, 18 + 4 - r, f(22 - r), chalk);
+  // bowl doodle with steam
+  for (let x = 9; x < 21; x++) m.set(x, 8, f(8), chalk);
+  for (let x = 10; x < 20; x++) m.set(x, 6 + (x === 10 || x === 19 ? 1 : 0), f(6), chalk);
+  for (const x of [12, 15, 18]) { m.set(x, 10, f(10), chalk); m.set(x + 1, 11, f(11), chalk); m.set(x, 12, f(12), chalk); }
+  // back side
+  const Lb = layoutText('OPEN', 'small'); const xb = Math.round(15 + Lb.width / 2);
+  for (const p of Lb.pixels) m.set(xb - 1 - p.x, 24 + p.y, b(24 + p.y), chalk);
+  m.box(4, 12, zb(12) + 1, 1, 1, zf(12) - zb(12) - 1, '#6a6a6a'); m.box(25, 12, zb(12) + 1, 1, 1, zf(12) - zb(12) - 1, '#6a6a6a');   // spreader chains
+}
+defineProp('sandwich_board', {
+  size: [30, 44, 24], scale: 1 / 48, cat: 'exterior', collide: [0.6, 0.9, 0.5], build: buildChalkboard,
+});
+defineProp('sandwich_board_chowder', {
+  size: [30, 44, 24], scale: 1 / 48, cat: 'exterior', collide: [0.6, 0.9, 0.5], build: buildChalkboard,
+});

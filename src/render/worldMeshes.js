@@ -11,6 +11,7 @@ export class WorldMeshes {
     scene.add(this.group); scene.add(this.glassGroup);
     this.regions = new Map();
     this.stats = { tris: 0, regions: 0, ms: 0 };
+    this.lodEnabled = true;
   }
 
   regionKeys() {
@@ -41,15 +42,20 @@ export class WorldMeshes {
     const cen = (k) => [(k.rx + 0.5) * REGION * CHUNK, (k.rz + 0.5) * REGION * CHUNK];
     keys.sort((a, b) => { const ca = cen(a), cb = cen(b); return Math.hypot(ca[0] - fx, ca[1] - fz) - Math.hypot(cb[0] - fx, cb[1] - fz); });
     const nearCount = keys.filter((k) => { const c = cen(k); return Math.hypot(c[0] - fx, c[1] - fz) < 110 / VS; }).length;
-    let next = 0, done = 0, nearDone = 0, nearFired = false;
+    let next = 0, done = 0, nearDone = 0, nearFired = false, lodNext = 0, lodDone = 0;
     const total = keys.length;
     const t0 = performance.now();
     return new Promise((resolve, reject) => {
       const workers = [];
       const dispatch = (w) => {
-        if (next >= keys.length) return;
-        const k = keys[next++];
-        w.postMessage({ type: 'region', key: k.key, rcx: k.rx * REGION, rcz: k.rz * REGION, n: REGION, minFaceY: -24 });
+        if (next < keys.length) {
+          const k = keys[next++];
+          w.postMessage({ type: 'region', key: k.key, rcx: k.rx * REGION, rcz: k.rz * REGION, n: REGION, minFaceY: -24 });
+        } else if (lodNext < keys.length && this.lodEnabled) {
+          // far-first order for the LOD pass
+          const k = keys[keys.length - 1 - lodNext++];
+          w.postMessage({ type: 'region', key: k.key, lod: true, rcx: k.rx * REGION, rcz: k.rz * REGION, n: REGION, minFaceY: -24 });
+        }
       };
       for (let i = 0; i < n; i++) {
         const w = new Worker(new URL('../world/mesher.worker.js', import.meta.url), { type: 'module' });
@@ -57,26 +63,60 @@ export class WorldMeshes {
         w.onmessage = (e) => {
           const m = e.data;
           if (m.type === 'ready') { dispatch(w); return; }
-          if (m.type === 'region') {
-            this.addRegion(m.key, m.result);
-            done++;
-            const k = keys.find((q) => q.key === m.key);
-            const c = cen(k);
-            if (Math.hypot(c[0] - fx, c[1] - fz) < 110 / VS) nearDone++;
-            onProgress && onProgress(done, total);
-            if (!nearFired && nearDone >= nearCount) { nearFired = true; onNearReady && onNearReady(); }
-            if (done >= total) {
-              this.stats.ms = performance.now() - t0;
-              workers.forEach((ww) => ww.terminate());
-              resolve(this.stats);
-            } else dispatch(w);
+          if (m.type !== 'region') return;
+          if (m.lod) {
+            this.addLOD(m.key, m.result);
+            if (++lodDone >= total) { workers.forEach((ww) => ww.terminate()); this.lodReady = true; console.log(`LOD meshed in ${Math.round(performance.now() - t0)} ms`); }
+            else dispatch(w);
+            return;
           }
+          this.addRegion(m.key, m.result);
+          done++;
+          const k = keys.find((q) => q.key === m.key);
+          const c = cen(k);
+          if (Math.hypot(c[0] - fx, c[1] - fz) < 110 / VS) nearDone++;
+          onProgress && onProgress(done, total);
+          if (!nearFired && nearDone >= nearCount) { nearFired = true; onNearReady && onNearReady(); }
+          if (done >= total) { this.stats.ms = performance.now() - t0; resolve(this.stats); }
+          dispatch(w);
+          if (!this.lodEnabled && done >= total) workers.forEach((ww) => ww.terminate());
         };
         w.postMessage({ type: 'init', world: data });
         workers.push(w);
       }
       if (total === 0) resolve(this.stats);
     });
+  }
+
+  addLOD(key, res) {
+    const entry = this.regions.get(key);
+    if (!entry) return;
+    const o = res.origin;
+    const mk = (r, mat, glass) => {
+      const m = new THREE.Mesh(this.makeGeometry(r), mat);
+      m.position.set(o[0] * VS, o[1] * VS, o[2] * VS); m.scale.setScalar(VS);
+      m.matrixAutoUpdate = false; m.updateMatrix(); m.visible = false;
+      if (glass) { m.layers.set(1); m.renderOrder = 5; this.glassGroup.add(m); } else this.group.add(m);
+      return m;
+    };
+    entry.lod = { opaque: res.opaque ? mk(res.opaque, this.worldMat, false) : null, glass: res.glass ? mk(res.glass, this.glassMat, true) : null };
+    const c = (entry.opaque || entry.glass);
+    if (c) { c.geometry.computeBoundingBox(); const bb = c.geometry.boundingBox; entry.center = [(o[0] + (bb.min.x + bb.max.x) / 2) * VS, (o[2] + (bb.min.z + bb.max.z) / 2) * VS]; }
+  }
+
+  // swap distant regions to their half-resolution meshes
+  updateLOD(cam, dist = 170) {
+    if (!this.lodEnabled) return;
+    const d2 = dist * dist;
+    for (const e of this.regions.values()) {
+      if (!e.lod || !e.center) continue;
+      const dx = e.center[0] - cam.x, dz = e.center[1] - cam.z;
+      const far = dx * dx + dz * dz + Math.max(0, cam.y - 30) ** 2 * 0.5 > d2;
+      if (e.far === far) continue;
+      e.far = far;
+      if (e.opaque) e.opaque.visible = !far; if (e.glass) e.glass.visible = !far;
+      if (e.lod.opaque) e.lod.opaque.visible = far; if (e.lod.glass) e.lod.glass.visible = far;
+    }
   }
 
   makeGeometry(r, origin) {

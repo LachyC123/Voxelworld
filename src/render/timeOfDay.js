@@ -76,7 +76,10 @@ export class TimeOfDay {
     c.uSkyAmb.value.setRGB(p.sky[0], p.sky[1], p.sky[2]);
     c.uGroundAmb.value.setRGB(p.gnd[0], p.gnd[1], p.gnd[2]);
     c.uFogColor.value.setRGB(p.fog[0], p.fog[1], p.fog[2]);
-    c.uFogDensity.value = p.fd;
+    // morning mist rolling off the harbour
+    const mist = Math.max(0, 1 - Math.abs(minutes - 7 * 60) / 90);
+    c.uFogDensity.value = p.fd * (1 + mist * 3.5);
+    if (mist > 0) c.uFogColor.value.lerp(new THREE.Color(0.78, 0.8, 0.82), mist * 0.5);
     const su = this.sky.uniforms;
     su.uSkyTop.value.setRGB(p.top[0], p.top[1], p.top[2]);
     su.uSkyHorizon.value.setRGB(p.hor[0], p.hor[1], p.hor[2]);

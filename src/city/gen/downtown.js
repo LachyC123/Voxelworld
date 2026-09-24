@@ -63,6 +63,13 @@ function gridFacade(face, cols, ww, rows, o = {}) {
   F.box(a, yA, zf, w, yB - yA, 1, o.glass ?? MAT.glass);
   F.carve(a, yA, zf + 1, w, yB - yA, 1);
   if (o.sash !== false) for (const r of rs) if (r.h >= 6) F.box(a, r.y + Math.round(r.h * 0.55), zf, w, 1, 1, o.sashMat ?? MAT.trim_white);
+  // spandrels first, so that piers run unbroken over them
+  for (let i = 0; i < rs.length - 1; i++) {
+    const top = rs[i].y + rs[i].h, nb = rs[i + 1].y;
+    if (nb <= top) continue;
+    F.box(a, top, zf, w, nb - top, 1, spand);
+    F.box(a, top, zf + 1, w, nb - top, 1, inner);
+  }
   const edges = [a];
   for (const c of cols) edges.push(c, c + ww);
   edges.push(bb);
@@ -73,12 +80,6 @@ function gridFacade(face, cols, ww, rows, o = {}) {
     F.box(p0, yA, zf, p1 - p0, yB - yA, 1, pierMat);
     F.box(p0, yA, zf + 1, p1 - p0, yB - yA, 1, inner);
     if (o.proud && (k % o.proud === 0) && k > 0 && i < edges.length - 2) F.box(p0, yA - (o.proudBelow ?? 0), zf - 1, p1 - p0, yB - yA + (o.proudBelow ?? 0) + (o.proudAbove ?? 0), 1, o.proudMat ?? pierMat);
-  }
-  for (let i = 0; i < rs.length - 1; i++) {
-    const top = rs[i].y + rs[i].h, nb = rs[i + 1].y;
-    if (nb <= top) continue;
-    F.box(a, top, zf, w, nb - top, 1, spand);
-    F.box(a, top, zf + 1, w, nb - top, 1, inner);
   }
   if (o.sill) for (const r of rs) F.box(a, r.y - 1, zf - 1, w, 1, 1, o.sill);
   if (o.sills) for (const r of rs) for (const c of cols) F.box(c - 1, r.y - 1, zf - 1, ww + 2, 1, 1, o.sills);
@@ -143,7 +144,7 @@ function stairCore(b, x, z, FH, i0, i1, o = {}) {
   const doorX = o.doorX ?? 2;
   for (let i = i0; i < i1; i++) {
     const y = yb(i);
-    const r = b.room(o.name ?? 'Stairwell', x, y, z, 9, FH - 1, depth, { lightMode: 'auto', kind: 'stair', lightColor: [1, 0.92, 0.8] });
+    const r = b.room(o.name ?? 'Stairwell', x, y, z, 9, FH - 1, depth, { lightMode: 'auto', kind: 'stair', lightColor: [1, 0.92, 0.8], nav: [x + 4.5, z + 2] });
     rooms.push(r);
     if (o.doors !== false && !(o.skipDoor && o.skipDoor(i))) {
       const side = o.doorSide ? o.doorSide(i) : 'front';
@@ -169,32 +170,40 @@ function stairCore(b, x, z, FH, i0, i1, o = {}) {
   return { rooms, doorAt: (i) => ({ x: x + doorX + 2, y: yb(i), z: z - 1 }), depth };
 }
 
-// Elevator bank: brass doors on a shaft front at layer z (facing −z). cars: door-centre x's.
-// Adds rideable interactables (teleports) and fast nav links between floors.
-function elevatorDoors(b, xs, z, FH, floors, o = {}) {
-  const f = b.f;
-  for (const i of floors) {
-    const y = i * FH + 1 + (o.dy ?? 0);
-    for (const cx of xs) {
-      f.box(cx - 3, y - 1, z - 1, 6, 11, 1, o.frame ?? MAT.marble);
-      f.box(cx - 2, y, z - 1, 4, 9, 1, o.door ?? MAT.art_deco_gold);
-      f.box(cx - 0.5 < cx ? cx : cx, y, z - 1, 0 + 1 > 0 ? 0 : 1, 9, 1, MAT.trim_dark); // (no-op spacer)
-      f.box(cx - 1, y + 10, z - 1, 2, 1, 1, o.dial ?? MAT.bulb_warm);
+// Elevator bank: a shaft block with a panelled cab and an open brass-framed door at every stop floor,
+// closed brass doors (with a lit floor dial above) on the floors the car passes. Uses b.elevator for riding.
+// cars: door-centre x's (8 voxels apart); zFront: the shaft's front wall layer (corridor side is zFront-1).
+// stopsFor(k) → [{ i, label }]; roomOf(i) → the room in front of the doors on floor i.
+function elevatorBank(b, cars, zFront, FH, NF, stopsFor, roomOf, o = {}) {
+  const f = b.f, yb = (i) => i * FH + 1 + (o.dy ?? 0);
+  const x0 = cars[0] - 4, w = cars.length * 8;
+  f.box(x0, o.y0 ?? 0, zFront, w, NF * FH - (o.y0 ?? 0), 9, o.shaft ?? MAT.stone_foundation);
+  const out = [];
+  cars.forEach((cx, k) => {
+    const stops = stopsFor(k).filter((s) => s.i >= 0 && s.i < NF && roomOf(s.i));
+    const stopSet = new Set(stops.map((s) => s.i));
+    const cab = new Map();
+    for (let i = (o.i0 ?? 0); i < NF; i++) {
+      const y = yb(i);
+      if (o.skip && o.skip(i)) continue;
+      f.box(cx - 3, y - 1, zFront - 1, 6, 11, 1, o.frame ?? MAT.marble);
+      f.box(cx - 2, y + 10, zFront - 1, 4, 1, 1, o.dialBack ?? MAT.art_deco_gold);
+      f.box(cx - 1, y + 10, zFront - 2, 2, 1, 1, MAT.bulb_warm);
+      if (!stopSet.has(i)) { f.box(cx - 2, y, zFront - 1, 4, 9, 1, o.door ?? MAT.art_deco_gold); f.box(cx, y, zFront - 1, 0 || 1, 9, 1, MAT.trim_dark); continue; }
+      f.box(cx - 3, y - 1, zFront + 1, 6, 1, 6, o.cabFloor ?? MAT.floor_walnut);
+      f.carve(cx - 3, y, zFront + 1, 6, 10, 6);
+      f.box(cx - 4, y, zFront + 1, 1, 10, 6, MAT.wood_panel); f.box(cx + 3, y, zFront + 1, 1, 10, 6, MAT.wood_panel);
+      f.box(cx - 3, y, zFront + 7, 6, 10, 1, MAT.wood_panel); f.box(cx - 3, y + 4, zFront + 6, 6, 1, 1, MAT.art_deco_gold);
+      f.box(cx - 3, y + 10, zFront + 1, 6, 1, 6, MAT.ceiling_tin);
+      f.carve(cx - 2, y, zFront - 1, 4, 9, 2);
+      f.box(cx - 3, y, zFront - 1, 1, 10, 1, MAT.art_deco_gold); f.box(cx + 2, y, zFront - 1, 1, 10, 1, MAT.art_deco_gold);
+      const r = b.room('Elevator', cx - 3, y, zFront + 1, 6, 9, 6, { lightMode: 'always', lightColor: [1, 0.84, 0.58], kind: 'elevator' });
+      b.door(roomOf(i), r, cx, y, zFront - 1, { leaf: false });
+      cab.set(i, r);
     }
-  }
-}
-function ride(b, from, to, prompt, msg) {
-  const p = b.m(from[0], from[1], from[2]);
-  const q = b.m(to[0], to[1], to[2]);
-  const d = b.f.dir(R4[to[3] ?? 0][0], R4[to[3] ?? 0][1]);
-  const yaw = Math.atan2(-d[0], -d[1]);
-  b.ctx.interactables.push({
-    kind: 'elevator', x: p[0], y: p[1] + 1.1, z: p[2], r: 1.3, prompt, building: b,
-    action(game) {
-      game.player.setPose(q[0], q[1] + 0.05, q[2], yaw);
-      if (msg && game.hud && game.hud.toast) game.hud.toast(msg, 4);
-    },
+    if (stops.length >= 2) out.push(b.elevator(cx, zFront + 4, stops.map((s) => ({ y: yb(s.i), room: cab.get(s.i), label: s.label }))));
   });
+  return out;
 }
 
 // Furnish an office room of a given kind. (x, z) min corner, w × d interior. Returns worker spots.
@@ -442,12 +451,6 @@ function buildTower(ctx, lot, spec) {
   muralPanel(f, 'left', lob.x0 - 1, lob.z0 + 22, FH + 2, rng);
   muralPanel(f, 'right', lob.x1, lob.z0 + 22, FH + 2, rng);
 
-  // ---- core: stair + elevator shafts through every floor
-  const core = stairCore(b, stX, stZ, FH, 0, NF, { mat: MAT.terrazzo ?? MAT.concrete, wall: MAT.plaster_cream, doorX: 0 });
-  const shaftTop = NF * FH;
-  f.box(elX0, 0, elZ, 25, shaftTop, 9, MAT.stone_foundation);
-  f.box(elX0 - 1, shaftTop, elZ - 1, 27, 12, 11, CREAM);      // machine room on the roof
-  elevatorDoors(b, cars, elZ, FH, Array.from({ length: NF }, (_, i) => i), {});
 
   // ---- rooms, floors
   const floorLabel = (i) => i + 1;
@@ -471,10 +474,6 @@ function buildTower(ctx, lot, spec) {
   b.door(service, null, cx, 1, A.z1 - 1, { leaf: 'door_wood', tint: '#4a4a4a' });
   const backOut = b.navPoint(service, cx, 0, A.z1 + 4);
   linkToSidewalk(ctx, backOut, 40);
-  // stair core doors open into the lobby (ground) / mezzanine (floor 2) / each floor
-  b.door(lobby, core.rooms[0], stX + 2, 1, stZ - 1, { leaf: 'door_wood', tint: '#6a4a2a' });
-  // elevator nav: a node inside the middle car per floor, fast links to the lobby
-  const elevNode = [];
 
   // lobby furniture
   for (const [dx, dz] of [[-14, 12], [14, 12], [-14, 26], [14, 26]]) f.prop('palm_pot', cx + dx, 1, lob.z0 + dz, 0, {});
@@ -590,21 +589,16 @@ function buildTower(ctx, lot, spec) {
       furnishOffice(b, wl, 4, y, 4, lob.x0 - 7, A.z1 - 8, 'open', rng, { desks: 6 });
       furnishOffice(b, wr, lob.x1 + 3, y, 4, W - lob.x1 - 7, A.z1 - 8, 'open', rng, { desks: 3 });
       b.stairs(lobby, [lob.x0 + 8.5, 1, mezz.z0 - 2 * (FH - 1) - 2], main, [lob.x0 + 8.5, y, mezz.z0 + 2]);
-      b.door(main, core.rooms[1], stX + 2, y, stZ - 1, {});
       RM[i] = main;
       continue;
     }
-    main = b.room(`${ordinal(floorLabel(i))} Floor`, x0, y, z0, w, FH - 1, d, { lightMode: 'auto' });
+    main = i === iE ? b.room('Observation Deck', x0, y, z0, w, FH - 1, d, { lightMode: 'always', ambient: 0.8, lightColor: [1, 0.9, 0.75] })
+      : b.room(`${ordinal(floorLabel(i))} Floor`, x0, y, z0, w, FH - 1, d, { lightMode: 'auto' });
     RM[i] = main;
-    b.door(main, core.rooms[i], stX + 2, y, stZ - 1, {});
   }
-  for (let i = 0; i < NF; i++) {
-    const room = RM[i];
-    const n = b.navPoint(room, cars[1], yb(i), elZ + 4);
-    elevNode.push(n);
-    if (i > 0) ctx.nav.link(n, elevNode[0], 6 + i * 0.4);
-    b.navPoint(room, cars[1], yb(i), elZ - 3, [n]);
-  }
+  // ---- core: the stair through every floor (rooms registered after the floors so they take precedence)
+  const core = stairCore(b, stX, stZ, FH, 0, NF, { mat: MAT.concrete, wall: MAT.plaster_cream, doorX: 0 });
+  for (let i = 0; i < NF; i++) if (RM[i]) b.door(RM[i], core.rooms[i], stX + 2, yb(i), stZ - 1, { leaf: 'door_wood', tint: '#6a4a2a' });
 
   // office floors: furnish by tenant
   const TENANT = { 2: 'exec', 3: 'insurance', 4: 'law', 6: 'open', 8: 'dentist', 9: 'open', 11: 'open', 13: 'open', 16: 'open' };
@@ -626,14 +620,14 @@ function buildTower(ctx, lot, spec) {
       const gen = furnishOffice(b, room, stX + 30, y, z0 + 2, Math.max(12, s.x1 - 4 - stX - 30), Math.max(10, stZ - z0 - 6), kind === 'dentist' ? 'waiting' : kind === 'insurance' ? 'insurance' : 'open', rng, { desks: kind === 'open' ? 4 : 3 });
       // Saturday: the dentist keeps morning hours; the Centennial Committee (floor 17) is busy all day
       if (kind === 'dentist') { if (sp1[0]) b.job('dentist', sp1[0], { shift: ['9:00', '12:30'], title: 'dentist', outfit: 'doctor' }); if (gen[0]) b.job('receptionist', gen[0], { shift: ['8:45', '12:30'], sex: 'F', title: 'dental receptionist' }); if (sp2[0]) b.job('dentist', sp2[0], { days: 'weekday' }); }
-      else { for (const s0 of [...sp1, ...sp2, ...gen].slice(0, 3)) b.job('office clerk', s0, { days: 'weekday', title: 'clerk' }); }
+      else { for (const s0 of [...sp1, ...gen].slice(0, i % 2 ? 1 : 2)) b.job('office clerk', s0, { days: 'weekday', title: 'clerk' }); }
     } else {
       // lightly used floor: a pair of desks, cabinets and dust sheets
       const sp = officeDesk(b, room, x0 + 10, y, z0 + 8, 0, {});
       officeDesk(b, room, x0 + 22, y, z0 + 8, 0, { typewriter: false });
       f.prop('filing_cabinet', x0 + 2, y, z0 + d - 1.3, 0, {}); f.prop('office_water_cooler', x0 + w - 2, y, z0 + d - 2, 0, {});
       if (i % 2) f.prop('crate_stack', x0 + w - 8, y, z0 + 6, 0, {});
-      b.job('office clerk', sp, { days: 'weekday', title: 'clerk' });
+      void sp;
     }
     f.prop('ceiling_lamp', s.x0 + s.w * 0.3, y + 11, zc, 0, {});
   }
@@ -657,8 +651,7 @@ function buildTower(ctx, lot, spec) {
   // ---- observation terrace (floor 22 pavilion + terrace on the roof of the setback below)
   {
     const i = iE, y = yb(i), s = E;
-    const pav = b.room('Observation Deck', s.x0 + 2, y, s.z0 + 2, s.w - 4, FH - 1, s.d - 4, { lightMode: 'always', ambient: 0.8, lightColor: [1, 0.9, 0.75] });
-    RM[i] = pav; // (already linked above through the stair door & elevator node)
+    const pav = RM[i];
     const ter = b.room('Observation Terrace', Dd.x0 + 1, y, Dd.z0 + 1, Dd.w - 2, 10, Dd.d - 2, { lightMode: 'never', ambient: 1, kind: 'terrace' });
     // glass doors on all four sides of the pavilion
     const dz = Math.round((s.z0 + s.z1) / 2);
@@ -690,17 +683,21 @@ function buildTower(ctx, lot, spec) {
     f.prop('chair_office', s.x0 + 8, y, s.z1 - 3, 0, {});
     b.job('terrace attendant', att, { shift: ['10:00', '17:00'], title: 'terrace attendant', outfit: 'bellhop' });
     for (let k = 0; k < 3; k++) b.spot('stand', s.x0 + 6 + k * 8, y, s.z0 + 3, 0, { room: pav, act: 'look', tags: ['observe'] });
-    // lobby elevator rides
-    const lobbyAt = (k) => [cars[k], 1, elZ - 2.5, 2];
-    const at = (k, i) => [cars[k], yb(i), elZ - 2.5, 0];
-    const WJ = iD + 1;
-    ride(b, lobbyAt(0), at(0, WJ), 'Take the elevator up to 21 — WJBY Radio', '"Twenty-one, WJBY. Mind the step, and whisper — they\'re on the air."');
-    ride(b, lobbyAt(1), at(1, iE), 'Take the elevator up to 22 — Observation Terrace', '"Twenty-two, the terrace! Ten cents to the attendant, and hang on to your hat."');
-    ride(b, lobbyAt(2), at(2, 11), 'Take the elevator up to 12 — Offices', '"Twelve. Watch your step."');
-    for (let i = 1; i < NF; i++) ride(b, [cars[1], yb(i), elZ - 2.5, 2], [cars[1], 1, elZ - 3, 0], 'Take the elevator down to the Lobby', '"Lobby! Street level, everybody out."');
-    ride(b, [cars[0], yb(iE), elZ - 2.5, 2], at(0, WJ), 'Take the elevator down to 21 — WJBY', '"Twenty-one."');
-    ride(b, [cars[2], yb(WJ), elZ - 2.5, 2], at(2, iE), 'Take the elevator up to 22 — Observation Terrace', '"Twenty-two, the terrace."');
     void pav;
+  }
+
+  // ---- elevators: express to WJBY & the terrace, a local car, and one to the upper offices
+  {
+    const WJ = iD + 1;
+    const lab = (i) => i === 0 ? 'Lobby' : i === 1 ? 'Mezzanine' : i === iE ? `${iE + 1} — Observation Terrace` : i === WJ ? `${WJ + 1} — WJBY Studios` : i === iD ? `${iD + 1} — WJBY Offices & Transmitter` : `${ordinal(i + 1)} Floor`;
+    const stops = [
+      [0, WJ, iE],
+      [0, 1, 2, 4, 8, 16],
+      [0, 11, iD, WJ],
+    ];
+    elevatorBank(b, cars, elZ, FH, NF, (k) => stops[k].map((i) => ({ i, label: lab(i) })), (i) => RM[i], {});
+    // the starter's podium in the lobby
+    f.prop('lectern', cars[1] - 6, 1, elZ - 4, 0, {});
   }
 
   // ---- crown & WJBY mast
@@ -771,7 +768,11 @@ function wjby(b, f, RM, secOf, yb, iD, stX, stZ, elZ, cars, FH, rng) {
     const x0 = s.x0 + 2, z0 = s.z0 + 2, x1 = s.x1 - 2, z1 = s.z1 - 2;
     // transmitter room behind a glass partition at the back
     const tz = stZ + 8 + FH + 1;
-    const tr = b.room('WJBY Transmitter Room', x0, y, Math.min(z1 - 8, tz), x1 - x0, FH - 1, z1 - Math.min(z1 - 8, tz), { lightMode: 'always', lightColor: [0.85, 0.95, 1] });
+    const tz0 = Math.min(z1 - 8, tz);
+    partitionX(f, x0, x1, y, tz0 - 1, FH - 1, MAT.plaster_gray, [{ at: x0 + 4, w: 4 }]);
+    f.box(x0 + 12, y + 3, tz0 - 1, Math.max(4, x1 - x0 - 20), 6, 1, MAT.glass);
+    const tr = b.room('WJBY Transmitter Room', x0, y, tz0, x1 - x0, FH - 1, z1 - tz0, { lightMode: 'always', lightColor: [0.85, 0.95, 1] });
+    b.door(room, tr, x0 + 6, y, tz0 - 1, { leaf: 'door_wood', tint: '#4a4a4a' });
     for (let k = 0; k < 5; k++) {
       const tx = x0 + 6 + k * 8;
       if (tx > x1 - 4) break;

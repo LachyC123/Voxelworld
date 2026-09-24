@@ -200,6 +200,16 @@ export class People {
       this.chars.setHeld(p.ch, held);
       if (speaking && a.base !== 'sleep' && !a.song && P.mouth === 0) P.mouth = Math.sin(t * 13 + p.ph) > 0.1 ? 1 : 0;
     }
+    // glance at the player when they pass close by
+    const pp = this.playerPos;
+    if (pp && !(p.greetUntil > t) && S.act !== 'sleep' && P.lie === 0) {
+      const dx = pp.x - P.x, dz = pp.z - P.z, d2 = dx * dx + dz * dz;
+      if (d2 < 12 && Math.abs(pp.y - P.y) < 2 && ((p.id * 7) % 10) < 7) {
+        let d = Math.atan2(dx, dz) - P.yaw;
+        while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+        if (Math.abs(d) < 1.9) { const k = Math.min(1, (12 - d2) / 6); P.headYaw = P.headYaw * (1 - k) + Math.max(-1.0, Math.min(1.0, d)) * k; P.headPitch = -0.05; }
+      }
+    }
     // look at the player when greeted
     if (p.greetUntil > t && p.greetYaw !== undefined) {
       let d = p.greetYaw - P.yaw;

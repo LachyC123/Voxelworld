@@ -52,7 +52,7 @@ export class Post {
       depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true,
     });
     this.comp = new THREE.ShaderMaterial({
-      uniforms: { tScene: { value: null }, tBloom: { value: null }, uBloom: { value: 0.45 }, uExposure: { value: 1.25 }, uNight: { value: 0 } },
+      uniforms: { tScene: { value: null }, tBloom: { value: null }, uBloom: { value: 0.45 }, uExposure: { value: 0.95 }, uNight: { value: 0 } },
       vertexShader: FS_VERT,
       fragmentShader: /* glsl */`
         uniform sampler2D tScene; uniform sampler2D tBloom; uniform float uBloom; uniform float uExposure; uniform float uNight; varying vec2 vUv;
@@ -64,8 +64,10 @@ export class Post {
           c += b * uBloom * (1.0 + uNight * 0.8);
           c *= uExposure * 1.05;
           c = aces(c);
-          // warm, slightly lifted grade
-          c = pow(c, vec3(0.96, 0.98, 1.02));
+          // warm grade with a little extra saturation
+          float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+          c = max(vec3(0.0), mix(vec3(l), c, 1.18));
+          c = pow(c, vec3(0.97, 0.98, 1.02));
           c = mix(c, c * vec3(1.03, 1.0, 0.95), 0.6);
           vec2 q = vUv - 0.5;
           float vig = 1.0 - dot(q, q) * 0.55;

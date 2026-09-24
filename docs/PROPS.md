@@ -50,8 +50,8 @@ Coordinates are integer voxel coords inside the grid (0 … size-1). Out-of-rang
 
 **Colours** (`col`):
 * `'#rrggbb'` — a fixed colour.
-* `{ c: '#rrggbb', emit: 0.9 }` — glowing (lamp glass, dials, neon, TV screens). emit ≥ 0.9 = always on;
-  lower values glow mostly at night.
+* `{ c: '#rrggbb', emit: 0.9 }` — glowing (lamp glass, dials, neon, TV screens). emit ≥ 0.98 = always on
+  (fire, a running TV); lower values glow only at night (street lamps, windows, signs).
 * `{ tint: 1, shade: 0.5 }` / `{ tint: 2, shade: 0.5 }` — per-instance recolourable (tint A / tint B).
   `shade` 0.5 = exactly the tint colour; 0.4 darker, 0.6 lighter. Use tints for car paint, sofa fabric,
   quilts, dresses on racks, hat colours, etc. The placer supplies `{ tint: '#hex', tint2: '#hex' }`.

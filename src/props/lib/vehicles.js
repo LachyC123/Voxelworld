@@ -192,10 +192,10 @@ defineProp('car_convertible', {
     m.box(CX - 12, 9, 36, 24, 3, 7, seat); m.box(CX - 12, 12, 36, 24, 5, 2, seat2); m.box(CX - 12, 16, 36, 24, 1, 2, seat); // front bench
     m.box(CX - 12, 9, 24, 24, 3, 6, seat); m.box(CX - 12, 12, 23, 24, 4, 2, seat2);                                   // rear bench
     m.box(CX - 13, 12, 49, 26, 4, 2, A(0.42)); m.box(CX - 12, 13, 49, 24, 1, 1, '#c8b890'); // dash
-    for (let k = 0; k < 4; k++) { m.set(CX - 8 + k, 16, 46, DARK); m.set(CX - 8 + k, 19, 46, DARK); } m.box(CX - 8, 17, 46, 1, 2, 1, DARK); m.box(CX - 5, 17, 46, 1, 2, 1, DARK); m.box(CX - 7, 14, 47, 2, 3, 1, DARK);
+    for (let k = 0; k < 4; k++) { m.set(CX + 4 + k, 16, 46, DARK); m.set(CX + 4 + k, 19, 46, DARK); } m.box(CX + 4, 17, 46, 1, 2, 1, DARK); m.box(CX + 7, 17, 46, 1, 2, 1, DARK); m.box(CX + 5, 14, 47, 2, 3, 1, DARK); // wheel on the driver's (left, +x) side
     for (let y = 16; y <= 21; y++) { const z = 51 - Math.floor((y - 16) / 2); m.box(CX - 13, y, z, 1, 1, 1, CHROME); m.box(CX + 12, y, z, 1, 1, 1, CHROME); if (y < 21) m.box(CX - 12, y, z, 24, 1, 1, y > 16 ? '#5a7080' : CHROME); else m.box(CX - 12, y, z, 24, 1, 1, CHROME); }
     m.box(CX - 13, 15, 16, 26, 2, 6, '#c8b890'); m.box(CX - 12, 17, 17, 24, 1, 4, '#b8a880'); // folded top
-    m.box(CX + 6, 21, 49, 2, 1, 1, DARK); // mirror
+    m.box(CX - 1, 21, 49, 2, 1, 1, DARK); // mirror
   },
 });
 // Woodie station wagon (1948): fendered front, ash-framed mahogany body, tint B roof
@@ -250,7 +250,7 @@ defineProp('car_police', {
     sideText(m, 'POLICE', 9, 38, BLACK);
     m.box(CX - 2, 25, 36, 4, 1, 4, CHROME); m.box(CX - 1, 26, 37, 2, 2, 2, glow('#e02018', 0.7)); m.set(CX - 1, 28, 37, glow('#e02018', 0.7));
     m.box(CX + 8, 15, 70, 3, 2, 3, CHROME); m.set(CX + 9, 15, 73, DARK); // siren on the fender
-    m.box(CX - 13, 20, 50, 1, 2, 1, CHROME); // spotlight
+    m.box(CX + 12, 20, 50, 1, 2, 1, CHROME); // spotlight (driver's side)
   },
 });
 
@@ -383,7 +383,7 @@ defineProp('truck_ice_cream', {
     fillShape(m, CX, (z, y) => (z >= 3 && z <= 43 && y >= 5 && y <= 30) ? (y === 30 ? 12 : y === 29 ? 13 : 14) : 0, (x, y) => y === 12 || y === 26 ? blu : w);
     sideText(m, 'ICE CREAM', 19, 22, red);
     for (const zc of [10, 34]) { for (let y = 14; y <= 17; y++) paintSides(m, y, zc, y === 14 ? '#c8a060' : y === 17 ? '#f0e0c0' : '#6a3a1a'); paintSides(m, 13, zc, '#c8a060'); }
-    for (let z = 14; z <= 30; z++) for (let y = 8; y <= 11; y++) paintSides(m, y, z, z === 14 || z === 30 ? blu : '#dcd8cc', 1);
+    for (let z = 14; z <= 30; z++) for (let y = 8; y <= 11; y++) paintSides(m, y, z, z === 14 || z === 30 ? blu : '#dcd8cc', -1);
     for (let z = 4; z <= 42; z += 6) m.set(CX + 13, 31, z, GOLD), m.set(CX - 14, 31, z, GOLD);
     m.box(CX - 5, 31, 36, 10, 3, 2, w); textFront(m, 'ICE', CX, 31, red);
     truckWheels(m, [16, 63], red);
@@ -435,7 +435,7 @@ defineProp('truck_fire', {
     m.box(cx - 11, 12, 61, 22, 6, 13, 0); m.box(cx - 11, 11, 61, 22, 1, 13, '#3a3430');
     m.box(cx - 11, 12, 62, 22, 3, 5, '#2a2a2a'); m.box(cx - 11, 15, 61, 22, 5, 2, '#2a2a2a'); // bench seat
     m.box(cx - 12, 18, 72, 24, 1, 2, RED); for (let y = 19; y <= 25; y++) { m.box(cx - 12, y, 73, 1, 1, 1, CHROME); m.box(cx + 11, y, 73, 1, 1, 1, CHROME); m.box(cx - 11, y, 73, 22, 1, 1, y === 25 ? CHROME : '#5a7080'); }
-    m.box(cx - 5, 16, 69, 1, 3, 1, '#2a2a2a'); ringX(m, cx - 5, 19, 67, 1, 2, 1, '#2a2a2a'); // steering wheel
+    m.box(cx + 5, 16, 69, 1, 3, 1, '#2a2a2a'); ringX(m, cx + 5, 19, 67, 1, 2, 1, '#2a2a2a'); // steering wheel (driver on the left = +x)
     // grille, lights, bell, siren, bumper
     for (let y = 8; y <= 19; y++) for (let x = cx - 6; x <= cx + 5; x++) paintFront(m, x, y, x % 2 ? CHROME : DARK);
     headlights(m, [cx - 12, cx + 10], 15);
@@ -486,7 +486,7 @@ defineProp('truck_garbage', {
     for (const zc of [zr, zf]) { bigWheel(m, 1, 6, zc, 6.2, 1); bigWheel(m, 25, 6, zc, 6.2, 28); }
   },
 });
-// GM "old look" city transit bus, green & cream, ~10.3 m (1/12 m voxels). Front door on the right (+x) side.
+// GM "old look" city transit bus, green & cream, ~10.3 m (1/12 m voxels). Doors on the curb side (-x = the bus's right).
 defineProp('bus_city', {
   size: [32, 38, 126], scale: S12, collide: true, cat: 'far',
   build(m) {
@@ -499,12 +499,12 @@ defineProp('bus_city', {
       if (z >= 123) h -= 1;
       if (z <= 2) h -= 1;
       return h;
-    }, (x, y, z) => y <= 16 ? grn : y === 17 ? cr : y <= 28 ? cr : y <= 30 ? grn : cr);
+    }, (x, y, z) => y <= 16 ? grn : y === 17 ? cr : y <= 27 ? cr : y <= 29 ? grn : cr);
     if (true) for (let y = 34; y <= 35; y++) for (let z = 120; z <= 123; z++) for (let x = 0; x < 32; x++) if (z - 119 > 36 - y) m.set(x, y, z, 0);
     // side windows
     for (let k = 0; k < 9; k++) { const z0 = 12 + k * 11; for (let z = z0; z < z0 + 8; z++) for (let y = 19; y <= 27; y++) paintSides(m, y, z, y === 23 ? cr : GLASS); }
     // doors on the right side: front (ahead of the front axle) and centre exit
-    for (const [z0, z1] of [[106, 117], [58, 66]]) for (let z = z0; z <= z1; z++) for (let y = 5; y <= 28; y++) paintSides(m, y, z, (z === z0 || z === z1 || z === ((z0 + z1) >> 1)) ? grn2 : y > 12 ? GLASS : grn, 1);
+    for (const [z0, z1] of [[106, 117], [58, 66]]) for (let z = z0; z <= z1; z++) for (let y = 5; y <= 28; y++) paintSides(m, y, z, (z === z0 || z === z1 || z === ((z0 + z1) >> 1)) ? grn2 : y > 12 ? GLASS : grn, -1);
     // front: windshield, destination sign, route number, lights
     for (let y = 18; y <= 29; y++) for (let x = cx - 14; x <= cx + 13; x++) paintFront(m, x, y, (x === cx - 1 || x === cx) ? cr : GLASS);
     for (let y = 30; y <= 34; y++) for (let x = cx - 13; x <= cx + 12; x++) paintFront(m, x, y, DARK);
@@ -516,9 +516,169 @@ defineProp('bus_city', {
     for (let y = 7; y <= 15; y += 2) for (let x = cx - 10; x <= cx + 9; x++) paintBack(m, x, y, grn2);
     for (let y = 23; y <= 28; y++) for (let x = cx - 8; x <= cx + 7; x++) paintBack(m, x, y, GLASS);
     for (const x of [cx - 14, cx + 13]) for (const y of [11, 12]) paintBack(m, x, y, TAIL);
-    sideText(m, 'JUNIPER BAY TRANSIT', 11, 60, cr);
+    sideText(m, 'JUNIPER BAY TRANSIT', 31, 62, grn);
     for (const zc of [zr, zf]) arch(m, zc, 6, 7.5, 5, 26);
     for (const zc of [zr, zf]) { bigWheel(m, 2, 6, zc, 6.2, 2, '#b8b8b0'); bigWheel(m, 26, 6, zc, 6.2, 29, '#b8b8b0'); }
     m.box(cx - 3, 36, 30, 6, 1, 20, '#9a9a98'); // roof vent
+  },
+});
+
+// ---------------------------------------------------------------- Lantern Avenue trolley (1/16 m voxels, 13 m)
+// Double-truck city streetcar, cream & maroon, clerestory roof, trolley pole trailing back to a wire at ~5.5 m.
+defineProp('streetcar', {
+  size: [44, 90, 208], collide: [2.7, 3.5, 13.0], cat: 'far',
+  build(m) {
+    const cx = 22, mar = '#4e1418', mar2 = '#3c0e12', cr = '#e8dcb8', roof = '#4a4a48', gold = '#d8b050', gl = '#34444e';
+    fillShape(m, cx, (z, y) => {
+      if (z < 3 || z > 204 || y < 10 || y > 55) return 0;
+      const e = Math.min(z - 3, 204 - z);                           // taper at both ends
+      let h = e < 1 ? 16 : e < 3 ? 18 : e < 6 ? 20 : 21;
+      if (y >= 54) h -= 2; else if (y >= 53) h -= 1;                  // roof crown
+      return h;
+    }, (x, y) => y <= 27 ? mar : y <= 29 ? cr : y <= 46 ? cr : y <= 52 ? mar : roof);
+    // clerestory with small windows
+    for (let z = 20; z <= 187; z++) { const e = Math.min(z - 20, 187 - z); const top = 60 - Math.max(0, 3 - e); for (let y = 56; y <= top; y++) m.box(cx - 12, y, z, 24, 1, 1, y === top ? roof : '#5a5a58'); }
+    for (let z = 26; z <= 180; z += 8) for (const y of [57, 58]) for (let k = 0; k < 4; k++) { m.set(cx - 12, y, z + k, '#8a9aa0'); m.set(cx + 11, y, z + k, '#8a9aa0'); }
+    // side windows (lower sash + upper transom) with cream posts; letterboard
+    for (let k = 0; k < 13; k++) { const z0 = 24 + k * 12; for (let z = z0; z < z0 + 9; z++) for (let y = 31; y <= 45; y++) paintSides(m, y, z, y === 40 ? cr : y > 40 ? '#6a8088' : gl); }
+    sideText(m, 'JUNIPER BAY STREET RY', 48, 104, gold);
+    for (let z = 20; z < 190; z++) paintSides(m, 27, z, gold);
+    // doors on the curb side (-x = the car's right), front & rear: folding glass doors, steps
+    for (const [z0, z1] of [[186, 198], [8, 20]]) { for (let z = z0; z <= z1; z++) for (let y = 11; y <= 45; y++) paintSides(m, y, z, (z === z0 || z === z1 || z === ((z0 + z1) >> 1)) ? mar2 : y < 26 ? mar : gl, -1); m.box(cx - 22, 6, z0, 4, 4, z1 - z0 + 1, '#3a3a38'); }
+    // ends: windows, headlight, destination sign, fender
+    for (let y = 31; y <= 45; y++) for (let x = cx - 18; x <= cx + 17; x++) { const post = (x === cx - 7 || x === cx - 6 || x === cx + 5 || x === cx + 6); paintFront(m, x, y, post ? cr : gl); paintBack(m, x, y, post ? cr : gl); }
+    m.box(cx - 21, 47, 204, 42, 7, 2, DARK); m.box(cx - 21, 47, 1, 42, 7, 2, DARK);
+    m.text('LANTERN AVE', cx, 48, 205, glow('#f4e4a0', 0.9), { align: 'center' });
+    m.textBack('LANTERN AVE', cx, 48, 1, glow('#f4e4a0', 0.9), { align: 'center' });
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [-1, 1], [0, 2], [0, -1], [1, 2], [1, -1], [2, 0], [2, 1]]) paintFront(m, cx - 1 + dx, 20 + dy, dx < 0 || dx > 1 || dy < 0 || dy > 1 ? CHROME : glow('#fff4d0', 0.8));
+    for (const x of [cx - 17, cx + 16]) { paintBack(m, x, 16, TAIL); paintBack(m, x, 17, TAIL); }
+    m.text('7', cx + 12, 36, 205, gold);
+    for (let z = 205; z <= 207; z++) for (let x = cx - 14; x < cx + 14; x += 3) m.box(x, 3, z, 2, 4, 1, '#3a3a38');
+    m.box(cx - 15, 7, 204, 30, 1, 4, '#3a3a38');
+    // trucks (bogies) with wheels on standard gauge
+    for (const zt of [36, 172]) {
+      m.box(cx - 13, 3, zt - 13, 26, 7, 26, '#2a2a28');
+      for (const zw of [zt - 8, zt + 8]) for (const x of [cx - 13, cx + 11]) { m.cylX(x, 5, zw, 5, 2, '#1e1e1c'); m.cylX(x + (x < cx ? -1 : 2), 5, zw, 2, 1, '#6a6a68'); }
+    }
+    m.box(cx - 19, 9, 40, 38, 2, 128, '#2a2a28'); // underframe
+    // trolley pole: base on the roof, trailing back to the wire (tip ~5.5 m up, near the rear)
+    m.box(cx - 3, 61, 70, 6, 2, 8, '#2a2a28');
+    for (let k = 0; k <= 60; k++) { const y = Math.round(62 + k * 0.42), z = Math.round(74 - k * 0.92); m.box(cx, y, z, 1, 1, 1, '#1e1e1c'); if (k % 2) m.box(cx, y - 1, z, 1, 1, 1, '#1e1e1c'); }
+    m.box(cx - 1, 87, 17, 3, 2, 3, '#6a6a68');
+    for (let k = 0; k <= 30; k++) m.set(cx, Math.round(86 - k * 1.2), Math.round(18 - k * 0.5), '#b89868'); // retriever rope
+    // headlight glow bar at the rear dash too
+    paintBack(m, cx, 20, glow('#fff4d0', 0.5));
+  },
+});
+
+// ---------------------------------------------------------------- railroad (Boston & Juniper Bay RR), 1/8 m voxels
+// Rail vehicles: origin at the rail head (wheels touch y = 0), standard gauge (rails at x = +/-0.72 m), front toward +z.
+const S8 = 1 / 8;
+const RCX = 13; // centre line (26 voxels wide = 3.25 m)
+function railWheel(m, zc, r, col = '#1e1e1c', rim = '#e8e4dc') {
+  for (const [x, face] of [[6, 6], [19, 20]]) { m.cylX(x, r, zc, r, 2, col); if (rim) { ringX(m, face, r, zc, r - 0.9, r, 1, rim); } }
+}
+function railTruck(m, zc, n = 2, r = 3.5, gap = 8) {
+  m.box(RCX - 7, 2, zc - gap / 2 * (n - 1) - 4, 14, 4, gap * (n - 1) + 8, '#2a2a28');
+  for (let i = 0; i < n; i++) railWheel(m, zc - gap / 2 * (n - 1) + i * gap, r, '#1e1e1c', null);
+  for (const x of [4, 21]) m.box(x, 3, zc - gap / 2 * (n - 1) - 3, 1, 3, gap * (n - 1) + 6, '#3a3a38');
+}
+function coupler(m, z, d) { m.box(RCX - 1, 6, z, 3, 2, 3, '#2a2a28'); m.box(RCX - 2, 6, z + (d > 0 ? 2 : 0), 5, 2, 1, '#3a3a38'); }
+// 4-6-2 Pacific steam locomotive, black with red trim (15.3 m incl. pilot)
+defineProp('locomotive', {
+  size: [26, 38, 124], scale: S8, collide: [3.2, 4.6, 15.3], cat: 'far',
+  build(m) {
+    const blk = '#1e1e1e', blk2 = '#2e2e2e', red = '#a42a1e', steel = '#9a9e9a', brass = '#c9a24a', gold = '#d8b050';
+    m.box(RCX - 5, 5, 14, 10, 6, 96, blk2);                                            // frame
+    m.box(1, 15, 16, 24, 1, 84, blk); m.box(1, 14, 16, 1, 1, 84, red); m.box(24, 14, 16, 1, 1, 84, red); // running boards + red valance
+    m.cylZ(RCX, 23, 36, 7.3, 60, blk);                                                  // boiler
+    for (const z of [46, 60, 74, 88]) m.cylZ(RCX, 23, z, 7.6, 1, blk2);
+    m.cylZ(RCX, 23, 96, 7.1, 11, '#2a2a2a'); m.cylZ(RCX, 23, 107, 6.0, 1, '#343434'); m.cylZ(RCX, 23, 108, 2.2, 1, steel); // smokebox & door
+    m.cylZ(RCX, 27, 108, 1.6, 1, glow('#e8e0c0', 0.1)); m.text('18', RCX, 25 - 1, 108, gold, { align: 'center' });
+    m.box(RCX - 2, 31, 103, 5, 4, 4, blk); m.box(RCX - 1, 32, 107, 3, 2, 1, glow('#fff4d0', 0.8)); // headlight
+    m.cyl(RCX + 0.5, 30, 100, 2.6, 6, blk); m.cyl(RCX + 0.5, 35, 100, 3.2, 2, blk2);      // stack
+    m.cyl(RCX + 0.5, 30, 60, 3.2, 3, blk); m.cyl(RCX + 0.5, 33, 60, 2.2, 1, blk2);        // steam dome
+    m.cyl(RCX + 0.5, 30, 76, 3, 3, blk); m.cyl(RCX + 0.5, 33, 76, 2, 1, blk2);            // sand dome
+    m.box(RCX - 1, 30, 88, 3, 3, 3, brass); m.box(RCX, 33, 89, 1, 1, 1, brass);           // bell
+    m.box(RCX, 30, 38, 1, 4, 1, brass);                                                    // whistle
+    for (const x of [1, 20]) m.cylZ(x + 2.5, 11.5, 88, 3.4, 11, '#3a3a3a');              // cylinders
+    for (const x of [1, 24]) m.box(x, 16, 40, 1, 5, 44, blk2);                             // air tanks/pipes
+    // drivers (3 pairs), leading & trailing trucks
+    for (const zc of [40, 55, 70]) {
+      for (const [x, face] of [[5, 5], [19, 20]]) { m.cylX(x, 6.5, zc, 6.5, 2, blk); ringX(m, face, 6.5, zc, 5.6, 6.5, 1, '#e8e4dc'); ringX(m, face, 6.5, zc, 0, 1.4, 1, red); }
+      m.box(3, 6, zc - 1, 2, 2, 3, steel); m.box(21, 6, zc - 1, 2, 2, 3, steel);
+    }
+    m.box(3, 6, 40, 1, 1, 31, steel); m.box(22, 6, 40, 1, 1, 31, steel);                   // side rods
+    for (let k = 0; k <= 32; k++) { m.set(3, Math.round(7 + k * 0.12), 55 + k, steel); m.set(22, Math.round(7 + k * 0.12), 55 + k, steel); } // main rods
+    for (const zc of [88, 98]) railWheel(m, zc, 3.5, blk, '#e8e4dc');
+    railWheel(m, 22, 4, blk, '#e8e4dc');
+    // pilot (cowcatcher)
+    for (let z = 108; z <= 119; z++) { const k = z - 108; const h = Math.max(2, 9 - Math.round(k * 0.6)); const w = Math.max(3, 11 - Math.round(k * 0.5)); for (let x = RCX - w; x < RCX + w; x += 2) m.box(x, 1, z, 1, h, 1, steel); m.box(RCX - w, 1, z, w * 2, 1, 1, steel); }
+    m.box(RCX - 11, 10, 106, 22, 2, 3, red); coupler(m, 119, 1);
+    // cab
+    m.box(2, 15, 12, 22, 21, 22, blk); m.box(1, 36, 10, 24, 1, 26, blk2); m.box(2, 37, 12, 22, 1, 22, blk2);
+    for (const [z0, z1] of [[16, 22], [25, 31]]) for (let z = z0; z <= z1; z++) for (let y = 25; y <= 31; y++) { const edge = z === z0 || z === z1 || y === 25 || y === 31; m.set(2, y, z, edge ? red : '#3a4a55'); m.set(23, y, z, edge ? red : '#3a4a55'); }
+    for (const x of [3, 18]) for (let y = 27; y <= 32; y++) for (let k = 0; k < 5; k++) m.set(x + k, y, 33, (y === 27 || y === 32 || k === 0 || k === 4) ? red : '#3a4a55');
+    m.box(2, 12, 12, 22, 3, 2, blk2); m.box(2, 15, 12, 22, 1, 22, red);
+    textX(m, 'B&JB', 23, 18, 28, gold, -1); textX(m, 'B&JB', 2, 18, 18, gold, 1);
+    coupler(m, 9, -1);
+  },
+});
+function textX(m, str, x, y, z0, col, dir) { const L = layoutText(str, 'small'); for (const p of L.pixels) m.set(x, y + p.y, z0 + dir * p.x, col); }
+// Coal tender (9 m): tank with a heap of coal toward the front (+z, coupled to the locomotive)
+defineProp('coal_tender', {
+  size: [26, 30, 74], scale: S8, collide: [3.2, 3.6, 9.2], cat: 'far',
+  build(m) {
+    const blk = '#1e1e1e', red = '#a42a1e', coal = '#141414', coal2 = '#2c2c2c', gold = '#d8b050';
+    m.box(1, 8, 4, 24, 18, 66, blk); m.box(1, 8, 4, 24, 1, 66, red); m.box(0, 25, 3, 26, 1, 68, '#2a2a2a');
+    m.box(2, 26, 36, 22, 2, 33, blk);
+    for (let z = 38; z < 69; z++) for (let x = 3; x < 23; x++) { const h = 26 + Math.round(3.5 - Math.abs(x + 0.5 - RCX) * 0.25 - Math.abs(z - 54) * 0.08 + ((x * 7 + z * 3) % 5 === 0 ? 1 : 0)); for (let y = 26; y <= h; y++) m.set(x, y, z, ((x + z + y) % 7 === 0) ? coal2 : coal); }
+    m.box(RCX - 3, 26, 12, 6, 2, 6, '#2a2a2a'); m.box(RCX - 2, 28, 13, 4, 1, 4, '#3a3a3a'); // water hatch
+    textX(m, 'B&JB', 24, 15, 44, gold, -1); textX(m, 'B&JB', 1, 15, 30, gold, 1);
+    for (const x of [1, 24]) for (let y = 9; y < 25; y += 3) m.set(x, y, 5, '#3a3a38');
+    railTruck(m, 16, 2, 3.5, 9); railTruck(m, 58, 2, 3.5, 9);
+    coupler(m, 1, -1); coupler(m, 70, 1);
+  },
+});
+// 40-ft boxcar (12 m), body = tint A (pass boxcar red / brown), white lettering
+defineProp('boxcar', {
+  size: [26, 36, 98], scale: S8, collide: [3.2, 4.3, 12.2], cat: 'far',
+  build(m) {
+    const c = A(0.5), rib = A(0.42), walk = '#5a4a38', lad = '#2a2a28';
+    m.box(1, 8, 3, 24, 25, 92, c);
+    for (let z = 3; z < 95; z += 6) { m.box(0, 8, z, 1, 25, 1, rib); m.box(25, 8, z, 1, 25, 1, rib); }
+    m.box(0, 8, 3, 26, 1, 92, rib); m.box(0, 33, 3, 26, 1, 92, rib); m.box(2, 34, 3, 22, 1, 92, rib);
+    m.box(RCX - 2, 35, 3, 4, 1, 92, walk);
+    // sliding doors with tracks
+    for (const x of [0, 25]) { m.box(x, 9, 40, 1, 23, 16, A(0.46)); m.box(x, 32, 38, 1, 1, 20, lad); m.box(x, 9, 38, 1, 1, 20, lad); for (const z of [44, 51]) m.box(x, 18, z, 1, 4, 1, lad); }
+    textX(m, 'B&JB', 25, 24, 30, WHITE, -1); textX(m, 'B&JB', 0, 24, 66, WHITE, 1);
+    textX(m, '4217', 25, 18, 30, WHITE, -1); textX(m, '4217', 0, 18, 66, WHITE, 1);
+    // ladders & brake wheel
+    for (const z of [4, 93]) for (const x of [0, 25]) for (let y = 10; y < 32; y += 3) m.box(x, y, z, 1, 1, 2, lad);
+    m.box(RCX - 2, 24, 1, 4, 1, 2, lad); m.cylZ(RCX, 29, 1, 2.2, 1, lad);
+    railTruck(m, 14, 2, 3.5, 8); railTruck(m, 83, 2, 3.5, 8);
+    m.box(RCX - 6, 5, 3, 12, 3, 92, '#2a2a28');
+    coupler(m, 0, -1); coupler(m, 95, 1);
+  },
+});
+// Heavyweight Pullman coach (18 m), dark green with gold lettering and a clerestory roof
+defineProp('passenger_car', {
+  size: [26, 36, 148], scale: S8, collide: [3.2, 4.3, 18.4], cat: 'far',
+  build(m) {
+    const g = '#1e3a2a', g2 = '#163022', gold = '#d8b050', gl = '#3a4a55', roof = '#2a2a28';
+    m.box(1, 8, 6, 24, 23, 136, g);
+    m.box(2, 31, 6, 22, 1, 136, roof); m.box(3, 32, 6, 20, 1, 136, roof);
+    m.box(7, 33, 12, 12, 2, 124, roof); for (let z = 16; z < 132; z += 6) { m.box(7, 33, z, 1, 1, 3, '#6a7a70'); m.box(18, 33, z, 1, 1, 3, '#6a7a70'); }
+    m.box(0, 8, 6, 26, 1, 136, g2); m.box(0, 16, 6, 26, 1, 136, g2);
+    for (let k = 0; k < 14; k++) { const z0 = 16 + k * 8.4 | 0; for (let z = z0; z < z0 + 6; z++) for (let y = 18; y <= 25; y++) { m.set(1, y, z, y === 22 ? g2 : gl); m.set(24, y, z, y === 22 ? g2 : gl); } }
+    textX(m, 'BOSTON & JUNIPER BAY', 24, 26, 112, gold, -1); textX(m, 'BOSTON & JUNIPER BAY', 1, 26, 36, gold, 1);
+    for (const z of [6, 141]) { for (const x of [1, 24]) for (let y = 9; y < 29; y++) m.set(x, y, z === 6 ? 8 : 139, g2); }
+    // vestibule doors, end diaphragms, steps
+    for (const [z0, z1] of [[8, 12], [135, 139]]) for (let z = z0; z <= z1; z++) for (let y = 9; y <= 28; y++) { m.set(1, y, z, y > 18 && y < 26 && z > z0 && z < z1 ? gl : g2); m.set(24, y, z, y > 18 && y < 26 && z > z0 && z < z1 ? gl : g2); }
+    m.box(8, 10, 2, 10, 20, 4, '#2a2a28'); m.box(8, 10, 142, 10, 20, 4, '#2a2a28');
+    for (const [x, z] of [[0, 9], [25, 9], [0, 135], [25, 135]]) { m.box(x, 4, z, 1, 1, 4, '#3a3a38'); m.box(x, 6, z, 1, 1, 4, '#3a3a38'); }
+    railTruck(m, 26, 3, 3.5, 7); railTruck(m, 122, 3, 3.5, 7);
+    m.box(RCX - 7, 5, 8, 14, 3, 132, '#2a2a28');
+    coupler(m, 0, -1); coupler(m, 145, 1);
   },
 });

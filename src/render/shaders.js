@@ -127,7 +127,7 @@ vec3 applyLighting(vec3 albedo, vec3 n, vec3 wp, float ao, float room, vec4 shad
 
 vec3 applyFog(vec3 col, vec3 wp) {
   float d = length(wp - uCamPos);
-  float f = 1.0 - exp(-max(0.0, d - 30.0) * uFogDensity * 0.45);
+  float f = 1.0 - exp(-max(0.0, d - 40.0) * uFogDensity * (0.3 + 0.25 * uNight));
   f = f * f * (3.0 - 2.0 * f) * 0.85;
   return mix(col, uFogColor, clamp(f, 0.0, 1.0));
 }
@@ -509,7 +509,7 @@ void main() {
   float ao = vAO;
   vec3 col = applyLighting(vColor, n, vWorld, ao, vRoom, vShadow, 0.1, 1.0);
   if (vEmit > 0.0) {
-    float k = vEmit > 0.9 ? 1.0 : mix(0.15, 1.0, uNight);
+    float k = vEmit > 0.97 ? 1.0 : mix(0.08, 1.0, uNight);
     col += vColor * vEmit * 1.6 * k;
   }
   col = applyFog(col, vWorld);

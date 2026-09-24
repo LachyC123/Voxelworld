@@ -4,9 +4,8 @@ import { defineProp, lampLight } from '../props.js';
 import { layoutText } from '../../world/font.js';
 
 // ---------------------------------------------------------------- palette & helpers
-const IRON = '#262e29', IRON2 = '#1b211d', GILT = '#c9a24a', CHROME = '#cfd3d0', STEEL = '#7c8480', ALU = '#a9b0b2';
-const WOOD = '#8a5a32', WOODD = '#6a4226', WOODL = '#a8784a', GREYWOOD = '#8f8674', GREYWOOD2 = '#6f675a';
-const CREAM = '#ece4cc', WHITE = '#eeeae0', RED = '#a82c24', BLACK = '#1c1c1c', NAVY = '#233254', CONCRETE = '#a8a498';
+const IRON = '#262e29', GILT = '#c9a24a', CHROME = '#cfd3d0', ALU = '#a9b0b2', WOODD = '#6a4226';
+const CREAM = '#ece4cc', WHITE = '#eeeae0', BLACK = '#1c1c1c', NAVY = '#233254', CONCRETE = '#a8a498';
 const LEAF = '#3a5a26', LEAF2 = '#2c4a1e', SOIL = '#3a2a1e', ROPE = '#c2a878', BRASS = '#c9a24a';
 const A = (s = 0.5) => ({ tint: 1, shade: s });
 const B = (s = 0.5) => ({ tint: 2, shade: s });
@@ -64,7 +63,6 @@ function textX(m, str, x, y, z0, col, dir, font = 'small') {
   for (const p of L.pixels) m.set(x, y + p.y, z0 + dir * p.x, col);
   return L.width;
 }
-const textW = (str, font = 'small') => layoutText(str, font).width;
 // double-sided sign text (front +z at zf, back -z at zb), centred on cx
 function text2(m, str, cx, y, zf, zb, col, font = 'small') {
   m.text(str, cx, y, zf, col, { align: 'center', font });
@@ -133,10 +131,9 @@ defineProp('trash_basket', {
     m.cyl(5, 1, 5, 4.7, 12, g); m.cyl(5, 2, 5, 3.7, 11, 0);
     // vertical wire gaps
     for (let y = 3; y <= 10; y++) for (let z = 0; z < 10; z++) for (let x = 0; x < 10; x++) {
-      const a = Math.atan2(z + 0.5 - 5, x + 0.5 - 5), k = Math.floor((a + Math.PI) / (Math.PI * 2) * 16);
+      const a = Math.atan2(z + 0.5 - 5, x + 0.5 - 5), k = Math.floor((a + Math.PI) / (Math.PI * 2) * 12);
       if (k % 2 && m.get(x, y, z)) m.set(x, y, z, 0);
     }
-    m.cyl(5, 6, 5, 4.7, 1, g); m.cyl(5, 6, 5, 3.7, 1, 0);
     m.cyl(5, 11, 5, 4.7, 2, b); m.cyl(5, 11, 5, 3.7, 2, 0);
     m.box(3, 2, 3, 4, 7, 4, '#6a5a44');
     m.box(3, 9, 4, 3, 2, 3, '#e6e2d6'); m.box(5, 10, 3, 2, 1, 3, '#cfc8b4'); m.set(4, 11, 5, '#e6e2d6');
@@ -823,10 +820,10 @@ defineProp('garden_bench', {
 defineProp('sundial', {
   size: [10, 15, 10], collide: [0.5, 0.9, 0.5], cat: 'exterior',
   build(m) {
-    const c = '#b0aca2', br = '#9a7a3a';
+    const c = '#b0aca2';
     m.box(1, 0, 1, 8, 2, 8, c); m.box(3, 2, 3, 4, 9, 4, c); m.box(2, 11, 2, 6, 1, 6, c);
-    m.cyl(5, 12, 5, 3.5, 1, br); for (const [x, z] of [[5, 1], [9, 5], [5, 9], [1, 5]]) m.set(x, 12, z, '#7a5a2a');
-    line(m, 5, 13, 3, 5, 15, 7, '#8a6a2a'); m.box(5, 13, 3, 1, 1, 5, '#8a6a2a');
+    m.cyl(5, 12, 5, 3.6, 1, '#8a6a3a'); for (const [x, z] of [[5, 1], [8, 2], [9, 5], [8, 8], [5, 9], [2, 8], [1, 5], [2, 2]]) m.set(x, 12, z, '#4a3a22');
+    [3, 3, 2, 2, 1].forEach((h, k) => m.box(5, 13, 3 + k, 1, h, 1, '#5a4222'));
   },
 });
 defineProp('stump', {
@@ -1109,7 +1106,7 @@ defineProp('rope_coil', {
   build(m) {
     for (let y = 0; y < 2; y++) for (let r = 4.8; r > 1.2; r -= 1) {
       const col = (Math.round(r) + y) % 2 ? ROPE : '#a88e60';
-      ringZ; for (let z = 0; z < 10; z++) for (let x = 0; x < 10; x++) { const d = Math.hypot(x + 0.5 - 5, z + 0.5 - 5); if (d <= r && d > r - 1) m.set(x, y, z, col); }
+      for (let z = 0; z < 10; z++) for (let x = 0; x < 10; x++) { const d = Math.hypot(x + 0.5 - 5, z + 0.5 - 5); if (d <= r && d > r - 1) m.set(x, y, z, col); }
     }
     m.box(5, 2, 1, 1, 1, 4, ROPE); m.box(6, 0, 9, 3, 1, 1, ROPE);
   },
@@ -1306,7 +1303,7 @@ defineProp('lobster_boat', {
     m.box(3, y0 + 10, 28, 18, 1, 13, wh); m.box(3, y0 + 10, 28, 18, 1, 1, trim);
     m.box(9, y0, 34, 3, 4, 3, '#555555'); m.box(10, y0 + 4, 35, 2, 2, 1, '#222222'); // wheel console
     // hauler davit + pots + buoys in the cockpit
-    m.box(19, y0 + 1, 29, 1, 9, 1, '#8a8e8a'); m.box(19, y0 + 9, 29, 4, 1, 1, '#8a8e8a'); m.box(21, y0 + 3, 28, 2, 3, 2, '#555555');
+    m.box(4, y0 + 1, 29, 1, 9, 1, '#8a8e8a'); m.box(1, y0 + 9, 29, 4, 1, 1, '#8a8e8a'); m.box(1, y0 + 3, 28, 2, 3, 2, '#555555'); // starboard (-x) hauler
     m.box(4, y0 - 2, 6, 7, 4, 5, '#9a8a6a'); m.box(4, y0 + 2, 7, 7, 1, 3, '#7a6a50'); m.box(12, y0 - 2, 8, 7, 4, 5, '#9a8a6a');
     m.box(14, y0 - 2, 18, 2, 3, 2, A(0.5)); m.box(16, y0 - 2, 20, 2, 3, 2, B(0.5)); m.box(6, y0 - 2, 20, 2, 3, 2, A(0.5));
     // radio mast & flag
@@ -1501,7 +1498,7 @@ defineProp('ice_cream_cart', {
     m.box(2, 6, 15, 20, 14, 18, w); m.box(2, 6, 15, 20, 1, 18, w2); m.box(2, 20, 15, 20, 1, 18, CHROME);
     m.box(2, 17, 33, 20, 1, 1, blu); m.box(2, 7, 33, 20, 1, 1, blu);
     m.text('ICE', 12, 12, 33, red, { align: 'center' }); m.text('CREAM', 12, 8, 33, red, { align: 'center' });
-    for (const x of [2, 21]) { textX; m.box(x === 2 ? 1 : 22, 9, 20, 1, 6, 8, w2); m.box(x === 2 ? 1 : 22, 11, 22, 1, 3, 2, '#6a3a1a'); m.box(x === 2 ? 1 : 22, 9, 23, 1, 2, 1, '#d8b870'); }
+    for (const x of [2, 21]) { m.box(x === 2 ? 1 : 22, 9, 20, 1, 6, 8, w2); m.box(x === 2 ? 1 : 22, 11, 22, 1, 3, 2, '#6a3a1a'); m.box(x === 2 ? 1 : 22, 9, 23, 1, 2, 1, '#d8b870'); }
     m.box(11, 5, 4, 2, 2, 12, CHROME); line(m, 12, 6, 6, 12, 14, 12, CHROME);
     m.box(9, 14, 10, 6, 1, 4, '#2a2a2a'); m.box(11, 12, 11, 2, 2, 2, CHROME);
     m.box(4, 21, 16, 16, 1, 3, CHROME); m.box(4, 21, 29, 16, 1, 3, CHROME); m.box(3, 20, 24, 18, 2, 1, '#bbbbbb');
@@ -1664,28 +1661,29 @@ defineProp('string_lights_post', {
 
 // ================================================================ ANIMALS (origin at the feet, facing +z)
 defineProp('dog', {
-  size: [8, 12, 17], cat: 'exterior',
+  size: [8, 13, 19], cat: 'exterior',
   build(m) {
-    const c = A(0.5), dk = A(0.4), lt = A(0.6);
+    const c = A(0.5), dk = A(0.4), lt = A(0.6), k = '#1a1a1a';
     for (const [x, z] of [[1, 3], [5, 3], [1, 11], [5, 11]]) { m.box(x, 0, z, 2, 5, 2, c); m.box(x, 0, z, 2, 1, 2, dk); }
     rbox(m, 1, 4, 2, 6, 5, 12, c); m.box(2, 8, 3, 4, 1, 9, dk); m.box(2, 4, 5, 4, 1, 7, lt);
-    m.box(2, 7, 12, 4, 4, 3, c); // neck/chest
-    m.box(2, 9, 13, 4, 3, 3, c); m.box(3, 9, 16, 2, 2, 1, lt); m.set(3, 10, 16, lt); m.box(3, 10, 16, 2, 1, 1, '#1a1a1a');
-    m.box(1, 8, 13, 1, 3, 2, dk); m.box(6, 8, 13, 1, 3, 2, dk);
-    m.set(2, 11, 15, '#1a1a1a'); m.set(5, 11, 15, '#1a1a1a');
-    m.box(2, 8, 12, 4, 1, 1, '#b8322a'); m.set(4, 7, 13, GILT);
-    line(m, 4, 8, 2, 4, 10, 0, c);
+    m.box(2, 7, 12, 4, 4, 3, c);                                       // chest & neck
+    m.box(2, 9, 14, 4, 4, 3, c); m.box(2, 12, 14, 4, 1, 3, dk);        // head
+    m.box(3, 9, 17, 2, 2, 2, lt); m.box(3, 10, 18, 2, 1, 1, k);        // muzzle & nose
+    m.set(2, 11, 16, k); m.set(5, 11, 16, k);                          // eyes
+    m.box(1, 9, 14, 1, 3, 2, dk); m.box(6, 9, 14, 1, 3, 2, dk);        // floppy ears
+    m.box(2, 8, 13, 4, 1, 1, '#b8322a'); m.set(4, 7, 14, GILT);        // collar & tag
+    line(m, 4, 8, 2, 4, 10, 0, c); m.set(4, 11, 0, lt);                // tail
   },
 });
 defineProp('dog_small', {
-  size: [6, 8, 11], cat: 'exterior',
+  size: [6, 8, 12], cat: 'exterior',
   build(m) {
-    const c = A(0.5), dk = A(0.4), lt = A(0.6);
+    const c = A(0.5), dk = A(0.4), lt = A(0.62), k = '#1a1a1a';
     for (const [x, z] of [[1, 2], [4, 2], [1, 7], [4, 7]]) m.box(x, 0, z, 1, 3, 1, dk);
-    m.box(1, 2, 1, 4, 3, 8, c); m.box(1, 1, 2, 4, 1, 6, dk);
-    m.box(1, 4, 7, 4, 3, 3, c); m.box(2, 3, 10, 2, 2, 1, lt); m.box(2, 4, 10, 2, 1, 1, '#1a1a1a');
-    m.set(1, 7, 8, dk); m.set(4, 7, 8, dk); m.set(2, 6, 10, '#1a1a1a'); m.set(3, 6, 10, '#1a1a1a');
-    m.box(2, 5, 0, 1, 3, 1, c); m.box(1, 4, 6, 4, 1, 1, '#b8322a');
+    m.box(1, 2, 1, 4, 3, 8, c); m.box(1, 1, 2, 4, 1, 6, dk); m.box(1, 5, 2, 4, 1, 6, dk);
+    m.box(1, 3, 8, 4, 4, 3, c); m.box(2, 3, 11, 2, 2, 1, lt); m.box(2, 2, 10, 2, 1, 2, lt); m.set(2, 4, 11, k); m.set(3, 4, 11, k);
+    m.set(1, 6, 10, k); m.set(4, 6, 10, k); m.set(1, 7, 9, dk); m.set(4, 7, 9, dk);
+    m.box(2, 5, 0, 1, 3, 1, c); m.box(1, 3, 7, 4, 1, 1, '#b8322a');
   },
 });
 defineProp('cat', {
