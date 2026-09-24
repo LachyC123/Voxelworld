@@ -1,7 +1,7 @@
 // Prop registry + instance store + distance-culled instanced rendering + colliders.
 import * as THREE from 'three';
 import { VS, PROP_VS } from '../core/config.js';
-import { VoxModel, meshVoxModel } from './voxModel.js';
+import { VoxModel, meshVoxModel, downsampleModel } from './voxModel.js';
 import { hexToRgb } from '../core/util.js';
 
 export const PROP_DEFS = new Map();
@@ -58,7 +58,19 @@ export class Props {
     d.build(m);
     const origin = d.origin || [sx / 2, 0, sz / 2];
     t.geo = meshVoxModel(m, d.scale || PROP_VS, origin);
+    t.model = m;
     return t.geo;
+  }
+  // the distant version: half resolution (small props keep their full geometry)
+  geometryLod(t) {
+    if (t.geoLod) return t.geoLod;
+    this.geometry(t);
+    const m = t.model, d = t.def;
+    const origin = d.origin || [m.sx / 2, 0, m.sz / 2];
+    const big = Math.max(m.sx, m.sy, m.sz) >= 10;
+    t.geoLod = big ? meshVoxModel(downsampleModel(m), (d.scale || PROP_VS) * 2, origin.map((v) => v / 2)) : t.geo;
+    t.model = null; // (only needed once)
+    return t.geoLod;
   }
 
   // Add a static prop at world metres. yaw rotates the model's +z front.
@@ -153,10 +165,8 @@ export class Props {
     this.scene = scene;
     for (const t of this.types) this._makeMesh(t);
   }
-  _makeMesh(t) {
-    const cap = t.count + t.dynCount;
-    if (cap === 0 || t.mesh) return;
-    const geo = this.geometry(t).clone();
+  _instanced(geo0, cap, name) {
+    const geo = geo0.clone();
     const ta = new THREE.InstancedBufferAttribute(new Uint8Array(cap * 4), 4, true);
     const tb = new THREE.InstancedBufferAttribute(new Uint8Array(cap * 4), 4, true);
     ta.setUsage(THREE.DynamicDrawUsage); tb.setUsage(THREE.DynamicDrawUsage);
@@ -165,14 +175,26 @@ export class Props {
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.frustumCulled = false;
     mesh.count = 0;
-    mesh.name = 'prop:' + t.name;
-    t.mesh = mesh; t.ta = ta; t.tb = tb; t.nStatic = 0; t.cap = cap;
+    mesh.name = name;
+    mesh.userData.ta = ta; mesh.userData.tb = tb;
     this.scene.add(mesh);
+    return mesh;
+  }
+  _makeMesh(t) {
+    const cap = t.count + t.dynCount;
+    if (cap === 0 || t.mesh) return;
+    t.mesh = this._instanced(this.geometry(t), cap, 'prop:' + t.name);
+    t.ta = t.mesh.userData.ta; t.tb = t.mesh.userData.tb;
+    // far instances: half-resolution, drawn only toward the view, and kept out of the shadow pass
+    t.lod = this._instanced(this.geometryLod(t), cap, 'propLod:' + t.name);
+    t.lod.layers.set(2);   // drawn by the main camera; only the aerial view's shadow pass includes it
+    t.nStatic = 0; t.nStaticLod = 0; t.cap = cap;
   }
   _growMesh(t) {
     const old = t.mesh;
     this.scene.remove(old);
     old.geometry.dispose();
+    if (t.lod) { this.scene.remove(t.lod); t.lod.geometry.dispose(); t.lod = null; }
     t.mesh = null;
     const want = t.count + t.dynCount;
     t.dynCount = Math.max(t.dynCount, want * 2 - t.count); // over-allocate
@@ -183,78 +205,112 @@ export class Props {
   // late-added types (dynamic handles created after attach)
   ensureMeshes() { for (const t of this.types) if (!t.mesh && (t.count + t.dynCount) > 0) this._makeMesh(t); }
 
-  _writeInst(t, slot, x, y, z, yaw, s, tintA, tintB, room) {
-    const e = t.mesh.instanceMatrix.array, o = slot * 16;
+  _writeInst(t, slot, x, y, z, yaw, s, tintA, tintB, room, mesh = t.mesh) {
+    const e = mesh.instanceMatrix.array, o = slot * 16;
     const c = Math.cos(yaw) * s, sn = Math.sin(yaw) * s;
     e[o] = c; e[o + 1] = 0; e[o + 2] = -sn; e[o + 3] = 0;
     e[o + 4] = 0; e[o + 5] = s; e[o + 6] = 0; e[o + 7] = 0;
     e[o + 8] = sn; e[o + 9] = 0; e[o + 10] = c; e[o + 11] = 0;
     e[o + 12] = x; e[o + 13] = y; e[o + 14] = z; e[o + 15] = 1;
-    const a = t.ta.array, b = t.tb.array, q = slot * 4;
+    const a = mesh.userData.ta.array, b = mesh.userData.tb.array, q = slot * 4;
     a[q] = (tintA >> 16) & 255; a[q + 1] = (tintA >> 8) & 255; a[q + 2] = tintA & 255; a[q + 3] = room & 255;
     b[q] = (tintB >> 16) & 255; b[q + 1] = (tintB >> 8) & 255; b[q + 2] = tintB & 255; b[q + 3] = (room >> 8) & 255;
   }
 
-  // radii: [interior, exterior, far]
-  update(cam, radii, forceRebuild = false) {
-    const moved = cam.distanceToSquared(this.lastCam) > 16;
+  // radii: [interior, exterior, far]. fwd: camera forward (for culling distant instances behind you).
+  // lodDist: beyond this, props use their half-resolution meshes (no shadows — it's the shadow range).
+  update(cam, radii, forceRebuild = false, fwd = null, lodDist = 80) {
+    const yaw = fwd ? Math.atan2(fwd.x, fwd.z) : 0;
+    const steep = !fwd || fwd.y < -0.8; // looking nearly straight down: don't cull by direction
+    let dyaw = Math.abs(yaw - (this.lastYaw ?? 1e9)); if (dyaw > Math.PI) dyaw = 2 * Math.PI - dyaw;
+    const moved = cam.distanceToSquared(this.lastCam) > 16 || (!steep && dyaw > 0.3) || steep !== this.lastSteep;
+    const lod2 = lodDist * lodDist;
+    // half-angle kept around the view direction: the widest horizontal FOV plus a generous margin
+    const cosKeep = Math.cos(Math.min(Math.PI, (this.hfov || 1.9) / 2 + 0.75));
     if (moved || forceRebuild || this.force) {
       this.force = false;
-      this.lastCam.copy(cam);
-      for (const t of this.types) if (t.mesh) t.nStatic = 0;
+      this.lastCam.copy(cam); this.lastYaw = yaw; this.lastSteep = steep;
+      for (const t of this.types) if (t.mesh) { t.nStatic = 0; t.nStaticLod = 0; }
       const R = Math.max(radii[0], radii[1], radii[2]);
       const c0 = Math.floor((cam.x - R) / CELL), c1 = Math.floor((cam.x + R) / CELL);
       const d0 = Math.floor((cam.z - R) / CELL), d1 = Math.floor((cam.z + R) / CELL);
       const r2 = radii.map((r) => r * r);
+      const fx = Math.sin(yaw), fz = Math.cos(yaw);
       for (let cz = d0; cz <= d1; cz++) for (let cx = c0; cx <= c1; cx++) {
         const a = this.cells.get(cx + ',' + cz);
         if (!a) continue;
         // coarse reject
         const ccx = (cx + 0.5) * CELL - cam.x, ccz = (cz + 0.5) * CELL - cam.z;
-        if (ccx * ccx + ccz * ccz > (R + CELL) * (R + CELL)) continue;
+        const cd2 = ccx * ccx + ccz * ccz;
+        if (cd2 > (R + CELL) * (R + CELL)) continue;
+        // whole cells well behind the camera and beyond the LOD distance are skipped outright
+        if (!steep && cd2 > (lodDist + CELL * 1.5) ** 2 && (ccx * fx + ccz * fz) / Math.sqrt(cd2) < cosKeep - 0.2) continue;
         for (let k = 0; k < a.length; k++) {
           const i = a[k];
           const dx = this.tPos[i * 3] - cam.x, dy = this.tPos[i * 3 + 1] - cam.y, dz = this.tPos[i * 3 + 2] - cam.z;
-          if (dx * dx + dy * dy * 0.5 + dz * dz > r2[this.tCat[i]]) continue;
+          const d2 = dx * dx + dy * dy * 0.5 + dz * dz;
+          if (d2 > r2[this.tCat[i]]) continue;
           const t = this.types[this.tType[i]];
           if (!t.mesh) continue;
-          this._writeInst(t, t.nStatic++, this.tPos[i * 3], this.tPos[i * 3 + 1], this.tPos[i * 3 + 2], this.tYaw[i], this.tScale[i], this.tTintA[i], this.tTintB[i], this.tRoom[i]);
+          if (d2 < lod2) this._writeInst(t, t.nStatic++, this.tPos[i * 3], this.tPos[i * 3 + 1], this.tPos[i * 3 + 2], this.tYaw[i], this.tScale[i], this.tTintA[i], this.tTintB[i], this.tRoom[i]);
+          else {
+            if (!steep) { const h = Math.hypot(dx, dz); if ((dx * fx + dz * fz) < cosKeep * h) continue; }
+            this._writeInst(t, t.nStaticLod++, this.tPos[i * 3], this.tPos[i * 3 + 1], this.tPos[i * 3 + 2], this.tYaw[i], this.tScale[i], this.tTintA[i], this.tTintB[i], this.tRoom[i], t.lod);
+          }
         }
       }
-      for (const t of this.types) if (t.mesh) { t.mesh.count = t.nStatic; t.mesh.instanceMatrix.needsUpdate = true; t.ta.needsUpdate = true; t.tb.needsUpdate = true; t.dirtyStatic = true; }
+      for (const t of this.types) if (t.mesh) { t.mesh.count = t.nStatic; t.lod.count = t.nStaticLod; t.fullUpload = true; }
     }
-    // dynamic instances every frame
+    // dynamic instances every frame (appended after the static ones)
     const m4 = this._m4 || (this._m4 = new THREE.Matrix4());
     const q = this._q || (this._q = new THREE.Quaternion());
     const eu = this._eu || (this._eu = new THREE.Euler(0, 0, 0, 'YXZ'));
     const pv = this._pv || (this._pv = new THREE.Vector3());
     const sv = this._sv || (this._sv = new THREE.Vector3());
-    const touched = new Set();
-    for (const t of this.types) if (t.mesh && t.dynCount) t.mesh.count = t.nStatic;
+    const touched = this._touched || (this._touched = new Set()); touched.clear();
+    for (const t of this.types) if (t.mesh && (t.dynCount || t.fullUpload)) { t.mesh.count = t.nStatic; t.lod.count = t.nStaticLod; touched.add(t); }
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);
     for (const h of this.dyn) {
       if (!h.visible || h.dummy) continue;
       const t = this.types[h.tid];
       if (!t.mesh) continue;
-      const slot = t.mesh.count++;
-      if (h.matrix) {
-        h.matrix.toArray(t.mesh.instanceMatrix.array, slot * 16);
-        const a = t.ta.array, b = t.tb.array, o = slot * 4;
+      const dx = h.x - cam.x, dz = h.z - cam.z, d2 = dx * dx + dz * dz;
+      let mesh = t.mesh;
+      if (d2 > lod2) {
+        if (!steep && (dx * fx + dz * fz) < cosKeep * Math.sqrt(d2)) continue;
+        mesh = t.lod;
+      }
+      const slot = mesh.count++;
+      const ud = mesh.userData;
+      if (h.matrix || h.pitch || h.roll) {
+        if (h.matrix) h.matrix.toArray(mesh.instanceMatrix.array, slot * 16);
+        else { eu.set(h.pitch, h.yaw, h.roll, 'YXZ'); q.setFromEuler(eu); m4.compose(pv.set(h.x, h.y, h.z), q, sv.setScalar(h.scale)); m4.toArray(mesh.instanceMatrix.array, slot * 16); }
+        const a = ud.ta.array, b = ud.tb.array, o = slot * 4;
         a[o] = (h.tintA >> 16) & 255; a[o + 1] = (h.tintA >> 8) & 255; a[o + 2] = h.tintA & 255; a[o + 3] = h.room & 255;
         b[o] = (h.tintB >> 16) & 255; b[o + 1] = (h.tintB >> 8) & 255; b[o + 2] = h.tintB & 255; b[o + 3] = (h.room >> 8) & 255;
-      } else if (h.pitch || h.roll) {
-        eu.set(h.pitch, h.yaw, h.roll, 'YXZ'); q.setFromEuler(eu);
-        m4.compose(pv.set(h.x, h.y, h.z), q, sv.setScalar(h.scale));
-        m4.toArray(t.mesh.instanceMatrix.array, slot * 16);
-        const a = t.ta.array, b = t.tb.array, o = slot * 4;
-        a[o] = (h.tintA >> 16) & 255; a[o + 1] = (h.tintA >> 8) & 255; a[o + 2] = h.tintA & 255; a[o + 3] = h.room & 255;
-        b[o] = (h.tintB >> 16) & 255; b[o + 1] = (h.tintB >> 8) & 255; b[o + 2] = h.tintB & 255; b[o + 3] = (h.room >> 8) & 255;
-      } else this._writeInst(t, slot, h.x, h.y, h.z, h.yaw, h.scale, h.tintA, h.tintB, h.room);
-      touched.add(t);
+      } else this._writeInst(t, slot, h.x, h.y, h.z, h.yaw, h.scale, h.tintA, h.tintB, h.room, mesh);
     }
-    for (const t of touched) { t.mesh.instanceMatrix.needsUpdate = true; t.ta.needsUpdate = true; t.tb.needsUpdate = true; }
+    // upload: everything after a rebuild, otherwise just the dynamic tail of each buffer
+    for (const t of touched) {
+      for (const [mesh, n0] of [[t.mesh, t.nStatic], [t.lod, t.nStaticLod]]) {
+        const ud = mesh.userData, im = mesh.instanceMatrix;
+        if (t.fullUpload) { im.clearUpdateRanges(); ud.ta.clearUpdateRanges(); ud.tb.clearUpdateRanges(); }
+        else {
+          const n = mesh.count - n0;
+          if (n <= 0) continue;
+          im.clearUpdateRanges(); im.addUpdateRange(n0 * 16, n * 16);
+          ud.ta.clearUpdateRanges(); ud.ta.addUpdateRange(n0 * 4, n * 4);
+          ud.tb.clearUpdateRanges(); ud.tb.addUpdateRange(n0 * 4, n * 4);
+        }
+        im.needsUpdate = true; ud.ta.needsUpdate = true; ud.tb.needsUpdate = true;
+      }
+      t.fullUpload = false;
+    }
+    // empty meshes stay out of the render lists entirely (no draw call, no state changes)
+    for (const t of this.types) if (t.mesh) { t.mesh.visible = t.mesh.count > 0; t.lod.visible = t.lod.count > 0; }
   }
 
-  countVisible() { let n = 0; for (const t of this.types) if (t.mesh) n += t.mesh.count; return n; }
+  countVisible() { let n = 0; for (const t of this.types) if (t.mesh) n += t.mesh.count + (t.lod ? t.lod.count : 0); return n; }
 }
 
 // shared helper: add a lamp-like point light definition

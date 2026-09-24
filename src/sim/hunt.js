@@ -163,8 +163,12 @@ export class Hunt {
     const cam = g.R.camera.position, fwd = g.R.camera.getWorldDirection(this._f || (this._f = new (cam.constructor)()));
     const m = g.clock.minutes, night = g.R.common.uNight.value;
     let bHit;
-    for (const it of this.items) {
-      if (this.spotted.has(it.id)) continue;
+    // each tick looks for a third of the list, so every item is checked about every 0.6 s
+    this.phase = ((this.phase || 0) + 1) % 3;
+    const itemStep = step * 3;
+    for (let ii = 0; ii < this.items.length; ii++) {
+      const it = this.items[ii];
+      if (ii % 3 !== this.phase || this.spotted.has(it.id)) continue;
       if (it.when && !it.when(m, night)) continue;
       const range = it.range || 20, f = it.find;
       let ok = false;
@@ -183,9 +187,10 @@ export class Hunt {
       }
       if (!ok && f.point) ok = this.seen(cam, fwd, f.point.x, f.point.y, f.point.z, range, f.point.r);
       if (!ok && f.label) for (const l of g.ctx.life.labels) { if (m < l.t0 || m >= l.t1 || !f.label.test(l.text)) continue; if (this.seen(cam, fwd, l.x, l.y, l.z, range, l.r)) { ok = true; break; } }
-      const gz = ok ? (this.gaze.get(it.id) || 0) + step : Math.max(0, (this.gaze.get(it.id) || 0) - step * 0.5);
+      const gz = ok ? (this.gaze.get(it.id) || 0) + itemStep : Math.max(0, (this.gaze.get(it.id) || 0) - itemStep * 0.5);
       this.gaze.set(it.id, gz);
-      if (gz >= 0.6) { this.spotted.set(it.id, Math.round(m)); this.save(); if (this.onSpot) this.onSpot(it); }
+      // seen on two checks running (about 0.6 s of looking)
+      if (gz >= 1.1) { this.spotted.set(it.id, Math.round(m)); this.save(); if (this.onSpot) this.onSpot(it); }
     }
   }
 }

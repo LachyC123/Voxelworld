@@ -135,6 +135,14 @@ export class LifeRuntime {
 
   // the building the crosshair rests on (first opaque voxel along the view ray), described
   buildingAt(cam, fwd, m, maxD = 90) {
+    // the answer can't change while the camera holds still (only the opening hours might)
+    const c = this._bc;
+    if (c && c.maxD === maxD && c.m === Math.floor(m) && Math.abs(c.x - cam.x) + Math.abs(c.y - cam.y) + Math.abs(c.z - cam.z) < 0.03 && c.fx * fwd.x + c.fy * fwd.y + c.fz * fwd.z > 0.99995) return c.r;
+    const r = this._buildingAt(cam, fwd, m, maxD);
+    this._bc = { x: cam.x, y: cam.y, z: cam.z, fx: fwd.x, fy: fwd.y, fz: fwd.z, m: Math.floor(m), maxD, r };
+    return r;
+  }
+  _buildingAt(cam, fwd, m, maxD) {
     const W = this.ctx.world;
     let hit = null;
     for (let d = 1; d < maxD; d += 0.35) {

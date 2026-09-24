@@ -53,6 +53,15 @@ export class Person {
   entryIndex(m) {
     const s = this.schedule;
     if (!s.length) return -1;
+    // usually the clock has only crept forward since last frame: check the cached entry first
+    const c = this._k;
+    if (c !== undefined && c < s.length && s[c].t <= m && (c + 1 >= s.length || s[c + 1].t > m)) return c;
+    const k = this._entryIndex(m);
+    this._k = k;
+    return k;
+  }
+  _entryIndex(m) {
+    const s = this.schedule;
     let k = s.length - 1;
     for (let i = 0; i < s.length; i++) { if (s[i].t <= m) k = i; else break; }
     if (s[0].t > m) k = s.length - 1;
@@ -138,10 +147,21 @@ export class People {
     const st = {};
     // route planning is spread over frames after a time jump (people wait where they were)
     let budget = this.pathBudget ?? 90;
+    const frame = (this._frame = (this._frame || 0) + 1);
+    const far2 = (rOut + 40) * (rOut + 40);
     for (const p of this.list) {
       const s = p.schedule;
       const ch = p.ch;
       if (!s.length) { if (ch) ch.pose.visible = false; continue; }
+      const S0 = p.state;
+      if (this.throttle !== false && S0.entry && !(ch && ch.pose.visible) && ((frame + p.id) & 3) !== 0) {
+        const dx = S0.x - cam.x, dz = S0.z - cam.z;
+        if (dx * dx + dz * dz > far2) {
+          if (S0.mode === 'spot' && S0.act !== 'sleep') occ.set(S0.room, (occ.get(S0.room) || 0) + 1);
+          if (S0.mode === 'spot' && (S0.act === 'watch' || (S0.act === 'eat' && S0.spot && S0.spot.tags.includes('tv')))) tv.add(S0.room);
+          continue;
+        }
+      }
       const k = p.entryIndex(m);
       if (!p.paths.has(k) && budget-- <= 0 && p.state.entry) { if (ch && ch.pose.visible) vis.push(p); continue; }
       const e = s[k];

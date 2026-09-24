@@ -154,15 +154,34 @@ export class Characters {
     const i = P.n++;
     m.toArray(P.mesh.instanceMatrix.array, i * 16);
     const a = P.info.array; a[i * 4] = style; a[i * 4 + 1] = ch.id; a[i * 4 + 2] = room; a[i * 4 + 3] = 0;
+    const r = this._rec;
+    if (r) { const j = r.n++; r.kinds[j] = kind; r.styles[j] = style; r.rooms[j] = room; m.toArray(r.m, j * 16); }
+  }
+  // re-emit last frame's parts for a distant figure (their pose is recomputed every other frame)
+  _replay(ch) {
+    const r = ch._rec;
+    for (let j = 0; j < r.n; j++) {
+      const P = this.parts[r.kinds[j]];
+      const i = P.n++;
+      P.mesh.instanceMatrix.array.set(r.m.subarray(j * 16, j * 16 + 16), i * 16);
+      const a = P.info.array; a[i * 4] = r.styles[j]; a[i * 4 + 1] = ch.id; a[i * 4 + 2] = r.rooms[j]; a[i * 4 + 3] = 0;
+    }
   }
 
-  update() {
+  update(cam = null) {
     for (const k of PART_KINDS) this.parts[k].n = 0;
     const [root, hip, tmp, tmp2, shoulder] = this._m;
     const T = this._t, R = this._r, Sm = this._s;
+    const frame = (this._frame = (this._frame || 0) + 1);
     for (const ch of this.list) {
       const p = ch.pose, L = ch.look;
       if (!p.visible) { if (ch.hat) ch.hat.visible = false; if (ch.held) ch.held.visible = false; continue; }
+      if (cam && ch._rec && ((frame + ch.id) & 1)) {
+        const dx = p.x - cam.x, dz = p.z - cam.z;
+        if (dx * dx + dz * dz > 1600) { this._replay(ch); continue; }
+      }
+      const rec = ch._rec || (ch._rec = { kinds: [], styles: [], rooms: [], m: new Float32Array(12 * 16), n: 0 });
+      rec.n = 0; this._rec = rec;
       const s = ch.scale;
       // root: feet position, yaw, optional lying rotation
       root.makeTranslation(p.x, p.y + p.bob, p.z);
@@ -221,10 +240,16 @@ export class Characters {
         tmp.multiply(Sm.makeScale(0.46 + spread * 0.08, sitting ? 0.2 : 0.42, 0.28 + spread * 0.12 + (sitting ? 0.18 : 0)));
         this._put('flat', tmp, L.skirt === 2 ? 2 : L.skirt === 3 ? 3 : 1, ch, p.room);
       }
+      this._rec = null;
     }
     for (const k of PART_KINDS) {
       const P = this.parts[k];
       P.mesh.count = P.n;
+      P.mesh.visible = P.n > 0;
+      if (!P.n) continue;
+      // upload only the part of the buffers in use this frame
+      P.mesh.instanceMatrix.clearUpdateRanges(); P.mesh.instanceMatrix.addUpdateRange(0, P.n * 16);
+      P.info.clearUpdateRanges(); P.info.addUpdateRange(0, P.n * 4);
       P.mesh.instanceMatrix.needsUpdate = true;
       P.info.needsUpdate = true;
     }

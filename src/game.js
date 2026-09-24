@@ -149,6 +149,8 @@ export class Game {
     this.meshPromise = all.then((s) => console.log(`world meshed: ${s.regions} regions, ${Math.round(s.tris / 1000)}k tris in ${Math.round(s.ms)} ms`));
     this.hud.initMap(ctx);
     if (this.params.get('diag')) this.diagnostics();
+    this.R.fixedResolution = this.params.has('shot') || this.params.has('perf');
+    this.perfOn = !!this.params.get('perf'); this.perfN = Math.max(10, Number(this.params.get('perf')) || 240);
     if (this.params.get('diary')) {   // for screenshots: ?diary=<spread>[&spotted=<n>]
       const n = Number(this.params.get('spotted') || 0);
       this.hunt.items.slice(0, n).forEach((it, i) => this.hunt.spotted.set(it.id, 600 + i * 7));
@@ -205,6 +207,10 @@ export class Game {
     this.lastT = now;
     this.time += dt;
     const g = this, R = this.R, ctx = this.ctx, inp = this.input;
+    // ?perf=1: average milliseconds per frame for each part of the loop, logged every 240 frames
+    const pm = this.perfOn ? (this._pm || (this._pm = { acc: {}, n: 0, last: 0 })) : null;
+    if (pm) pm.last = performance.now();
+    const mk = pm ? (k) => { const n = performance.now(); pm.acc[k] = (pm.acc[k] || 0) + n - pm.last; pm.last = n; } : () => {};
     // keys
     if (inp.hit('KeyV')) { this.player.toggleView(); this.hud.syncMode(); }
     if (inp.hit('KeyF')) { if (this.player.mode === 'aerial') this.player.exitAerial(true); else this.player.enterAerial(); this.hud.syncMode(); ctx.props.force = true; }
@@ -223,12 +229,14 @@ export class Game {
     const tod = R.tod.update(minutes);
     R.common.uTime.value = this.time;
     this.player.update(dt);
+    mk('player');
     const focus = this.player.focus();
     const cam = R.camera.position;
     const Q = QUALITY[this.qualityName];
     const aerial = this.player.mode === 'aerial';
     ctx.people.playerPos = this.player.mode === 'aerial' ? null : this.player.pos;
     ctx.people.update(this.clock.abs, this.time, cam, aerial ? [0, Q.peopleRadius * 1.6] : [Q.interiorRadius, Q.peopleRadius]);
+    mk('people');
     // player body in third person
     const pc = this.playerChar.pose;
     if (this.player.mode === 'third') {
@@ -236,26 +244,39 @@ export class Game {
       pc.room = this.playerRoom || 0;
       this.posePlayer(pc);
     } else { pc.visible = false; if (this.playerChar.hat) this.playerChar.hat.visible = false; }
-    this.chars.update();
+    this.chars.update(cam);
+    mk('chars');
     const movers = ctx.people.visible.map((p) => p.state);
     movers.push({ x: this.player.pos.x, y: this.player.pos.y, z: this.player.pos.z });
     ctx.doors.update(dt, cam, movers, this.time);
+    mk('doors');
     const active = 0.25 + 0.75 * Math.max(0, Math.min(1, (minutes < 360 ? 0 : minutes < 480 ? (minutes - 360) / 120 : minutes < 1260 ? 1 : minutes < 1440 ? 1 - (minutes - 1260) / 180 * 0.7 : 0.3)));
     this.traffic.update(dt, this.time, this.player.pos, tod.night, active);
     this.trolleys.update(this.time);
     this.trains.update(minutes);
     this.boats.update(minutes, this.time);
     this.birds.update(dt, this.time, this.player.focus(), tod.night);
+    mk('vehicles+birds');
     this.fireworks.update(dt, minutes, !this.clock.paused);
     this.life.update(this, dt);
+    mk('life');
     this.smoke.points.material.uniforms.uScale.value = R.r.domElement.height / (2 * Math.tan(R.camera.fov * Math.PI / 360));
     this.smoke.update(this.clock.paused ? 0 : dt, minutes, cam, tod.night);
+    mk('smoke');
     this.beam.update(this.time, tod.night);
     this.audio.update(this, dt);
+    mk('audio');
     this.meshes.updateLOD(cam, aerial ? 150 : 190);
-    ctx.props.update(cam, aerial ? [0, Q.propRadius * 1.3, 900] : [Q.interiorRadius, Q.propRadius, 800]);
+    mk('lod');
+    const fwd = this._fwd || (this._fwd = new THREE.Vector3());
+    R.camera.getWorldDirection(fwd);
+    ctx.props.hfov = 2 * Math.atan(Math.tan(R.camera.fov * Math.PI / 360) * R.camera.aspect);
+    ctx.props.update(cam, aerial ? [0, Q.propRadius * 1.3, 900] : [Q.interiorRadius, Q.propRadius, 800], false, fwd, aerial ? 110 : Q.shadowRange);
+    mk('props');
     ctx.lights.update(R.common, cam, tod.night, ctx.world.rooms, this.time, Q.lights);
+    mk('lights');
     this.roomLights.update(dt, minutes, tod.night, ctx.people, this.time);
+    mk('roomLights');
     // announce events as they begin
     if (this._lastMin !== undefined && !this.clock.jumped) {
       for (const ev of ctx.events) {
@@ -267,15 +288,28 @@ export class Game {
     this._lastMin = minutes;
     // where am I?
     this.updateLocation();
+    mk('location');
     if (this.diary.isUp) { this.hud.prompt(null); if (this._capHtml) this.updateCaption(null); } else this.handleInteraction();
     this.hunt.update(dt);
     this.diary.update(dt);
+    mk('interact+hunt+diary');
     this.bubbles.update(ctx.people, this.player, this.time, minutes, this.playerRoom || 0);
+    mk('bubbles');
     this.hud.update(dt);
+    mk('hud');
     // shadows follow the player (or the view centre in aerial)
     const sf = aerial ? new THREE.Vector3(cam.x, 0, cam.z).addScaledVector(R.camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize(), 80) : new THREE.Vector3(focus.x, focus.y, focus.z);
     R.shadowRange = aerial ? 200 : Q.shadowRange;
+    R.shadows.cam.layers.set(0); if (aerial) R.shadows.cam.layers.enable(2); // far props cast shadows in the wide aerial range
+    R.adapt(dt);
     R.render(sf);
+    mk('render');
+    if (pm && ++pm.n % (this.perfN || 240) === 0) {
+      const info = R.r.info;
+      console.log('[perf] ' + Object.entries(pm.acc).map(([k, v]) => `${k} ${(v / pm.n).toFixed(2)}`).join(' | ') + ` || calls ${info.render.calls} tris ${Math.round(info.render.triangles / 1000)}k people ${ctx.people.visible.length} props ${ctx.props.countVisible()}`);
+      pm.acc = {}; pm.n = 0;
+      if (!this._triDone) { this._triDone = true; this.triangleReport(); }
+    }
     if (!$('stats').classList.contains('hidden') && (this._st = (this._st || 0) + 1) % 15 === 0) {
       const info = R.r.info;
       $('stats').textContent = `fps ${Math.round(1 / dt)}  calls ${info.render.calls}  tris ${Math.round(info.render.triangles / 1000)}k\npeople ${ctx.people.visible.length}/${ctx.people.list.length}  props ${ctx.props.countVisible()}\npos ${focus.x.toFixed(1)}, ${focus.y.toFixed(1)}, ${focus.z.toFixed(1)}  room ${this.playerRoom}`;
@@ -435,6 +469,34 @@ export class Game {
     else if (best.kind === 'read') this.hud.read(o.text);
     else if (best.kind === 'sit') this.player.sit({ x: o.x, y: o.seatY ?? o.y - 0.45, z: o.z, yaw: o.yaw, standAt: o.standAt, seatY: o.seatY ?? (o.y - 0.45) });
     else if (o.action) o.action(this);
+  }
+
+  // ?perf: where the triangles come from (meshes in the view frustum, by kind)
+  triangleReport() {
+    const cam = this.R.camera; cam.updateMatrixWorld();
+    const fr = new THREE.Frustum();
+    fr.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    const by = {};
+    const tri = (g) => (g.index ? g.index.count : g.attributes.position.count) / 3;
+    this.R.scene.traverse((o) => {
+      if (!o.visible || !o.geometry) return;
+      let k = o.name || o.type;
+      if (o.isInstancedMesh) { if (!o.count) return; by[k.startsWith('prop:') ? k : 'inst:' + k] = (by[k] || 0) + tri(o.geometry) * o.count; return; }
+      if (o.geometry.boundingSphere === null) o.geometry.computeBoundingSphere();
+      if (!o.frustumCulled || fr.intersectsObject(o)) { k = /lod/i.test(k) ? 'world LOD' : /glass/i.test(k) ? 'glass' : k.startsWith('region') || k.startsWith('chunk') ? 'world' : k; by[k] = (by[k] || 0) + tri(o.geometry); }
+    });
+    const top = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 18);
+    console.log('[perf] triangles in view: ' + top.map(([k, v]) => `${k} ${Math.round(v / 1000)}k`).join(' | '));
+    const calls = {};
+    this.R.scene.traverse((o) => {
+      if (!o.geometry) return;
+      let vis = true; for (let q = o; q; q = q.parent) if (!q.visible) { vis = false; break; }
+      if (!vis) return;
+      if (o.frustumCulled && o.geometry.boundingSphere && !fr.intersectsObject(o)) return;
+      const k = o.isInstancedMesh ? (o.name.startsWith('propLod') ? 'propLod' : o.name.startsWith('prop:') ? 'prop' : 'inst:' + o.name.split(':')[0]) : (o.parent && o.parent.name) || o.type;
+      calls[k] = (calls[k] || 0) + (Array.isArray(o.material) ? o.material.length : 1);
+    });
+    console.log('[perf] draw calls by kind: ' + Object.entries(calls).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' | '));
   }
 
   syncDiaryButton() { const el = document.getElementById('diary-count'); if (el) el.textContent = `${this.hunt.count}/${this.hunt.total}`; }

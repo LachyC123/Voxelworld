@@ -188,3 +188,33 @@ export function meshVoxModel(model, scale, origin) {
   g.computeBoundingBox();
   return g;
 }
+
+// Half-resolution copy of a model for distant instances: each 2×2×2 block becomes one voxel of
+// the block's dominant colour (surfaces — voxels with air above — count triple, so a red roof
+// stays red rather than turning into the colour of what's under it). Two or more filled voxels
+// keep a block, so thin poles and rails survive; lone single-voxel details drop out.
+export function downsampleModel(model) {
+  const { sx, sy, sz, data, palette } = model;
+  const nx = Math.ceil(sx / 2), ny = Math.ceil(sy / 2), nz = Math.ceil(sz / 2);
+  const out = new Uint8Array(nx * ny * nz);
+  const votes = new Uint16Array(256);
+  const used = [];
+  for (let y = 0; y < ny; y++) for (let z = 0; z < nz; z++) for (let x = 0; x < nx; x++) {
+    let filled = 0, best = 0, bestN = 0;
+    for (let k = 0; k < 8; k++) {
+      const X = 2 * x + (k & 1), Y = 2 * y + ((k >> 1) & 1), Z = 2 * z + ((k >> 2) & 1);
+      if (X >= sx || Y >= sy || Z >= sz) continue;
+      const c = data[X + sx * (Z + sz * Y)];
+      if (!c) continue;
+      filled++;
+      const up = Y + 1 < sy ? data[X + sx * (Z + sz * (Y + 1))] : 0;
+      if (votes[c] === 0) used.push(c);
+      votes[c] += up ? 1 : 3;
+      if (votes[c] > bestN) { bestN = votes[c]; best = c; }
+    }
+    for (const c of used) votes[c] = 0;
+    used.length = 0;
+    if (filled >= 2) out[x + nx * (z + nz * y)] = best;
+  }
+  return { sx: nx, sy: ny, sz: nz, data: out, palette };
+}

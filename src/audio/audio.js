@@ -29,7 +29,7 @@ export const LIFE_SOUNDS = {
 };
 
 export class Audio {
-  constructor() { this.ok = false; this.sources = []; this.lastStep = 0; this.lastHour = -1; }
+  constructor() { this.ok = false; this.sources = new Map(); this.lastStep = 0; this.lastHour = -1; }
 
   start() {
     if (this.ok) return;
@@ -173,7 +173,7 @@ export class Audio {
     const T = (x, v) => x.g.gain.setTargetAtTime(v, now, 0.5);
     T(this.wind, (aerial ? 0.12 : 0.03) * (indoor ? 0.3 : 1));
     T(this.waves, 0.12 * nearWater * (indoor ? 0.3 : 1));
-    const crowdN = g.ctx.people.visible.filter((p) => p.state.camDist < 30 && p.state.act !== 'sleep').length;
+    let crowdN = 0; for (const p of g.ctx.people.visible) if (p.state.camDist < 30 && p.state.act !== 'sleep') crowdN++;
     T(this.crowd, Math.min(0.12, crowdN * 0.004) * (indoor ? 0.4 : 1));
     T(this.city, (0.04 + (1 - night) * 0.03) * (indoor ? 0.4 : 1));
     this.crowd.f.frequency.setTargetAtTime(700 + Math.sin(now * 0.7) * 150, now, 0.3);
@@ -200,8 +200,8 @@ export class Audio {
     // music sources (scheduled a little ahead)
     const srcs = this.musicSources(g, minutes);
     for (const s of srcs) {
-      let st = this.sources.find((q) => q.id === s.id);
-      if (!st) { st = { id: s.id, ch: this.channel(), next: now + 0.1, i: 0 }; this.sources.push(st); }
+      let st = this.sources.get(s.id);
+      if (!st) { st = { id: s.id, ch: this.channel(), next: now + 0.1, i: 0 }; this.sources.set(s.id, st); }
       st.alive = true;
       const muffled = (s.room || 0) !== (g.playerRoom || 0);
       const vol = this.place(st.ch, s, listener, fwd, s.range, s.vol, muffled);
@@ -209,16 +209,24 @@ export class Audio {
       else st.next = now + 0.1;
     }
     // street-life sources (hammering, a lawnmower, a dog, kids at play, a radio in a window…)
-    if (g.life) for (const s of g.life.soundSources(minutes, cam)) {
+    // the six nearest (anything further is too faint to be worth synthesising)
+    const lifeSrc = g.life ? g.life.soundSources(minutes, cam) : [];
+    if (lifeSrc.length > 6) { for (const q of lifeSrc) q._d = (q.x - cam.x) ** 2 + (q.z - cam.z) ** 2; lifeSrc.sort((a, b) => a._d - b._d); lifeSrc.length = 6; }
+    for (const s of lifeSrc) {
       const pat = LIFE_SOUNDS[s.kind]; if (!pat) continue;
-      let st = this.sources.find((q) => q.id === s.id);
-      if (!st) { st = { id: s.id, ch: this.channel(), next: now + Math.random() * 0.5, i: 0 }; this.sources.push(st); }
+      let st = this.sources.get(s.id);
+      if (!st) { st = { id: s.id, ch: this.channel(), next: now + Math.random() * 0.5, i: 0 }; this.sources.set(s.id, st); }
       st.alive = true;
       const vol = this.place(st.ch, s, listener, fwd, s.range, s.vol, (s.room || 0) !== (g.playerRoom || 0));
       if (vol > 0.001) while (st.next < now + 0.3) { st.next += pat(this, st.ch, st.i++, st.next) || 0.5; }
       else st.next = now + 0.1;
     }
-    for (const st of this.sources) { if (!st.alive) st.ch.g.gain.setTargetAtTime(0, now, 0.3); st.alive = false; }
+    // fade out whatever stopped this frame (once), and let long-silent channels go
+    for (const [id, st] of this.sources) {
+      if (st.alive) { st.fading = 0; st.alive = false; continue; }
+      if (!st.fading) { st.fading = now; st.ch.g.gain.setTargetAtTime(0, now, 0.3); }
+      else if (now - st.fading > 8) { try { st.ch.g.disconnect(); } catch (e) { /* already gone */ } this.sources.delete(id); }
+    }
     // church bells on the hour (8 am – 9 pm), from St. Brigid's
     const hour = Math.floor(minutes / 60), mm = minutes % 60;
     if (mm < 1 && hour !== this.lastHour) {

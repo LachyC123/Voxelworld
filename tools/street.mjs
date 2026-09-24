@@ -11,7 +11,7 @@ const { buildCity } = await import(root + '/src/city/city.js');
 const t0 = Date.now();
 const ctx = await buildCity(() => {});
 log(`built in ${Date.now() - t0} ms, ${ctx.people.list.length} people`);
-const P = ctx.people; P.pathBudget = Infinity;
+const P = ctx.people; P.pathBudget = Infinity; P.throttle = false;
 for (const p of P.list) p.finalize();
 const hours = process.argv.slice(2).map(Number); if (!hours.length) hours.push(7, 9, 11, 13, 15, 17, 19, 21);
 const acts = {};
