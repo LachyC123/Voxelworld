@@ -136,11 +136,14 @@ export class People {
     const vis = this.visible; vis.length = 0;
     const [rIn, rOut] = radii;
     const st = {};
+    // route planning is spread over frames after a time jump (people wait where they were)
+    let budget = this.pathBudget ?? 90;
     for (const p of this.list) {
       const s = p.schedule;
       const ch = p.ch;
       if (!s.length) { if (ch) ch.pose.visible = false; continue; }
       const k = p.entryIndex(m);
+      if (!p.paths.has(k) && budget-- <= 0 && p.state.entry) { if (ch && ch.pose.visible) vis.push(p); continue; }
       const e = s[k];
       let el = m - e.t; if (el < 0) el += DAY;
       const rec = this._path(p, k);
