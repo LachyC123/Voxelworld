@@ -5,6 +5,7 @@ import { Building } from '../building.js';
 import { MAT, shell, slab, win, stairs, partitionX, partitionZ, roomTrim, cornice, awning, fireEscape, chimney, officeDesk, counterRun } from './common.js';
 import { linkToSidewalk } from '../streets.js';
 import { textSignType } from '../../props/lib/special.js';
+import { AVENUES, STREETS, ROAD_HALF, WALK, GRID } from '../layout.js';
 
 export function register(GEN, SITES) {
   GEN.tower = buildTower;
@@ -105,6 +106,46 @@ function vtext(F, text, cx, yTop, z, mat, o = {}) {
   let y = yTop;
   for (const ch of text) { if (ch !== ' ') F.text(ch, cx, y - lh, z, mat, { align: 'center', scale, font }); y -= lh; }
   return yTop - y;
+}
+
+
+// Which sides of a lot face a street (so they get real facades instead of blind party walls)?
+function streetSides(lot) {
+  const m = lot.m, E = ROAD_HALF + WALK;
+  const onX = (x, sign) => AVENUES.some((a) => Math.abs(x - (a.x + sign * E)) < 0.6) || (sign < 0 && Math.abs(x - GRID.x1 + WALK) < 0.6);
+  const onZ = (z, sign) => STREETS.some((st) => Math.abs(z - (st.z + sign * E)) < 0.6);
+  const west = onX(m.x0, 1), east = onX(m.x1, -1), north = onZ(m.z0, 1), south = onZ(m.z1, -1);
+  const side = { N: north, S: south, E: east, W: west };
+  const LEFT = { S: 'W', W: 'N', N: 'E', E: 'S' }, RIGHT = { S: 'E', E: 'N', N: 'W', W: 'S' }, BACK = { S: 'N', N: 'S', E: 'W', W: 'E' };
+  return { left: side[LEFT[lot.facing]], right: side[RIGHT[lot.facing]], back: side[BACK[lot.facing]] };
+}
+
+// Clock face in the plane of a face frame F at layer zf (facing outward), centre (cx, cy), radius r.
+function clockFace(F, cx, cy, zf, r, o = {}) {
+  const disc = (rad, z, mat) => { for (let dy = -Math.floor(rad); dy <= Math.floor(rad); dy++) { const hw = Math.floor(Math.sqrt(rad * rad - dy * dy) + 0.35); if (hw > 0) F.box(cx - hw, cy + dy, z, hw * 2, 1, 1, mat); } };
+  disc(r + 1.2, zf, o.ring ?? MAT.art_deco_gold);
+  disc(r, zf - 1, MAT.clock_face);
+  // hour marks at 12, 3, 6, 9
+  F.box(cx - 1, cy + r - 2, zf - 2, 2, 2, 1, MAT.trim_black); F.box(cx - 1, cy - r + 1, zf - 2, 2, 1, 1, MAT.trim_black);
+  F.box(cx - r + 1, cy, zf - 2, 2, 1, 1, MAT.trim_black); F.box(cx + r - 3, cy, zf - 2, 2, 1, 1, MAT.trim_black);
+  // hands: minute hand straight up (the hour), hour hand toward the three — "three o'clock" is always a good time
+  const t = o.time ?? 0;
+  F.box(cx - 0.5 < cx ? cx : cx, cy, zf - 2, 1, Math.floor(r * 0.8), 1, MAT.trim_black);
+  if (t === 0) F.box(cx, cy, zf - 2, Math.floor(r * 0.55), 1, 1, MAT.trim_black);
+  else F.box(cx - Math.floor(r * 0.55), cy, zf - 2, Math.floor(r * 0.55), 1, 1, MAT.trim_black);
+  F.box(cx - 1, cy - 1, zf - 2, 2, 2, 1, MAT.art_deco_gold);
+}
+
+// Truncated hip / mansard ring roofs. Mansard: steep hollow rings (rise per step), then a hipped cap.
+function mansard(f, x, y, z, sx, sz, mat, o = {}) {
+  const steps = o.steps ?? 8, rise = o.rise ?? 3;
+  for (let k = 0; k < steps; k++) f.walls(x + k, y + k * rise, z + k, sx - 2 * k, rise, sz - 2 * k, mat, 1);
+  const y2 = y + steps * rise, x2 = x + steps, z2 = z + steps, w2 = sx - 2 * steps, d2 = sz - 2 * steps;
+  f.box(x2, y2 - 1, z2, w2, 1, d2, o.deck ?? MAT.roof_tar);
+  let k = 0;
+  const capSteps = o.cap ?? Math.floor(Math.min(w2, d2) / 2) - 3;
+  for (; k < capSteps; k++) f.box(x2 + k, y2 + k, z2 + k, w2 - 2 * k, 1, d2 - 2 * k, mat);
+  return { top: y2 + k, x: x2 + k, z: z2 + k, w: w2 - 2 * k, d: d2 - 2 * k };
 }
 
 // Readable helper

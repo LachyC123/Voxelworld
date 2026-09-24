@@ -251,13 +251,11 @@ function stoolRow(S, x0, x1, z, rot, o = {}) {
   }
   return out;
 }
-// Voxel television set with a glowing screen facing rot 0 (the street) — for shop windows and bars.
+// Voxel television set (a 1 m console) with a glowing screen on its -z face (or +z with o.back).
 function vTV(S, x, y, z, o = {}) {
-  const f = S.f, w = o.w ?? 3, h = o.h ?? 3;
-  f.box(x, y, z, w, h, 2, o.cab ?? MAT.wood_mid);
-  f.box(x + (w > 2 ? 0 : 0), y + (o.legs ? 1 : 0), z, w, 1, 2, o.cab ?? MAT.wood_mid);
-  const sw = Math.max(1, w - (w > 3 ? 2 : 1)), sh = Math.max(1, h - 1);
-  f.box(x + Math.floor((w - sw) / 2), y + h - sh, z - (o.facing === 2 ? -1 : 0) + (o.facing === 2 ? 1 : 0), sw, sh, 1, MAT.tv_screen);
+  const f = S.f, w = o.w ?? 4, h = o.h ?? 4, d = o.d ?? 2;
+  f.box(x, y, z, w, h, d, o.cab ?? MAT.wood_mid);
+  f.box(x + 1, y + 1, o.back ? z + d - 1 : z, Math.max(1, w - 2), Math.max(1, h - 2), 1, MAT.tv_screen);
 }
 
 // ================================================================ the shop building (shell, facade, upstairs)
@@ -295,7 +293,7 @@ function shopStyle(T, rng) {
     winFrame: P1(s.winFrame, ['trim_white', 'trim_cream', 'trim_dark', 'trim_green', 'trim_white']),
     door: s.door ?? rng.pick(['center', 'center', 'left', 'right']),
     doorTint: s.doorTint ?? rng.pick(['#2a3a2a', '#4a2a1a', '#1d1d22', '#6a2a24', '#2a3a5a', '#5a4a3a']),
-    pier: P1(s.pier, ['same', 'same', 'iron_green', 'granite', 'trim_dark']) ,
+    pier: (() => { const n = s.pier ?? rng.pick(['same', 'same', 'iron_green', 'granite', 'trim_dark']); return n === 'same' ? null : Mt(n); })(),
     oriel: s.oriel ?? rng.chance(0.25),
     gable: !!s.gable, roofMat: Mt(s.roofMat ?? 'roof_shingle_gray'),
   };
@@ -319,7 +317,7 @@ function shopShell(ctx, lot, spec, T, rng) {
   const bd = shopDepth(D);
   const H = roofY(floors);
   const st = shopStyle(T, rng);
-  if (st.pier === MAT.same || st.pier === undefined) st.pier = st.outer;
+  if (!st.pier) st.pier = st.outer;
   const built = buildYear(lot, spec, rng);
   const hasUp = floors > 1;
   const X0 = hasUp ? 7 : 2, X1 = W - 2;
@@ -377,9 +375,10 @@ function shopShell(ctx, lot, spec, T, rng) {
     f.box(1, 1, -1, 1, 13, 1, st.frame === st.outer ? MAT.trim_dark : st.frame);
     b.entrance(S.hall, 4, 1, 1, { outZ: -5, leaf: 'door_wood', tint: rng.pick(['#3a2a1a', '#2a3a2a', '#5a2a24', '#1d1d22']) });
     glass(S, String(lot.number), 4, 11.3, -0.06, 0, { color: '#e8c860' });
-    P(S, 'wall_telephone', 3, 6, -0.2, 0); // (a brass mailbox slot / bell plate by the door)
   }
-  // ---- upper floors
+  // ---- upper floors (decide their use first: offices get wider windows with lettering)
+  S.upUse = {};
+  for (let k = 1; k < floors; k++) S.upUse[k] = (T.upper && T.upper[k - 1]) || (k === 1 ? 'apt' : rng.pick(['apt', 'apt', 'store', 'office']));
   for (let k = 1; k < floors; k++) facadeUpper(S, k);
   if (hasUp) upperFloors(S);
   // ---- cornice, parapet, roof
@@ -468,7 +467,7 @@ function facadeUpper(S, k) {
   const y = flY(k) + 4;
   const trim = st.trim;
   if (S.hasUp) win(f, 3, y, 0, 2, 6, { frame: st.winFrame, t: 2, lintelMat: trim, sillMat: trim });
-  const office = (S.T.upper && S.T.upper[k - 1] === 'office') || S.upUse?.[k] === 'office';
+  const office = S.upUse[k] === 'office';
   const wide = office ? 6 : 4;
   const n = Math.max(2, Math.floor((W - 9) / (office ? 14 : 11)));
   let xs;
@@ -494,11 +493,11 @@ function facadeUpper(S, k) {
   S['win' + k] = xs;
   // shades half-drawn, the odd window air-conditioner, bunting for Harbor Days
   for (const x of xs) {
-    if (rng.chance(0.55)) f.box(x, y + 6 - rng.int(1, 3), 1, wide, rng.int(1, 3), 1, rng.chance(0.7) ? MAT.canvas_tan : MAT.canvas_white);
+    if (rng.chance(0.55)) { const a = rng.int(1, 3); f.box(x, y + 6 - a, 1, wide, a, 1, rng.chance(0.7) ? MAT.canvas_tan : MAT.canvas_white); }
     if (k === 1 && rng.chance(0.08)) f.box(x + 1, y, -1, 2, 2, 2, MAT.steel_white);
   }
   if (k > 1) f.box(0, slabY(k), -1, W, 1, 1, trim);                 // belt course
-  if (k === S.floors - 1 && rng.chance(0.55)) for (const x of xs) P(S, 'bunting_fan', x + wide / 2, y - 4.2, -0.3, 0, {});
+  if (k >= 2 && k === S.floors - 1 && rng.chance(0.55)) for (const x of xs) P(S, 'bunting_fan', x + wide / 2, y - 4.2, -0.3, 0, {});
   // a flag on a bracket for the Centennial
   if (k === 1 && rng.chance(0.45)) {
     const fx = rng.chance(0.5) ? 1 : W - 2;
@@ -526,10 +525,10 @@ function roofline(S) {
     const tw = f.textWidth(txt, 1, 'small');
     const pw = Math.min(W - 6, tw + 6), px = Math.round(W / 2 - pw / 2);
     if (tw <= W - 8) {
-      f.box(px, H + 1, 0, pw, 7, 1, st.outer);
-      f.box(px - 1, H + 8, -1, pw + 2, 1, 2, st.trim);
-      f.box(px, H + 1, -1, pw, 1, 1, st.trim);
-      f.text(txt, Math.round(W / 2), H + 2, -1, st.trim, { align: 'center', font: 'small' });
+      f.box(px, H + 1, -1, pw, 7, 2, st.outer);
+      f.box(px - 1, H + 8, -2, pw + 2, 1, 3, st.trim);
+      f.box(px - 1, H + 1, -2, pw + 2, 1, 1, st.trim);
+      f.text(txt, Math.round(W / 2), H + 2, -2, st.trim, { align: 'center', font: 'small' });
     }
     if (rng.chance(0.4)) for (let x = 6; x < W - 6; x += 14) P(S, 'bunting_fan', x + 4, H - 3.7, -2.4, 0, {});
   }
@@ -621,7 +620,7 @@ function sideWall(S, side) {
 function highWaterSide(S, Fr, X) {
   const { bd } = S;
   Fr.box(X(0, bd), 7, 0, bd, 1, 1, MAT.trim_dark);
-  Fr.text('HIGH WATER SEPT 21 1938', X(4, 0) + (X(4, 0) > X(8, 0) ? -30 : 30), 8, 0, MAT.trim_dark, { align: 'center', font: 'small' });
+  Fr.prop(glassType('HIGH WATER - SEPT. 21, 1938', { px: 1 / 18, color: '#26262a' }), X(14, 0), 7.3, -0.06, 0, {});
 }
 
 // ---------------------------------------------------------------- upstairs: flats, offices, rooms, storage
@@ -640,7 +639,7 @@ function upperFloors(S) {
     }
     wallZ(f, 2, bd - 2, y, 6, 11, wm, [{ at: land0, w: 4 }]);
     P(S, 'ceiling_lamp', 4, y + 8, land0 + 2, 0);
-    const use = S.upUse[k] || (T.upper && T.upper[k - 1]) || (k === 1 ? 'apt' : rng.pick(['apt', 'apt', 'store', 'office']));
+    const use = S.upUse[k];
     if (use === 'apt') apartment(S, k, hall, land0, wm);
     else if (use === 'office') officeFloor(S, k, hall, land0, wm);
     else if (use === 'lodging') lodgingFloor(S, k, hall, land0, wm);
@@ -697,11 +696,14 @@ function apartment(S, k, hall, land0, wm, o = {}) {
   const wide = xBath - X0 >= 26;
   const bedr = bedroom(b, bed, X0, y, zB + 1, xBath - X0, Z1 - zB - 1, { beds: wide ? [{ type: 'bed_double', tint: rng.pick(QUILT) }, { type: 'bed_single', tint: rng.pick(QUILT) }] : [{ type: 'bed_double', tint: rng.pick(QUILT) }], wardrobe: false });
   const bt = bathroom(b, bath, xBath + 1, y, zB + 1, X1 - xBath - 1, Z1 - zB - 1);
-  // lived-in odds and ends
-  const extras = [['coat_rack', X0 + 1.5, zA + 2.5, 0], ['radio_table', X1 - 1.2, zA + 1.5, 3, 4], ['newspaper_pile', X0 + AW / 2, zA - 6, 0, 1.8], ['clock_wall', X0 + AW / 2, zB - 0.4, 0, 6.5],
-    ['sewing_machine', X0 + 2, Z0 + 3, 1], ['books_stack', X0 + 2, zA - 1.5, 0], ['laundry_basket', xBath - 2, Z1 - 1.5, 0], ['photo_frames', X0 + 0.4, (Z0 + zA) / 2, 1, 6], ['cat', X0 + AW / 2 + 3, zA - 4, 1],
-    ['toy_blocks', X0 + 6, Z0 + 8, 0], ['ironing_board', X0 + 3, zB - 2.5, 0], ['dish_rack', X1 - 1.3, zA + 5.5, 3, 4], ['teddy_bear', xBath - 3, zB + 3, 2], ['umbrella_stand', X0 + 1, zA + 5, 0]];
-  for (const [t, x, z, r, yy] of rng.shuffle(extras).slice(0, rng.int(4, 7))) P(S, t, x, y + (yy || 0), z, r);
+  // lived-in odds and ends (a different handful in every flat)
+  const cxA = X0 + AW / 2;
+  const extras = [['newspaper_pile', cxA, zA - 8.7, 0, 1.8], ['clock_wall', cxA, zB - 0.3, 0, 6.5], ['sewing_machine', X1 - 2, Z0 + 2.5, 3], ['photo_frames', X0 + 0.2, (Z0 + zA) / 2 - 3, 1, 6],
+    ['cat', cxA - 4, zA - 7, 1], ['toy_blocks', cxA + 3, Z0 + 7, 0], ['coat_rack', X0 + 1.4, zB - 1.6, 0], ['laundry_basket', X0 + 2, zB + 3, 0], ['bread_box', X1 - 1.3, zA + 5.5, 3, 4],
+    ['books_stack', cxA + 1, zA - 8.7, 0, 1.8], ['radio_table', X1 - 1.3, zA + 5.5, 3, 4], ['baseball_glove', X0 + 3, zB + 5, 0], ['cookie_jar', X1 - 1.3, zA + 5.5, 3, 4], ['umbrella_stand', X0 + 1, zB - 4, 0]];
+  if (zA + 12.1 < zB - 2) extras.push(['dish_rack', X1 - 1.3, zA + 12.1, 3, 4]);
+  const used = new Set();
+  for (const [t, x, z, r, yy] of rng.shuffle(extras).slice(0, rng.int(5, 8))) { const key = Math.round(x) + ',' + Math.round(z) + ',' + (yy || 0); if (used.has(key)) continue; used.add(key); P(S, t, x, y + (yy || 0), z, r); }
   const beds = bedr.beds;
   b.home({ family: o.family ?? S.T.family ?? S.spec.family ?? null, size: beds.length, beds, dine: din.seats, lounge: par.seats, kitchen: kspots, bath: bt.spots, yard: [], porch: [], desk: [], special: null, above: S.name });
   S.flats = (S.flats || 0) + 1;
@@ -776,52 +778,45 @@ function lodgingFloor(S, k, hall, land0, wm) {
   const { b, f, W, rng } = S;
   const y = flY(k), h = 11;
   const X0 = 7, X1 = W - 2, Z0 = 2, Z1 = S.bd - 2;
-  const cx = Math.round((X0 + X1) / 2) - 2;       // corridor x cx..cx+3
-  // passage from the landing to the corridor
-  const pz = land0;
-  wallZ(f, Z0, Z1, y, cx - 1, h, wm, []);
+  const cx = Math.round((X0 + X1) / 2) - 2;       // corridor air x cx..cx+3, walls at cx-1 and cx+4
+  const pz = land0;                                // passage from the landing: z pz..pz+3
+  wallZ(f, Z0, Z1, y, cx - 1, h, wm, [{ at: pz, w: 4 }]);
   wallZ(f, Z0, Z1, y, cx + 4, h, wm, []);
   wallX(f, X0, cx - 1, y, pz - 1, h, wm); wallX(f, X0, cx - 1, y, pz + 4, h, wm);
-  f.carve(cx - 1, y, pz, 1, 9, 4);
   const cor = b.room('Corridor', cx, y, Z0, 4, h, Z1 - Z0, { public: false, nav: [cx + 2, pz + 2] });
   const pas = b.room('Corridor', X0, y, pz, cx - 1 - X0, h, 4, { public: false });
   b.door(hall, pas, 6, y, pz + 2, { axis: 'z', leaf: false });
   b.door(pas, cor, cx - 1, y, pz + 2, { axis: 'z', leaf: false });
   f.box(cx, y - 1, Z0, 4, 1, Z1 - Z0, MAT.carpet_red); f.box(X0, y - 1, pz, cx - 1 - X0, 1, 4, MAT.carpet_red);
   for (let z = Z0 + 6; z < Z1; z += 14) P(S, 'ceiling_lamp', cx + 2, y + 8, z, 0);
-  // room slots
   const slots = [];
-  const cut = (x0, x1, za, zb) => { const n = Math.max(1, Math.round((zb - za) / 17)); const d = (zb - za) / n; for (let i = 0; i < n; i++) slots.push({ x0, x1, z0: Math.round(za + i * d), z1: Math.round(za + (i + 1) * d) }); };
-  cut(X0, cx - 1, Z0, pz - 1); cut(X0, cx - 1, pz + 5, Z1); cut(cx + 5, X1, Z0, Z1);
-  const dine = S.boardDine || [];
+  const cut = (x0, x1, za, zb, left) => { const n = Math.max(1, Math.round((zb - za) / 17)); const d = (zb - za) / n; for (let i = 0; i < n; i++) slots.push({ x0, x1, z0: Math.round(za + i * d), z1: Math.round(za + (i + 1) * d), first: i === 0, left }); };
+  cut(X0, cx - 1, Z0, pz - 1, true); cut(X0, cx - 1, pz + 5, Z1, true); cut(cx + 5, X1, Z0, Z1, false);
   let n = 0;
+  S.lodgerHomes = S.lodgerHomes || [];
   slots.forEach((s, i) => {
-    const w = s.x1 - s.x0, d = s.z1 - s.z0;
+    const rz0 = s.first ? s.z0 : s.z0 + 1, w = s.x1 - s.x0, d = s.z1 - rz0;
     if (w < 8 || d < 9) return;
-    if (i > 0) { if (s.x0 === X0) wallX(f, s.x0, s.x1, y, s.z0 - 1 + (s.z0 === Z0 ? 1 : 0), h, wm); else wallX(f, s.x0, s.x1, y, s.z0, h, wm); }
-    const left = s.x1 <= cx;
-    const dx = left ? cx - 1 : cx + 4, dz = s.z0 + 2;
+    if (!s.first) wallX(f, s.x0, s.x1, y, s.z0, h, wm);
+    const dx = s.left ? cx - 1 : cx + 4, dz = s.left ? s.z1 - 5 : rz0 + 1;
     f.carve(dx, y, dz, 1, 9, 4);
-    const isBath = !left && i === slots.length - 1 && !S.lodgeBath;
-    const r = b.room(isBath ? 'Bathroom' : `Room ${k + 1}${String.fromCharCode(65 + n)}`, s.x0 + (left ? 0 : 1), y, s.z0 + (s.z0 === Z0 ? 0 : 1), w - (left ? 0 : 1), h, d - 1, { public: false });
+    const isBath = !s.left && i === slots.length - 1;
+    const r = b.room(isBath ? 'Bath' : `Room ${k + 1}${String.fromCharCode(65 + n)}`, s.x0, y, rz0, w, h, d, { public: false });
     b.door(cor, r, dx, y, dz + 2, { axis: 'z', tint: '#6a4a2a' });
-    if (isBath) { S.lodgeBath = true; bathroom(b, r, s.x0 + 1, y, s.z0 + 1, w - 1, d - 1); return; }
+    if (isBath) { bathroom(b, r, s.x0, y, rz0, w, d); return; }
     n++;
-    const bx = left ? s.x0 + 3 : s.x1 - 3;
-    const rot = left ? 1 : 3;
-    // bed along the outer wall, head at the back of the slot
-    P(S, 'bed_single', bx, y, s.z0 + d / 2 + 1, 2, { tint: rng.pick(QUILT) });
-    const bedSpot = b.spot('sleep', bx, y, s.z0 + d / 2 - 2.5, 2, { room: r, act: 'sleep', tags: ['sleep', 'lodger'], seat: 0.55 });
-    P(S, 'dresser', left ? s.x0 + 3 : s.x1 - 3, y, s.z1 - 1.5, 0);
-    P(S, 'chair_wood', left ? s.x1 - 3 : s.x0 + 4, y, s.z0 + 3, rot);
-    const chair = b.spot('sit', left ? s.x1 - 3 : s.x0 + 4, y, s.z0 + 3, rot, { room: r, act: rng.pick(['read', 'write', 'smoke_pipe', 'read_book']), tags: ['lounge'], seat: 0.45 });
-    P(S, 'sink_pedestal', left ? s.x1 - 2.2 : s.x0 + 2.2, y, s.z1 - 2.5, rot);
-    P(S, rng.pick(['suitcase_upright', 'trunk', 'coat_rack', 'hat_rack_wall']), left ? s.x0 + 6 : s.x1 - 6, y, s.z0 + 2, 0);
-    P(S, 'lamp_table', left ? s.x0 + 3 : s.x1 - 3, y + 7.8, s.z1 - 1.5, 0);
-    if (rng.chance(0.5)) P(S, rng.pick(['radio_table', 'books_stack', 'newspaper_pile', 'photo_frames_standing', 'typewriter']), left ? s.x0 + 3 : s.x1 - 3, y + 7.8, s.z1 - 1.2, 0);
-    b.home({ family: null, size: 1, beds: [bedSpot], lounge: [chair], dine, kitchen: [], bath: [], yard: [], porch: [], desk: [chair], lodger: true, single: true, room: r });
-    S.lodgers = (S.lodgers || 0) + 1;
-    if (S.lodgerNotes && S.lodgerNotes.length) { const [t, body] = S.lodgerNotes.shift(); read(S, left ? s.x1 - 3 : s.x0 + 4, y + 4, s.z0 + 4, t, body); }
+    const bed = bedroom(b, r, s.x0, y, rz0, w, d, { beds: [{ type: 'bed_single', tint: rng.pick(QUILT) }], dresser: true, rug: rng.chance(0.6), rugTint: rng.pick(['#6a3a2e', '#3a4a5a', '#5a5a3a']) });
+    const chX = s.left ? s.x0 + 3 : s.x1 - 3, chR = s.left ? 1 : 3;
+    P(S, 'writing_desk', chX, y, rz0 + d / 2 - 1, chR);
+    P(S, 'chair_wood', s.left ? chX + 2.6 : chX - 2.6, y, rz0 + d / 2 - 1, s.left ? 3 : 1);
+    const chair = b.spot('sit', s.left ? chX + 2.6 : chX - 2.6, y, rz0 + d / 2 - 1, s.left ? 3 : 1, { room: r, act: rng.pick(['read', 'write', 'smoke_pipe', 'read_book']), tags: ['lounge'], seat: 0.45 });
+    P(S, 'sink_pedestal', s.left ? s.x0 + 1.2 : s.x1 - 1.2, y, rz0 + 3, s.left ? 1 : 3);
+    P(S, rng.pick(['suitcase_upright', 'trunk', 'coat_rack', 'cedar_chest']), s.left ? s.x0 + 2 : s.x1 - 2, y, s.z1 - 2, 0);
+    if (rng.chance(0.6)) P(S, rng.pick(['radio_table', 'books_stack', 'newspaper_pile', 'photo_frames_standing', 'typewriter', 'pipe_stand']), chX, y + 3.3, rz0 + d / 2 - 1, chR);
+    P(S, 'ceiling_lamp', s.x0 + w / 2, y + 8, rz0 + d / 2, 0);
+    const home = b.home({ family: null, size: 1, beds: bed.beds.slice(0, 1), lounge: [chair], dine: [], kitchen: [], bath: [], yard: [], porch: [], desk: [chair], lodger: true, single: true });
+    S.lodgerHomes.push(home);
+    if (S.lodgerNotes && S.lodgerNotes.length) { const [t, body] = S.lodgerNotes.shift(); read(S, chX, y + 4, rz0 + d / 2 - 1, t, body); }
   });
 }
 

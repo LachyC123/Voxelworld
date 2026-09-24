@@ -298,7 +298,7 @@ defineProp('traffic_signal', {
     m.box(4, 52, 3, 2, 2, 2, p);
   },
 });
-// Four-faced signal head on a post (lenses on all four sides, same heights as traffic_signal; faces at ±0.19 m)
+// Four-faced signal head on a post (lenses on all four sides, same heights as traffic_signal; lens faces at ±0.25 m)
 defineProp('traffic_signal_4way', {
   size: [8, 54, 8], collide: [0.3, 3.2, 0.3], cat: 'exterior',
   build(m) {

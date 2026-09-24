@@ -399,7 +399,7 @@ function defineHeld(name, o) {
 
 // ---- palette
 const PAPER = '#e8e3d4', INK = '#8e8a80', INK2 = '#2a2a2a';
-const WOOD = '#b08858', WOOD_D = '#8a6440', WOOD_L = '#c8a070';
+const WOOD = '#b08858', WOOD_D = '#8a6440';
 const STEEL = '#a8adb2', STEEL_D = '#7a7e84', CHROME = '#c8ccd0';
 const BRASS = '#d8b04a', BRASS_L = '#f0d070', BRASS_D = '#a8842a';
 const BLACK = '#18181a', WHITE = '#f2efe6', GLASS = '#d4e2e6';
@@ -602,11 +602,9 @@ defineHeld('crate_small', { // 'carry': held in front with both hands
   pose: [['x', Math.PI / 2]], at: [0, -1, 0], size: [13, 10, 10], grip: [2.3, 0, 7.5], // snapped: tips ~18° forward
   build(m) {
     const w = '#c8a068', d = '#a47c48', gap = '#4a3624';
-    m.box(0, 0, 0, 13, 9, 10, w); m.box(1, 1, 1, 11, 9, 8, gap);
-    for (const y of [2, 5]) { m.box(0, y, 0, 13, 1, 10, gap); m.box(1, y, 1, 11, 1, 8, 0); }
-    m.box(1, 2, 1, 11, 7, 8, 0);
-    for (const [x, z] of [[0, 0], [12, 0], [0, 9], [12, 9]]) m.box(x, 0, z, 1, 9, 1, d);
-    m.box(1, 1, 1, 11, 7, 8, gap);
+    m.box(0, 0, 0, 13, 9, 10, w); m.box(0, 2, 0, 13, 1, 10, gap); m.box(0, 5, 0, 13, 1, 10, gap); // slats
+    for (const [x, z] of [[0, 0], [12, 0], [0, 9], [12, 9]]) m.box(x, 0, z, 1, 9, 1, d); // corner posts
+    m.box(1, 1, 1, 11, 8, 8, gap); // dark interior
     for (let x = 1; x < 11; x += 2) for (let z = 1; z < 8; z += 2) m.box(x, 8, z, 2, 1, 2, (x + z) % 4 ? '#b82a2a' : '#c8402a');
     for (const [x, z] of [[2, 2], [6, 4], [9, 2], [4, 6], [8, 6]]) m.set(x, 9, z, '#a82424');
     m.set(4, 9, 3, '#5a8a3a'); m.set(9, 9, 5, '#5a8a3a');
@@ -649,14 +647,13 @@ defineHeld('cards', {
   build(m) {
     const back = '#2a4a8a', face = '#f6f4ee';
     const angs = [-0.75, -0.38, 0, 0.38, 0.75];
-    angs.forEach((a, i) => {
+    angs.forEach((a) => {
       const s = Math.sin(a), c = Math.cos(a);
       for (let y = 0; y < 6; y++) for (let x = 0; x < 11; x++) {
         const px = x + 0.5 - 5.5, py = y + 0.5;
         const u = px * c - py * s, v = px * s + py * c;
         if (Math.abs(u) <= 1.05 && v >= 1.2 && v <= 5.6) { m.set(x, y, 1, back); m.set(x, y, 0, face); }
       }
-      void i;
     });
     for (const [x, y, col] of [[1, 3, '#b82a2a'], [3, 5, BLACK], [5, 5, '#b82a2a'], [7, 5, BLACK], [9, 3, '#b82a2a']]) m.set(x, y, 0, col);
   },
@@ -692,7 +689,7 @@ const PH_MID = [(PH_E[0] + PH_M[0]) / 2, (PH_E[1] + PH_M[1]) / 2, (PH_E[2] + PH_
 defineHeld('phone_handset', {
   pose: pose(-2.34, -0.5),
   parts: [
-    { rot: [basis('y', [PH_E[0] - PH_M[0], PH_E[1] - PH_M[1], PH_E[2] - PH_M[2]], 'x', [0.55, 0.33, -0.77])], atN: PH_MID, size: [3, 10, 3], grip: [1.5, 5, 1.5],
+    { rot: [basis('y', [PH_E[0] - PH_M[0], PH_E[1] - PH_M[1], PH_E[2] - PH_M[2]], 'x', [0.55, 0.33, -0.77])], atN: PH_MID, size: [3, 10, 3], grip: [1.5, 5, 1.5], ss: false,
       build(m) {
         m.box(0, 1, 1, 1, 8, 1, '#141416');
         m.box(0, 7, 0, 3, 3, 3, '#141416'); m.box(0, 0, 0, 3, 3, 3, '#141416');
@@ -1015,9 +1012,9 @@ function signBuild(m, stick) {
     m[f]('SAL', 16, y0 + 2, z, red, { align: 'center', scale: 2 });
   }
 }
-defineHeld('sign_placard_low', { // arms down: tall stick, sign above head height
+defineHeld('sign_placard', { // arms down / walking: tall stick, sign above head height
   scale: 1 / 48, at: [0, -1, 3], size: [32, 86, 2], grip: [16, 4, 1.5], build: (m) => signBuild(m, 60),
 });
-defineHeld('sign_placard', { // held up high (cheer / wave)
+defineHeld('sign_placard_raised', { // held up high (cheer / wave / hail_taxi, aRp≈-2.7)
   scale: 1 / 48, rot: [['z', Math.PI]], at: [0, -1, 0], size: [32, 56, 2], grip: [16, 4, 1.5], build: (m) => signBuild(m, 30),
 });

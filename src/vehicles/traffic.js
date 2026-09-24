@@ -73,16 +73,16 @@ export class Traffic {
       car.next = this.chooseNext(car.to, d);
       this.cars.push(car);
     }
-    // signal heads on the corners of signalised intersections
+    // signal heads on the corners of signalised intersections (4-way heads; lamps overlaid per state)
     this.heads = [];
     for (const n of this.nodes.values()) {
       if (!n.signal) continue;
-      for (const [cx, cz, faceNS, faceEW] of [[8.6, -8.6, 0, -Math.PI / 2], [-8.6, 8.6, Math.PI, Math.PI / 2]]) {
-        const pole = props.addDynamic('traffic_signal', {});
+      for (const [cx, cz, yawNS, yawEW] of [[8.6, -8.6, 0, Math.PI / 2], [-8.6, 8.6, Math.PI, -Math.PI / 2]]) {
+        const pole = props.addDynamic('traffic_signal_4way', {});
         if (pole.dummy) break;
-        pole.x = n.x + cx; pole.y = 0.25; pole.z = n.z + cz; pole.yaw = faceNS;
+        pole.x = n.x + cx; pole.y = 0.25; pole.z = n.z + cz; pole.yaw = 0;
         const a = props.addDynamic('signal_lamp', { tint: '#40ff80' }), b = props.addDynamic('signal_lamp', { tint: '#ff3020' });
-        this.heads.push({ n, pole, lampNS: a, lampEW: b, faceNS, faceEW, cx, cz });
+        this.heads.push({ n, pole, lampNS: a, lampEW: b, yawNS, yawEW, cx, cz });
       }
     }
     // headlight pool (nearest cars at night)
@@ -193,13 +193,13 @@ export class Traffic {
       c.h.x = x; c.h.y = CAR_Y; c.h.z = z; c.h.yaw = yaw;
       c.h.pitch = 0; c.h.roll = 0;
     }
-    const COL = { G: 0x40ff80, Y: 0xffc030, R: 0xff3020 };
+    const COL = { G: 0x40ff80, Y: 0xffc030, R: 0xff3020 }, LY = { R: 3.0, Y: 2.6875, G: 2.375 };
     for (const hd of this.heads || []) {
       const ns = this.signalState(hd.n, 'N', t), ew = this.signalState(hd.n, 'E', t);
-      const dd = Math.hypot(hd.n.x - playerPos.x, hd.n.z - playerPos.z) < 160;
-      hd.pole.visible = dd; hd.lampNS.visible = dd; hd.lampEW.visible = dd;
-      hd.lampNS.x = hd.n.x + hd.cx; hd.lampNS.y = 3.35; hd.lampNS.z = hd.n.z + hd.cz; hd.lampNS.yaw = hd.faceNS; hd.lampNS.tintA = COL[ns];
-      hd.lampEW.x = hd.n.x + hd.cx; hd.lampEW.y = 3.35; hd.lampEW.z = hd.n.z + hd.cz; hd.lampEW.yaw = hd.faceEW; hd.lampEW.tintA = COL[ew];
+      const vis = Math.hypot(hd.n.x - playerPos.x, hd.n.z - playerPos.z) < 160;
+      hd.pole.visible = vis; hd.lampNS.visible = vis; hd.lampEW.visible = vis;
+      const place = (L, yaw, st) => { L.x = hd.n.x + hd.cx + Math.sin(yaw) * 0.27; L.z = hd.n.z + hd.cz + Math.cos(yaw) * 0.27; L.y = 0.25 + LY[st]; L.yaw = yaw; L.tintA = COL[st]; };
+      place(hd.lampNS, hd.yawNS, ns); place(hd.lampEW, hd.yawEW, ew);
     }
     // headlights on the nearest moving cars at night
     if (this.headlights) {
@@ -281,14 +281,15 @@ export class Trains {
         x = this.stopX + (minutes - a - 14) * v; facing = -1; break;
       }
     }
-    let off = 0;
+    // coupler distances (front, rear) from each vehicle's origin, in metres
+    const CP = [[7.5, 6.63], [4.5, 4.5], [9.25, 9.25], [9.25, 9.25], [9.25, 9.25]];
+    let pos = x === null ? 0 : x;
     this.parts.forEach((h, i) => {
       if (h.dummy) return;
       if (x === null) { h.visible = false; return; }
       h.visible = true;
-      const L = this.lens[i];
-      h.x = x + off + L / 2; h.y = 0.35; h.z = this.z; h.yaw = facing < 0 ? -Math.PI / 2 : Math.PI / 2;
-      off += L + 0.6;
+      if (i > 0) pos += CP[i - 1][1] + CP[i][0];
+      h.x = pos; h.y = 0.3; h.z = this.z; h.yaw = facing < 0 ? -Math.PI / 2 : Math.PI / 2;
     });
     this.inStation = x !== null && Math.abs(x - this.stopX) < 1;
   }

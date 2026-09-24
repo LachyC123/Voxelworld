@@ -1326,7 +1326,7 @@ defineProp('pinball_machine', {
     m.set(6, pf(17) + 1, 17, CHROME);                         // the ball
     // backbox
     m.box(0, 16, 0, 12, 14, 3, cabD); m.box(0, 29, 0, 12, 1, 3, CHROME_M);
-    m.box(1, 17, 3, 10, 12, 0, 0);
+   
     m.box(1, 18, 2, 10, 10, 1, { c: '#1a1a4a', emit: 0.7 });
     for (const [x, y] of [[2, 26], [9, 25], [3, 21], [8, 19], [5, 27]]) m.set(x, y, 3, { c: '#fff8c0', emit: 0.95 });
     m.box(5, 20, 3, 2, 5, 1, { c: '#e0e0e0', emit: 0.8 }); m.set(5.5, 25, 3, { c: '#e84040', emit: 0.9 }); m.box(4, 20, 3, 4, 1, 1, { c: '#e84040', emit: 0.9 });
@@ -1593,4 +1593,268 @@ defineProp('sandwich_board', {
 });
 defineProp('sandwich_board_chowder', {
   size: [30, 44, 24], scale: 1 / 48, cat: 'exterior', collide: [0.6, 0.9, 0.5], build: buildChalkboard,
+});
+
+// =====================================================================================================
+// CIVIC & INSTITUTIONS
+// =====================================================================================================
+
+// ---------------------------------------------------------------- church
+
+// Church pew, 3.0 m long along x. Seat 0.45 m, the congregation faces +z. Scrolled end panels with a
+// brass number plate; on the back (-z) a hymnal rack with hymnals & pew cards for the row behind.
+defineProp('pew', {
+  size: [48, 16, 11], collide: [3.0, 0.95, 0.68],
+  build(m) {
+    const wd = '#6a4428', wdD = '#523420', wdL = '#7e5434';
+    m.box(1, 6, 3, 46, 1, 8, wd); m.box(1, 5, 10, 46, 1, 1, wdD);             // seat
+    m.box(1, 2, 4, 46, 1, 1, wdD);                                                // stretcher
+    for (let y = 7; y < 15; y++) m.box(1, y, 2 - (y > 11 ? 1 : 0), 46, 1, 1, wd);    // back, leaning
+    m.box(1, 14, 0, 46, 1, 3, wdL);                                               // top rail
+    m.box(1, 9, 2, 46, 1, 1, wdD); m.box(1, 12, 1, 46, 1, 1, wdD);                // back mouldings
+    // hymnal rack on the back
+    m.box(1, 7, 0, 46, 1, 2, wdD); m.box(1, 8, 0, 46, 2, 1, wd);
+    const hy = ['#5a1a1a', '#1a1a2a', '#5a1a1a', '#1a1a2a'];
+    for (let i = 0; i < 6; i++) { const x = 3 + i * 7; m.box(x, 8, 1, 3, 3, 1, hy[i % 4]); m.set(x + 1, 10, 1, '#c8a848'); m.set(x + 4, 9, 0, '#f0ead8'); }
+    // ends
+    for (const x of [0, 47]) {
+      m.box(x, 0, 0, 1, 14, 11, wdD);
+      m.box(x, 14, 0, 1, 1, 8, wdD); m.box(x, 15, 0, 1, 1, 5, wdD);
+      m.box(x, 2, 2, 1, 9, 7, wd); m.box(x, 12, 8, 1, 2, 3, 0); m.box(x, 13, 7, 1, 1, 1, 0);
+      m.box(x, 12, 8, 1, 1, 1, wdD);
+    }
+    m.box(47, 8, 5, 1, 1, 2, BRASS); m.box(0, 8, 5, 1, 1, 2, BRASS);
+  },
+});
+
+// Raised New England pulpit (1.5 m wide): panelled platform with a stair on the -x side, panelled
+// desk with a crimson velvet fall & gold cross toward the congregation (+z), big Bible on the sloped
+// book rest, a brass reading lamp. The preacher stands on the platform behind the desk (-z).
+defineProp('pulpit', {
+  size: [24, 36, 18], collide: [1.5, 1.4, 1.1],
+  build(m) {
+    const wd = '#e8e2d4', wdD = '#c8c0b0', trim = '#6a4428', vel = '#8a1a22';
+    m.box(4, 0, 2, 20, 10, 16, wd);                           // platform (painted white, as in many NE churches)
+    for (const x of [6, 14]) m.box(x, 2, 18 - 1, 6, 6, 1, wdD);
+    m.box(4, 9, 2, 20, 1, 16, trim);
+    for (let i = 0; i < 5; i++) m.box(0, 0, 3 + i * 2, 4, 2 + i * 2, 2, i & 1 ? wdD : wd);   // stair up from -x
+    m.box(0, 2, 2, 1, 14, 1, trim); m.box(0, 15, 2, 1, 1, 10, trim);           // stair rail
+    for (let i = 0; i < 5; i++) m.box(0, 3 + i * 2, 3 + i * 2, 1, 12 - i * 2, 1, trim);
+    // desk box
+    m.box(6, 10, 10, 16, 14, 7, wd); m.box(6, 24, 9, 16, 1, 9, trim);
+    for (const x of [7, 17]) m.box(x, 12, 17, 4, 10, 1, wdD);
+    m.box(10, 24, 10, 8, 1, 7, vel); m.box(11, 13, 17, 6, 11, 1, vel);          // velvet fall
+   
+    m.box(13, 16, 17, 2, 6, 1, BRASS_L); m.box(12, 19, 17, 4, 1, 1, BRASS_L);    // gold cross embroidered
+    for (let x = 11; x < 17; x += 2) m.set(x, 13, 17, BRASS_L);                // fringe
+    // sloped book rest with the Bible
+    m.box(8, 25, 11, 12, 1, 6, trim); m.box(8, 26, 11, 12, 1, 3, trim);
+    m.box(9, 26, 12, 10, 1, 5, '#2a1a14'); m.box(10, 27, 12, 8, 1, 3, '#f4ecd8'); m.set(14, 27, 12, '#c8b890');
+    m.box(10, 27, 15, 3, 1, 1, '#8a1a22');                                     // ribbon marker
+    m.box(19, 25, 11, 1, 5, 1, BRASS); m.box(18, 30, 11, 3, 1, 2, '#2a5a3a'); m.box(18, 29, 12, 3, 1, 1, { c: '#fff0c0', emit: 0.5 });  // green-shaded lamp
+    m.box(4, 10, 2, 20, 12, 1, wd); m.box(4, 10, 2, 1, 12, 8, wd); m.box(23, 10, 2, 1, 12, 8, wd);       // back & side walls of the pulpit
+    m.box(4, 22, 2, 20, 1, 1, trim);
+  },
+});
+
+// Altar (1.9 m): panelled oak table dressed with a white linen cloth & lace edge with a gold cross,
+// a gradine shelf carrying a brass cross, two brass candlesticks with lit candles and vases of white
+// lilies. Faces the congregation (+z). Candle glow follows the room lamps.
+defineProp('altar', {
+  size: [30, 38, 14], collide: [1.9, 1.0, 0.85], light: lampLight(0, 1.3, 0.1, [1.0, 0.78, 0.45], 4, 'room'),
+  build(m) {
+    const oak = '#7a5030', oakD = '#5a3a22', linen = '#f8f6f0', lace = '#ecE6d6';
+    m.box(0, 0, 0, 30, 1, 14, oakD); m.box(1, 1, 1, 28, 14, 12, oak);
+    for (const x of [3, 12, 21]) { m.box(x, 3, 13, 6, 9, 1, oakD); m.box(x + 1, 4, 13, 4, 7, 1, oak); }
+    m.box(0, 15, 0, 30, 1, 14, linen); m.box(0, 9, 13, 30, 6, 1, linen);        // cloth & frontal
+    for (let x = 0; x < 30; x += 2) m.set(x, 8, 13, lace);
+   
+    m.box(14, 10, 13, 2, 4, 1, GOLD); m.box(13, 12, 13, 4, 1, 1, GOLD);         // embroidered cross
+    m.box(0, 12, 0, 1, 3, 14, linen); m.box(29, 12, 0, 1, 3, 14, linen);          // side drops
+    // gradine & brass cross
+    m.box(3, 16, 0, 24, 2, 4, oakD); m.box(3, 18, 0, 24, 1, 4, linen);
+    m.box(14, 19, 1, 2, 2, 2, BRASS_D); m.box(14.5, 21, 1.5, 1, 12, 1, BRASS); m.box(12, 29, 1.5, 6, 1, 1, BRASS);
+    m.set(14.5, 33, 1.5, BRASS_L);
+    // candlesticks with lit candles
+    for (const x of [6, 23]) {
+      m.box(x - 1, 16, 7, 3, 1, 3, BRASS_D); m.box(x, 17, 8, 1, 5, 1, BRASS); m.box(x - 1, 22, 7, 3, 1, 3, BRASS);
+      m.box(x, 23, 8, 1, 6, 1, '#f8f4e8'); m.set(x, 29, 8, { c: '#ffc860', emit: 1 }); m.set(x, 30, 8, { c: '#fff0a0', emit: 1 });
+    }
+    // vases of lilies on the gradine
+    for (const x of [9, 20]) {
+      m.box(x, 19, 1, 2, 3, 2, BRASS); m.box(x, 22, 1, 2, 3, 2, '#3a7a2e');
+      m.set(x - 1, 25, 1, '#f8f8f0'); m.set(x + 2, 25, 2, '#f8f8f0'); m.set(x, 26, 2, '#f8f8f0'); m.set(x + 1, 25, 1, '#f8f8f0'); m.set(x + 1, 26, 1, '#f0e080');
+    }
+  },
+});
+
+// Wooden lectern (1.25 m): turned column on a stepped base, sloped desk with an open Bible facing the
+// reader (-z), a green pulpit fall with a gold cross toward the congregation (+z).
+defineProp('lectern', {
+  size: [10, 21, 10], collide: [0.6, 1.25, 0.6],
+  build(m) {
+    const wd = '#6a4428', wdD = '#4e3220';
+    m.box(1, 0, 1, 8, 1, 8, wdD); m.box(2, 1, 2, 6, 1, 6, wd);
+    m.box(4, 2, 4, 2, 12, 2, wd); m.box(3, 5, 3, 4, 1, 4, wdD); m.box(3, 12, 3, 4, 2, 4, wdD);
+    // sloped desk, high at +z, low at -z (toward the reader)
+    for (let z = 1; z < 9; z++) { const y = 14 + Math.floor(z / 3); m.box(1, 14, z, 8, y - 13, 1, wd); m.box(1, y + 1, z, 8, 1, 1, wdD); }
+    m.box(1, 14, 0, 8, 2, 1, wdD);
+    m.box(2, 17, 2, 6, 1, 5, '#f4ecd8'); m.set(5, 17, 3, '#c8b890'); m.set(4, 17, 4, '#c8b890'); m.box(2, 16, 2, 6, 1, 5, '#2a1a14');
+    for (let z = 2; z < 7; z++) m.set(5, 18 + (z > 4 ? 0 : 0), z, '#e8dcc0');
+    // green fall on the front
+    m.box(3, 10, 9, 4, 7, 1, '#2a5a3a');
+    m.box(4, 12, 9, 2, 4, 1, GOLD); m.box(3, 14, 9, 4, 1, 1, GOLD);
+    m.box(4, 13, 9, 2, 1, 1, '#2a5a3a');
+    m.box(4, 14, 9, 2, 1, 1, GOLD);
+    for (let x = 3; x < 7; x += 2) m.set(x, 9, 9, GOLD);
+  },
+});
+
+// Baptismal font (1.0 m): octagonal white marble bowl with carved band, filled with water, on a
+// fluted pedestal & stepped base; a silver shell dish rests on the rim.
+defineProp('baptismal_font', {
+  size: [12, 16, 12], collide: [0.7, 1.0, 0.7],
+  build(m) {
+    const mar = '#eeeae4', marD = '#d4cec4';
+    col(m, 1, 0, 1, 10, 1, marD); col(m, 2, 1, 2, 8, 1, mar);
+    col(m, 4, 2, 4, 4, 8, mar); for (const [x, z] of [[4, 5], [7, 5], [5, 4], [5, 7]]) m.box(x, 3, z, 1, 6, 1, marD);  // fluting
+    col(m, 3, 10, 3, 6, 1, marD);
+    col(m, 1, 11, 1, 10, 4, mar); col(m, 1, 12, 1, 10, 1, marD);
+    for (const [x, z] of [[3, 11], [8, 11], [11, 3], [0, 8]]) m.set(x, 13, z, marD);
+    col(m, 2, 14, 2, 8, 1, 0); col(m, 2, 13, 2, 8, 1, '#9ac4d0');
+    m.box(8, 15, 9, 2, 1, 2, SILVER);
+  },
+});
+
+// Hymn board, back at z=0, 1/32 m voxels (0.63 x 1.15 m): oak board with a pointed-arch top and cross,
+// "HYMN" header and four black cards with white numbers.
+defineProp('hymn_board', {
+  size: [20, 44, 2], scale: 1 / 32, origin: [10, 0, 0],
+  build(m) {
+    const oak = '#7a5030', oakD = '#5a3a22';
+    m.box(0, 0, 0, 20, 38, 1, oakD); m.box(1, 1, 0, 18, 36, 2, oak);
+    for (let y = 38; y < 44; y++) { const w = Math.round((44 - y) * 10 / 6); m.box(10 - w, y, 0, w * 2, 1, 1, oakD); }
+    m.box(9, 36, 1, 2, 6, 1, GOLD); m.box(8, 39, 1, 4, 1, 1, GOLD);
+    m.text('HYMN', 10, 29, 1, '#f0e6c8', { font: 'small', align: 'center' });
+    ['112', '47', '350', '8'].forEach((n, i) => {
+      const y = 23 - i * 7;
+      m.box(3, y - 1, 1, 14, 6, 1, '#18181a'); m.box(3, y - 2, 1, 14, 1, 1, BRASS_D);   // card on a brass ledge
+      m.text(n, 10, y, 1, '#f4f2ea', { font: 'small', align: 'center' });
+    });
+  },
+});
+
+// Votive candle stand, 1/32 m voxels (1.0 m wide, 1.0 m): black wrought-iron frame with three stepped
+// rows of red glass votives (most lit), a brass offering box and a tin of tapers. Faces +z.
+defineProp('candle_stand', {
+  size: [32, 32, 16], scale: 1 / 32, collide: [1.0, 1.0, 0.5], light: lampLight(0, 0.85, 0, [1.0, 0.7, 0.4], 3, 'room'),
+  build(m) {
+    const ir = '#1e1e20';
+    for (const x of [1, 30]) { m.box(x, 0, 2, 1, 24, 1, ir); m.box(x, 0, 13, 1, 12, 1, ir); m.box(x, 0, 2, 1, 1, 12, ir); }
+    for (const [y, z] of [[12, 9], [18, 6], [24, 3]]) {
+      m.box(1, y, z, 30, 1, 5, ir); m.box(1, y + 1, z + 4, 30, 1, 1, ir);
+      for (let i = 0; i < 9; i++) {
+        const x = 3 + i * 3, lit = (i * 7 + y) % 5 !== 0;
+        m.box(x, y + 1, z + 1, 2, 3, 2, { c: '#a8141e', emit: lit ? 0.35 : 0 });
+        if (lit) { m.set(x, y + 4, z + 1, { c: '#ffd070', emit: 1 }); m.set(x + 1, y + 4, z + 2, { c: '#fff4c0', emit: 1 }); }
+      }
+    }
+    for (let x = 4; x < 30; x += 6) { m.box(x, 25, 3, 1, 5, 1, ir); m.set(x, 30, 3, ir); }   // scrollwork finials
+    m.box(1, 29, 3, 30, 1, 1, ir);
+    m.box(12, 2, 10, 8, 7, 5, BRASS); m.box(13, 9, 11, 6, 1, 3, BRASS_D); m.box(14, 9, 12, 4, 1, 1, '#1a1a1a');  // offering box & slot
+    m.box(22, 12, 14, 2, 4, 1, SILVER); m.set(22, 16, 14, '#f4f0e0'); m.set(23, 17, 14, '#f4f0e0');           // tin of tapers
+  },
+});
+
+// Church organ console (1.6 m wide): walnut case with roll-top canopy, three manuals, stop-knob jambs
+// either side, a music rack with a hymnal & brass lamp, pedalboard and bench. NOTE: the keys & bench
+// are on the +z side — the organist sits at +z facing -z (toward the case), like piano_grand.
+defineProp('organ_console', {
+  size: [26, 24, 20], collide: [1.6, 1.3, 1.25],
+  build(m) {
+    const wal = '#5a3620', walD = '#42281a', walL = '#704a30';
+    m.box(0, 0, 0, 26, 21, 9, wal); m.box(0, 21, 0, 26, 2, 9, walD); m.box(1, 23, 1, 24, 1, 7, walD);
+    m.box(0, 0, 9, 2, 16, 8, wal); m.box(24, 0, 9, 2, 16, 8, wal);             // cheeks
+    m.box(2, 8, 9, 22, 2, 5, walD);                                            // key bed
+    // three manuals, each stepped back and up
+    for (let k = 0; k < 3; k++) {
+      const y = 10 + k * 2, z = 13 - k * 2;
+      m.box(3, y, z - 1, 20, 1, 2, '#f4f0e4');
+      for (let x = 3; x < 23; x++) if ([1, 2, 4, 5, 6].includes(x % 7)) m.set(x, y + 1, z - 1, '#1a1a1a');
+      m.box(2, y, z - 2, 22, 2, 1, walL);
+    }
+    // stop jambs with drawknobs
+    const knob = ['#f4f0e4', '#e8c8c8', '#f4f0e4', '#c8d8e8'];
+    for (const x0 of [2, 20]) for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) m.set(x0 + c * 2, 12 + r * 2, 9, knob[(r + c) % 4]);
+    // music rack, hymnal & lamp
+    m.box(6, 17, 8, 14, 1, 1, walD); m.box(7, 18, 7, 12, 4, 1, walL);
+    m.box(9, 18, 8, 8, 4, 1, '#f4ecd8'); m.box(12.5, 18, 8, 1, 4, 1, '#c8b890');
+    m.box(12, 22, 7, 2, 1, 2, BRASS); m.box(11, 21, 8, 4, 1, 1, { c: '#fff0c0', emit: 0.6 });
+    // pedalboard
+    m.box(2, 0, 11, 22, 1, 7, walD);
+    for (let x = 3; x < 23; x += 2) m.box(x, 1, 11, 1, 1, 6, x % 4 === 1 ? '#1a1a1a' : '#c8a878');
+    // bench
+    m.box(2, 5, 15, 22, 2, 4, wal); m.box(2, 0, 15, 2, 5, 4, walD); m.box(22, 0, 15, 2, 5, 4, walD);
+    m.box(4, 1, 17, 18, 1, 1, walD);
+  },
+});
+
+// Organ pipe facade, 1/12 m voxels (3.7 m wide, 4.2 m tall): panelled walnut impost, three towers of
+// gilded speaking pipes (tallest in the centre) with dark mouths, carved cresting. Pipes face +z.
+defineProp('organ_pipes', {
+  size: [44, 50, 10], scale: 1 / 12, collide: [3.6, 4.2, 0.8], cat: 'interior',
+  build(m) {
+    const wal = '#5a3620', walD = '#42281a', gold = ['#d8b04a', '#c49a38', '#e0bc58'];
+    m.box(0, 0, 0, 44, 14, 9, wal); m.box(0, 13, 0, 44, 2, 10, walD);
+    for (let x = 2; x < 42; x += 8) m.box(x, 2, 9, 6, 9, 1, walL(wal));
+    m.box(0, 15, 0, 44, 30, 2, '#2a1a10');                   // dark case interior behind the pipes
+    // groups: [x0, count, width, peak length, z, shape]
+    const groups = [[0, 3, 3, 26, 5, 'mitre'], [12, 2, 2, 17, 3, 'up'], [17, 3, 3, 31, 5, 'mitre'], [29, 2, 2, 17, 3, 'down'], [33, 3, 3, 26, 5, 'mitre']];
+    let k = 0;
+    for (const [x0, n, w, peak, z, shape] of groups) {
+      for (let i = 0; i < n; i++) {
+        const x = x0 + i * (w + 1) + (w === 2 ? 0 : 0), c = gold[k++ % 3];
+        const h = shape === 'mitre' ? peak - (i === 1 ? 0 : 4) : shape === 'up' ? peak - (1 - i) * 3 : peak - i * 3;
+        m.box(x, 19, z, w, h, w, c);
+        if (w === 3) { m.clear(x, 19, z, 1, h, 1); m.clear(x + 2, 19, z, 1, h, 1); m.clear(x, 19, z + 2, 1, h, 1); m.clear(x + 2, 19, z + 2, 1, h, 1); }
+        const mx = x + (w === 3 ? 1 : 0);
+        m.set(mx, 16, z + 1, c); m.box(mx, 17, z, 1, 2, w, c); if (w === 3) m.box(x, 18, z + 1, 3, 1, 1, c);   // conical foot
+        m.box(mx, 22, z + w - 1, w === 3 ? 1 : 2, 1, 1, '#2a1a0a'); m.box(mx, 23, z + w - 1, w === 3 ? 1 : 2, 1, 1, '#f4dc98');  // mouth & lip
+        m.set(mx, 19 + h - 1, z + (w === 3 ? 1 : 0), '#6a4a18');                 // open top
+      }
+    }
+    // tower cornices, cresting & finials
+    for (const [x0, x1, y] of [[0, 11, 45], [17, 28, 50], [33, 44, 45]]) {
+      m.box(x0, y - 2, 1, x1 - x0, 2, 9, walD); m.box(x0 + 1, y - 3, 8, x1 - x0 - 2, 1, 1, wal);
+      for (let x = x0 + 1; x < x1; x += 3) m.set(x, y, 8, BRASS);
+    }
+    m.box(11, 36, 1, 6, 2, 6, walD); m.box(28, 36, 1, 5, 2, 6, walD);           // flat cornices
+    m.box(0, 15, 0, 1, 30, 9, walD); m.box(43, 15, 0, 1, 30, 9, walD);           // case sides
+  },
+});
+function walL(c) { return c === '#5a3620' ? '#704a30' : c; }
+
+// Choir chair: oak with a crimson seat cushion, hymnal box on the back. Seat 0.45 m, faces +z.
+defineProp('choir_chair', {
+  size: [8, 16, 9], collide: [0.45, 0.9, 0.5],
+  build(m) {
+    const oak = '#7a5030', oakD = '#5a3a22';
+    for (const [x, z] of [[0, 1], [7, 1], [0, 8], [7, 8]]) m.box(x, 0, z, 1, 6, 1, oakD);
+    m.box(0, 6, 1, 8, 1, 8, oak); m.box(1, 7, 2, 6, 1, 6, '#8a1a22');
+    m.box(0, 7, 1, 1, 9, 1, oakD); m.box(7, 7, 1, 1, 9, 1, oakD);
+    m.box(0, 15, 1, 8, 1, 1, oak); m.box(1, 10, 1, 6, 4, 1, oak); m.set(3.5, 12, 2, GOLD); m.set(4, 12, 2, GOLD);
+    m.box(1, 8, 0, 6, 3, 1, oakD); m.box(2, 9, 0, 1, 2, 1, '#1a1a2a'); m.box(4, 9, 0, 1, 2, 1, '#5a1a1a');   // hymnal box
+    m.box(0, 2, 1, 8, 1, 1, oakD);
+  },
+});
+
+// Brass collection plate with a red felt bottom, a few folded bills, coins & offering envelopes.
+// 1/32 m voxels (0.34 m).
+defineProp('collection_plate', {
+  size: [12, 3, 12], scale: 1 / 32,
+  build(m) {
+    m.cyl(6, 0, 6, 4, 1, BRASS_D); m.cyl(6, 1, 6, 5.6, 1, BRASS); m.cyl(6, 2, 6, 6, 1, BRASS_L);
+    m.cyl(6, 1, 6, 4.2, 1, '#8a1a22'); m.cyl(6, 2, 6, 5, 1, 0);
+    m.box(3, 2, 4, 3, 1, 2, '#9ab89a'); m.box(7, 2, 6, 2, 1, 3, '#f4ecd8'); m.set(5, 2, 8, '#c8ccd0'); m.set(8, 2, 3, '#b87a3a');
+  },
 });

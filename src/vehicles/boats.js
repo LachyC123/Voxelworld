@@ -51,7 +51,7 @@ export class Boats {
       }
       h.visible = true;
       h.x = x; h.z = z; h.yaw = yaw;
-      h.y = WATER_Y - 0.35 + Math.sin(t * 1.3 + b.berth[0]) * 0.06;
+      h.y = WATER_Y + Math.sin(t * 1.3 + b.berth[0]) * 0.06;
       h.pitch = Math.sin(t * 0.9 + b.berth[1]) * (moving ? 0.03 : 0.015);
       h.roll = Math.sin(t * 1.1 + b.berth[0]) * (moving ? 0.05 : 0.025);
     }

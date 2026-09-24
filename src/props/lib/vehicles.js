@@ -613,7 +613,7 @@ defineProp('locomotive', {
     for (const zc of [88, 98]) railWheel(m, zc, 3.5, blk, '#e8e4dc');
     railWheel(m, 22, 4, blk, '#e8e4dc');
     // pilot (cowcatcher)
-    for (let z = 108; z <= 119; z++) { const k = z - 108; const h = Math.max(2, 9 - Math.round(k * 0.6)); const w = Math.max(3, 11 - Math.round(k * 0.5)); for (let x = RCX - w; x < RCX + w; x += 2) m.box(x, 1, z, 1, h, 1, steel); m.box(RCX - w, 1, z, w * 2, 1, 1, steel); }
+    for (let z = 108; z <= 119; z++) { const k = z - 108; const h = Math.max(2, 9 - Math.round(k * 0.6)); const w = Math.max(3, 11 - Math.round(k * 0.5)); m.box(RCX - w, 1, z, w * 2, h, 1, steel); for (const x of [RCX - 5, RCX, RCX + 4]) m.box(x, 1, z, 1, h, 1, '#5a5e5a'); }
     m.box(RCX - 11, 10, 106, 22, 2, 3, red); coupler(m, 119, 1);
     // cab
     m.box(2, 15, 12, 22, 21, 22, blk); m.box(1, 36, 10, 24, 1, 26, blk2); m.box(2, 37, 12, 22, 1, 22, blk2);
