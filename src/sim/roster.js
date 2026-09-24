@@ -1182,7 +1182,7 @@ export const NOTABLES = [
       "Elmer Yates says I can come back to the boat works any time I'm ready. I'm getting ready. I am.",
     ] },
   { first: 'Evelyn', last: 'Sayer', age: 34, sex: 'F', title: 'Mrs.', home: { name: 'The Marlowe Apartments' }, look: lk(SK.fair, HC.dark, FC.lipstick, HS.bob),
-    bio: "Mrs. Evelyn Sayer, 34, war widow. Her husband, Lieutenant Paul Sayer, USMC, was killed on Okinawa in May 1945, when their son Bobby was eleven months old; Bobby never knew him. She teaches piano in her front parlor, fifty cents a lesson, and has — somewhat to her own surprise, and to Hazel Oakes's delight — said yes to Bill Ferris of WJBY for the street dance.",
+    bio: "Mrs. Evelyn Sayer, 34, war widow. Her husband, Lieutenant Paul Sayer, USMC, was killed on Okinawa in May 1945, when their son Bobby was eleven months old; Bobby never knew him. She teaches piano, fifty cents a lesson — at her pupils' pianos, since the Marlowe won't have one on the fourth floor — and has — somewhat to her own surprise, and to Hazel Oakes's delight — said yes to Bill Ferris of WJBY for the street dance.",
     lines: [
       "Paul was killed on Okinawa in May of '45. Bobby was eleven months old. He has his father's ears, and his father's way of frowning at arithmetic.",
       "I said yes to Bill Ferris. For the street dance. Just the street dance. ...Don't look at me like that.",

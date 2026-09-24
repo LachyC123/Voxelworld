@@ -27,6 +27,8 @@ export function run(L) {
   const step = (name, fn) => { const t = Date.now(), c = cpu(); try { fn(R); } catch (e) { console.error('residential: ' + name + ' failed', e); } prof[name] = Date.now() - t; prof[name + 'Cpu'] = Math.round(cpu() - c); };
   step('trades', trades);
   step('doorways', doorways);
+  step('lessons', pianoLessons);
+  step('courting', courting);
   step('scenes', planScenes);
   step('diary', diary);
   return R;
@@ -2457,7 +2459,7 @@ recipe('piano', [['9:00', '11:45'], ['15:30', '17:30']], [30, 50], 4, (R, H, t0,
   const L = R.L;
   const [k] = R.cast(H, t0, t1, 1, { filter: (x) => x.age >= 7 && x.age <= 15, household: true });
   if (!k) return null;
-  const seat = (H.P.homes[0] && (H.P.homes[0].home.lounge || [])[0]) || null;
+  const seat = pianoBench(H);
   if (!seat) return null;
   blk(R, k, t0, t1, seat, 'piano', 'Practicing scales — the same four bars, again', { lines: ['C, D, E, F, G... F, E, D...', 'Mrs. Sayer says thirty minutes. It\'s been thirty minutes.'] });
   const w = H.at(R.rng.pick([-2, 2]), H.doorOut + 0.3);
@@ -2468,7 +2470,66 @@ recipe('piano', [['9:00', '11:45'], ['15:30', '17:30']], [30, 50], 4, (R, H, t0,
   const ppl = [];
   if (m) { const s = porchSeat(R, H, 0) || stepSeat(R, H, 0.8); blk(R, m, t0, t1, s, 'knit', 'Knitting on the porch, listening to the piano practice'); ppl.push(m); }
   return { title: 'Piano practice heard through the window', people: ppl.length ? ppl : [k] };
-}, { homes: (H) => H.detached && H.kids.some((x) => x.age >= 7 && x.age <= 15) });
+}, { homes: (H) => H.detached && !!pianoBench(H) && H.kids.some((x) => x.age >= 7 && x.age <= 15) });
+
+// the bench at the family piano, if the house has one
+function pianoBench(H) {
+  for (const h of H.P.homes || []) for (const s of h.home.lounge || []) if (s.tags && s.tags.includes('piano')) return s;
+  return null;
+}
+
+// ---------------------------------------------------------------- stickball on the side street
+const STICKBALL = ['Two sewers! That\'s a homer!', 'Car! CAR! ...okay, go.', 'You\'re out — it hit Mrs. Tobin\'s hedge!', 'I\'m Duke Snider. You can be the Yankees.', 'Who\'s got the Spaldeen? Don\'t lose the Spaldeen.', 'Ghost man on first!'];
+recipe('stickball', [['9:30', '12:05'], ['15:50', '17:45']], [35, 60], 6, (R, H, t0, t1) => {
+  const L = R.L;
+  const kids = R.cast(H, t0, t1, 6, { filter: (x) => x.age >= 8 && x.age <= 17, radius: 220, anywhere: true, prefer: (x) => x.sex === 'M' });
+  if (kids.length < 3) return null;
+  // home plate is the sewer lid by the curb; the pitcher is up the sidewalk; the outfield strings along it
+  const plate = R.sidewalk(H, -7, 3.2, { t0, t1 }), mound = R.sidewalk(H, 3, 3.2, { t0, t1 });
+  if (!plate || !mound) return null;
+  const field = [R.sidewalk(H, 9, 1.4, { t0, t1 }), R.sidewalk(H, 14, 2.8, { t0, t1 }), R.sidewalk(H, 6.5, 0.8, { t0, t1 }), R.sidewalk(H, -10, 2.2, { t0, t1 })].filter(Boolean);
+  blk(R, kids[0], t0, t1, R.spotAt(plate.x, plate.z, { faceTo: [mound.x, mound.z], act: 'play_ball' }), 'play_ball', 'At bat — stickball with a broom handle and a pink Spaldeen', { held: 'bat', lines: STICKBALL });
+  blk(R, kids[1], t0, t1, R.spotAt(mound.x, mound.z, { faceTo: [plate.x, plate.z], act: 'play_ball' }), 'play_ball', 'Pitching — stickball on the side street', { held: 'ball', lines: STICKBALL });
+  const used = [kids[0], kids[1]];
+  kids.slice(2).forEach((k, i) => {
+    const q = field[i % Math.max(1, field.length)]; if (!q) return;
+    const act = i % 2 ? 'cheer' : 'wait';
+    blk(R, k, t0, t1, R.spotAt(q.x + (i >= field.length ? 0.9 : 0), q.z, { faceTo: [plate.x, plate.z], act }), act, i === 0 ? 'Catching — stickball (the sewer lid is home)' : 'In the outfield — two sewers is a home run', { lines: STICKBALL });
+    used.push(k);
+  });
+  L.sound(plate.x, 1, plate.z, t0, t1, 'kids', { range: 35, vol: 0.5 });
+  L.label(plate.x, 0.3, plate.z, t0, t1, 'Home plate: a sewer lid. First base: the lamppost.', 1.2);
+  R.claim((plate.x + mound.x) / 2, (plate.z + mound.z) / 2, 7, t0, t1);
+  return { title: 'Stickball on the side street', people: used, at: plate };
+}, { homes: (H) => !H.apt, w: 2.5 });
+
+// ---------------------------------------------------------------- the porch swing: old folks by day, courting by night
+recipe('swing', [['9:40', '12:00'], ['19:10', '21:00']], [35, 80], 8, (R, H, t0, t1) => {
+  const L = R.L;
+  const src = H.P.porch && H.P.porch[0];
+  if (!src || src.pose !== 'sit' || src.label !== 'On the porch swing') return null;
+  const seat = porchSeat(R, H, 0); if (!seat) return null;
+  const f = [Math.cos(seat.yaw), -Math.sin(seat.yaw)]; // the seat's right-hand side
+  const next = R.L.spot(seat.x + f[0] * 0.55, seat.z + f[1] * 0.55, { y: seat.y, yaw: seat.yaw, pose: 'sit', seat: seat.seat, act: 'rock', link: seat.node });
+  if (t0 >= T('19:00')) {
+    // a young couple, one of them lives here — and a curtain twitching in the front window
+    const [a] = R.cast(H, t0, t1, 1, { filter: (x) => x.age >= 16 && x.age <= 26, household: true });
+    if (!a) return null;
+    const [b] = R.cast(H, t0, t1, 1, { filter: (x) => x.age >= 16 && x.age <= 28 && x.sex !== a.sex && !H.members.includes(x), radius: 220, anywhere: true });
+    if (!b) return null;
+    blk(R, a, t0, t1, seat, 'rock', `Courting on ${theirs(H)} porch swing`);
+    blk(R, b, t0, t1, next, 'talk_sit', `Calling on ${a.first} ${a.last} — on the porch swing, under the porch light`);
+    L.convo([a, b], t0 + 1, t1, [[0, 'Your father\'s been reading the same page for an hour.'], [1, 'He\'s a very thorough reader.'], [1, 'Will you save me a dance tomorrow night?'], [0, 'I might. If you ask Pop first.'], [0, 'Listen — you can hear the band from the square.'], [1, 'That\'s "Moonlight Serenade." They play it for the couples.']]);
+    const w = H.at(R.rng.pick([-2.2, 2.2]), H.doorOut - 0.2);
+    L.label(w.x, 1.6, w.z, t0, t1, 'A curtain twitches in the front window. Mother is "dusting."', 1.1);
+    return { title: 'Courting on the porch swing', people: [a, b], at: seat };
+  }
+  const ppl = R.cast(H, t0, t1, 2, { filter: (x) => x.age >= 38, household: true, prefer: (x) => x.age >= 60 });
+  if (!ppl.length) return null;
+  blk(R, ppl[0], t0, t1, seat, 'rock', 'Swinging gently on the porch swing, watching the street go by', { lines: ['That\'s the Kowalski boy\'s new Ford. Two-tone. Well.', 'Forty years we\'ve sat on this swing. The chains squeak in the same place.'] });
+  if (ppl[1]) blk(R, ppl[1], t0, t1, next, R.rng.pick(['knit', 'doze', 'talk_sit']), 'On the porch swing, keeping an eye on the neighbours');
+  return { title: 'A morning on the porch swing', people: ppl, at: seat };
+}, { homes: (H) => H.detached && !!(H.P.porch && H.P.porch[0] && H.P.porch[0].label === 'On the porch swing') && H.members.some((x) => x.age >= 38 || (x.age >= 16 && x.age <= 26)), w: 2 });
 
 // ---------------------------------------------------------------- dawn: the early risers
 recipe('early', [['6:05', '7:30']], [25, 45], 16, (R, H, t0, t1) => {
@@ -2607,3 +2668,64 @@ function animate(R, rt) {
 // (exported for tools and diagnostics)
 export { Hood };
 export const _dbg = { walls, wallWindows, wallTop, windowStand, ladderOn };
+
+// ---------------------------------------------------------------- Mrs. Sayer's piano lessons
+// Evelyn Sayer teaches piano, fifty cents a lesson. The Marlowe won't have a piano on the fourth
+// floor, so she goes to her pupils: music case in hand, a morning round of parlours with pianos.
+function pianoLessons(R) {
+  const L = R.L;
+  const teacher = L.person('Evelyn', 'Sayer');
+  if (!teacher) return;
+  const homes = R.homes.filter((H) => H.detached && pianoBench(H) && H.members.some((x) => x.age >= 6 && x.age <= 15));
+  if (!homes.length) return;
+  // three lessons, wherever she has forty minutes (and the walk) free between nine and five
+  let n = 0, hi = 0;
+  for (let a = T('9:20'); a <= T('16:40') && n < 3 && hi < homes.length; a += 10) {
+    const b = a + 40;
+    if (!L.idle(teacher, a - 20, b)) continue;
+    const H = homes[hi];
+    const bench = pianoBench(H);
+    const pupil = H.members.filter((x) => x.age >= 6 && x.age <= 15).find((x) => L.idle(x, a, b));
+    if (!pupil) { if (a % 60 === 0) hi++; continue; }
+    const beside = besideSeat(R, bench, 0.7, 'listen');
+    if (!beside) { hi++; continue; }
+    hi++;
+    L.plan(teacher, a - 20, b, [{ t: a - 20, spot: beside, act: 'listen', label: `Giving ${pupil.first} ${pupil.last} a piano lesson — fifty cents, and "wrists up!"`, held: 'book' }], { lines: ['Wrists up, dear. You\'re not kneading bread.', 'And one, and two — no, the other F.', 'Lovely. Now once more, and this time with the left hand.'] });
+    L.plan(pupil, a, b, [{ t: a, spot: bench, act: 'piano', label: 'Having a piano lesson with Mrs. Sayer' }], { lines: ['Is it time yet?', 'My wrists ARE up.', 'Can I learn "How Much Is That Doggie in the Window" next?'] });
+    const w = H.at(R.rng.pick([-2, 2]), H.doorOut + 0.3);
+    L.sound(w.x, 1.5, w.z, a, b, 'piano', { range: 30, vol: 0.45 });
+    L.label(w.x, 1.6, w.z, a, b, `A piano lesson through ${theirs(H)} parlor window — the same bar, with feeling`, 2);
+    R.scene("Mrs. Sayer's piano lesson", H, a, b, [teacher, pupil]);
+    if (n === 0 && L.spottable) L.spottable({ id: 'res_piano_lesson', cat: 'Only at certain times', what: 'A piano lesson — "wrists up!"', hint: 'Mrs. Sayer does her rounds of the Hillcrest parlors, Saturday morning', person: teacher, t0: a - 20, t1: b });
+    n++;
+  }
+  return n;
+}
+
+// ---------------------------------------------------------------- courting on the porch swing
+// After supper, a few porch swings have a young couple on them, and a curtain in the front window.
+function courting(R) {
+  const L = R.L;
+  const swing = R.homes.filter((H) => H.detached && H.P.porch && H.P.porch[0] && H.P.porch[0].label === 'On the porch swing' && H.members.some((x) => x.age >= 16 && x.age <= 26));
+  let n = 0;
+  for (const H of R.rng.shuffle(swing.slice())) {
+    if (n >= 4) break;
+    const t0 = T('19:10') + R.rng.int(0, 25), t1 = t0 + R.rng.int(50, 85);
+    const seat = porchSeat(R, H, 0); if (!seat) continue;
+    const a = H.members.find((x) => x.age >= 16 && x.age <= 26 && L.idle(x, t0, t1));
+    if (!a) continue;
+    const [b] = R.cast(H, t0, t1, 1, { filter: (x) => x.age >= 16 && x.age <= 28 && x.sex !== a.sex && !H.members.includes(x), radius: 260, anywhere: true });
+    if (!b) continue;
+    const f = [Math.cos(seat.yaw), -Math.sin(seat.yaw)];
+    const next = L.spot(seat.x + f[0] * 0.55, seat.z + f[1] * 0.55, { y: seat.y, yaw: seat.yaw, pose: 'sit', seat: seat.seat, act: 'talk_sit', link: seat.node });
+    blk(R, a, t0, t1, seat, 'rock', `Courting on ${theirs(H)} porch swing`);
+    blk(R, b, t0, t1, next, 'talk_sit', `Calling on ${a.first} ${a.last} — on the porch swing, under the porch light`);
+    L.convo([a, b], t0 + 1, t1, [[0, 'Your father\'s been reading the same page for an hour.'], [1, 'He\'s a very thorough reader.'], [1, 'Will you save me a dance tomorrow night?'], [0, 'I might. If you ask Pop first.'], [0, 'Listen — you can hear the band from the square.'], [1, 'That\'s "Moonlight Serenade." They play it for the couples.']]);
+    const w = H.at(R.rng.pick([-2.2, 2.2]), H.doorOut - 0.2);
+    L.label(w.x, 1.6, w.z, t0, t1, 'A curtain twitches in the front window. Mother is "dusting."', 1.1);
+    R.scene('Courting on the porch swing', H, t0, t1, [a, b]);
+    if (!n && L.spottable) L.spottable({ id: 'res_courting', cat: 'Only at certain times', what: 'A young couple courting on a porch swing', hint: 'After supper — and watch the front window', person: a, t0, t1 });
+    n++;
+  }
+  return n;
+}
