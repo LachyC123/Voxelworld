@@ -1,19 +1,27 @@
-// Everyday routines that fill the gaps: strolls, errands, visits, out-of-town visitors. See docs/LIFE.md.
-import { tm } from '../../core/util.js';
+// Everyday routines that fill the gaps between the big events: Saturday errands and shopping runs,
+// the barber, visits and sidewalk chats, gangs of kids, families walking to the fair, couples out
+// after supper, confession at St. Brigid's, and out-of-town visitors up for Harbor Days.
+// See docs/LIFE.md. Helpers live in routines_lib.js, words in routines_data.js.
+import { RW } from './routines_lib.js';
+import * as town from './routines_town.js';
+import { visitors } from './routines_visitors.js';
 
 export function run(L) {
-  strolls(L);
-}
-
-// adults with an idle hour go for a walk round the block
-function strolls(L) {
-  const people = L.ctx.people.list.filter((p) => p.age >= 16 && !p.commuter);
-  let n = 0;
-  for (const p of people) {
-    if (!L.rng.chance(0.35)) continue;
-    const t0 = tm('10:00') + L.rng.int(0, 8) * 45 + L.rng.int(0, 30), t1 = t0 + 20 + L.rng.int(0, 25);
-    if (!L.idle(p, t0, t1)) continue;
-    if (L.stroll(p, t0, t1, { label: 'Out for a walk', held: p.age > 70 && L.rng.chance(0.5) ? 'cane' : null })) n++;
-  }
-  L.scene('Strolls', 200, 0, '10:00', '18:00', n);
+  const W = new RW(L);
+  town.setupTown(W);
+  const step = (name, fn) => { const t0 = Date.now(); try { fn(W); } catch (e) { console.error('routines: ' + name + ' failed', e); } W.timing = W.timing || {}; W.timing[name] = Date.now() - t0; };
+  step('visitors', visitors);
+  step('confession', town.confession);
+  step('casseroles', town.casseroles);
+  step('beauty', town.beautyKitchens);
+  step('families', town.families);
+  step('kids', town.kidGangs);
+  step('teens', town.teens);
+  step('oldmen', town.oldMen);
+  step('couples', town.couples);
+  step('chats', town.chats);
+  step('corners', town.cornerMen);
+  step('fireworks', town.earlyFireworks);
+  step('filler', town.filler);
+  L.ctx.life.routines = { count: W.count, timing: W.timing };
 }
