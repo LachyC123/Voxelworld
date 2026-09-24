@@ -1737,7 +1737,7 @@ function buildLighthouse(ctx) {
   // rooms (world bounds from the frame)
   const RM = (name, x, z, sx, sz, o = {}) => { const bb2 = cf.wbox(x, 1, z, sx, 11, sz); return K.vroom(name, bb2[0], bb2[1], bb2[2], bb2[3], bb2[4], bb2[5], { lightMode: 'auto', public: false, ...o }); };
   const parlour = RM('Parlor', 2, 2, 17, 16), bedroomR = RM('Bedroom', 2, 19, 17, 19), office = RM('Keeper\'s Office', 29, 2, 17, 14), kitchen = RM('Kitchen', 29, 17, 17, 21), hall = RM('Front Hall', 20, 2, 8, 36);
-  const tower = K.vroom('Tower Stair', TX - 10, 4, TZ - 10, TX + 10, 62, TZ + 10, { lightMode: 'auto', public: true, lightColor: [1, 0.9, 0.75], nav: [TZ, TX + 8] });
+  const tower = K.vroom('Tower Stair', TX - 10, 4, TZ - 10, TX + 10, 62, TZ + 10, { lightMode: 'always', public: true, lightColor: [1, 0.9, 0.75], nav: [TZ, TX + 8] });
   const lantern = K.vroom('Lantern Room', TX - 7, 63, TZ - 7, TX + 7, 73, TZ + 7, { lightMode: 'never', public: true, nav: [TZ, TX + 4.5] });
   const M = (x, z, y = 1) => cf.m(x, y, z);
   const Dr = (ra, rb, x, z, wall) => { const p = M(x, z); return K.door(ra, rb, p[0], 4, p[2], { wall, leaf: 'door_wood' }); };
