@@ -108,10 +108,11 @@ function atBuilding(b) {
   return 'at ' + n;
 }
 const ROLE_TITLE = { 'boat hire': 'boatman', 'lunch counter': 'lunch-counter girl', 'boat man': 'boatman' };
-function jobPhrase(job) {
+function jobPhrase(job, sex) {
   let t = (job.title || job.role || 'hand').trim();
   if (/^\w+ing\b/.test(t)) t = job.role || 'hand';
   t = ROLE_TITLE[t] || t;
+  if (sex === 'F') t = t.replace(/(sales|counter|washer|warehouse|boat|news-stand |darkroom |hardware |tackle |ice |baggage |boiler |)man\b/, (m, a) => (a || '') + 'woman');
   if (t === 'member') return `a member of ${(job.building && job.building.name) || 'the lodge'}`;
   if (/ at /.test(t)) return `${an(t)} ${t}`;
   if (/ of the /.test(t)) return `the ${t}`;
@@ -133,6 +134,7 @@ function firstPerson(ph) {
   if (/^(\w+[^aeiou])ies\b/.test(ph)) return ph.replace(/^(\w+[^aeiou])ies\b/, '$1y');
   return ph.replace(/^(\w+)s\b/, '$1');
 }
+const livesAt = (where) => (/^(a |the flat)/.test(where) ? `in ${where}` : `at ${where}`);
 function streetOf(home) { return home && home.building && home.building.lot ? home.building.lot.street || null : null; }
 function gradeOf(age) { return ['kindergarten', 'first grade', 'second grade', 'third grade', 'fourth grade', 'fifth grade', 'sixth grade', 'seventh grade', 'eighth grade'][Math.max(0, Math.min(8, age - 5))]; }
 function highSchoolYear(age) { return age <= 13 ? 'an eighth-grader at the Maple Street School' : age === 14 ? 'a freshman at Juniper Bay High' : age === 15 ? 'a sophomore at Juniper Bay High' : age === 16 ? 'a junior at Juniper Bay High' : 'a senior at Juniper Bay High'; }
@@ -193,7 +195,7 @@ function workOf(q, members) {
   if (q.job) {
     const tk = q.job.building ? tradeOf(q.job.building.name || '') : null;
     const pool = [...(tk && TRADE_LINES[tk] ? TRADE_LINES[tk] : []), ...(jobLines(q.job.role) || []), ...(jobLines(q.job.outfit) || [])];
-    return { kind: 'job', phrase: jobPhrase(q.job), third: `works ${atBuilding(q.job.building || {})}`, line: pool.length ? w.pick(pool) : null, years: Math.max(1, Math.min(q.age - 16, w.int(1, 32))) };
+    return { kind: 'job', phrase: jobPhrase(q.job, q.sex), third: `works ${atBuilding(q.job.building || {})}`, line: pool.length ? w.pick(pool) : null, years: Math.max(1, Math.min(q.age - 16, w.int(1, 32))) };
   }
   if (q.age < 18) return { kind: 'young', third: 'goes to school' };
   if (q.age >= 66) { const from = w.pick(RETIRED_FROM); return { kind: 'retired', from, third: `is retired — forty years ${from}` }; }
@@ -259,7 +261,7 @@ export function bioFor(p, ctx) {
   else if (teen) bio.push(`${nm}, ${p.age}, ${highSchoolYear(p.age)}.`);
   else if (work.kind === 'job') bio.push(`${nm}, ${p.age}, ${work.phrase}.`);
   else if (work.kind === 'retired') bio.push(`${nm}, ${p.age}, retired after forty years ${work.from}.`);
-  else if (work.kind === 'home') bio.push(`${nm}, ${p.age}, keeps house${where ? ` at ${where}` : ''}.`);
+  else if (work.kind === 'home') bio.push(`${nm}, ${p.age}, keeps house${where ? ` ${livesAt(where)}` : ''}.`);
   else bio.push(`${nm}, ${p.age}, who ${work.phrase}.`);
   if (key === 'yankee' && FOUNDING_NAMES.has(p.last)) bio.push(`Old Yankee stock — the ${p.last}s have been here since the charter of 1853.`);
   else if (key === 'yankee') bio.push(`Yankee; ${came.bioWho} came to Juniper Bay from ${story.place} in ${story.year}.`);
@@ -269,10 +271,10 @@ export function bioFor(p, ctx) {
   else if (kid || teen) {
     const ps = parents.length ? listNames(firsts(parents.slice().sort((a, b) => (a.sex === 'M' ? -1 : 1) - (b.sex === 'M' ? -1 : 1)))) : null;
     const sib = siblings.filter((m) => m.age < 18);
-    bio.push(`${p.sex === 'F' ? 'Daughter' : 'Son'} of ${ps ? `${ps} ${p.last}` : `the ${p.last}s`}${where ? ` of ${where}` : ''}${sib.length === 1 ? `; ${p.sex === 'F' ? 'sister' : 'brother'} of ${sib[0].first}` : sib.length > 1 ? `; one of ${num(sib.length + 1)} children` : ''}.`);
-  } else if (spouse && children.length) bio.push(`Lives${where ? ` at ${where}` : ''} with ${him} ${spouse.sex === 'F' ? 'wife' : 'husband'} ${spouse.first} and their ${children.length === 1 ? (children[0].sex === 'F' ? 'daughter' : 'son') : 'children'} ${listNames(firsts(children))}.`);
-  else if (spouse) bio.push(`Lives${where ? ` at ${where}` : ''} with ${him} ${spouse.sex === 'F' ? 'wife' : 'husband'} ${spouse.first}.`);
-  else if (where) bio.push(`${status && status.bio ? status.bio + ' ' : ''}Lives alone${/room|flat/.test(where) ? ' in ' : ' at '}${where}.`);
+    bio.push(`${p.sex === 'F' ? 'Daughter' : 'Son'} of ${ps ? `${ps} ${p.last}` : `the ${p.last}s`}${where ? (/^(a |the flat)/.test(where) ? `, who live in ${where}` : ` of ${where}`) : ''}${sib.length === 1 ? `; ${p.sex === 'F' ? 'sister' : 'brother'} of ${sib[0].first}` : sib.length > 1 ? `; one of ${num(sib.length + 1)} children` : ''}.`);
+  } else if (spouse && children.length) bio.push(`Lives${where ? ` ${livesAt(where)}` : ''} with ${him} ${spouse.sex === 'F' ? 'wife' : 'husband'} ${spouse.first} and their ${children.length === 1 ? (children[0].sex === 'F' ? 'daughter' : 'son') : 'children'} ${listNames(firsts(children))}.`);
+  else if (spouse) bio.push(`Lives${where ? ` ${livesAt(where)}` : ''} with ${him} ${spouse.sex === 'F' ? 'wife' : 'husband'} ${spouse.first}.`);
+  else if (where) bio.push(`${status && status.bio ? status.bio + ' ' : ''}Lives alone ${livesAt(where)}.`);
   else if (status && status.bio) bio.push(status.bio);
   bio.push(r.pick([`The family treasure is ${story.keepsake}.`, `Keeps ${story.keepsake} where the children can't reach it.`, `In the parlor: ${story.keepsake}.`, `Would save ${story.keepsake} first in a fire.`]));
 
@@ -315,7 +317,7 @@ export function bioFor(p, ctx) {
   if (work.kind === 'job' && p.commuter) lines.push(`${p.first} ${p.last}. I'm ${work.phrase}, but I come in from ${town}. Nice town. It hasn't got a harbor like this, though.`);
   else if (work.kind === 'job') lines.push(r.pick([`${p.first} ${p.last}. I'm ${work.phrase}. ${work.years > 1 ? `Going on ${num(work.years)} years.` : 'Just started this year.'}`, `Pleased to meet you — ${p.first} ${p.last}, ${work.phrase}${street ? `. We live over on ${street}` : ''}.`, `Name's ${p.first} ${p.last}. ${cap(work.phrase)}, six days a week, and ${sabbath}.`]));
   else if (work.kind === 'retired') lines.push(r.pick([`${p.first} ${p.last}. Retired — forty years ${work.from}. Now I supervise.`, `${p.first} ${p.last}. I was forty years ${work.from}. Now I sit on the porch and tell the young people what they're doing wrong.`]));
-  else if (work.kind === 'home') lines.push(r.pick([`${p.first} ${p.last}. I keep house${where ? ` at ${where}` : ''}, which is to say I run the place.`, `${p.first} ${p.last}. Homemaker, they call it. Cook, nurse, bookkeeper, referee — they should call it that.`]));
+  else if (work.kind === 'home') lines.push(r.pick([`${p.first} ${p.last}. I keep house${where ? ` ${livesAt(where)}` : ''}, which is to say I run the place.`, `${p.first} ${p.last}. Homemaker, they call it. Cook, nurse, bookkeeper, referee — they should call it that.`]));
   else lines.push(`${p.first} ${p.last}. I ${firstPerson(work.phrase)}.`.replace(/\bI am (a|an) /, "I'm $1 "));
   // 2: family
   if (spouse && children.length) {
@@ -324,7 +326,7 @@ export function bioFor(p, ctx) {
     const sw = workOf(spouse, members);
     const wife = spouse.sex === 'F' ? 'wife' : 'husband';
     lines.push(r.pick([
-      `My ${wife} ${spouse.first} and I have ${kids.length === 1 ? 'one' : num(kids.length)}: ${kidsText}. ${kids.length === 1 ? r.pick([`${kids[0].sex === 'F' ? 'She' : 'He'} wants to stay up for the fireworks. We'll see.`, `${kids[0].sex === 'F' ? 'She\'s' : 'He\'s'} eaten a week's allowance of candy apples already.`, `I lost ${kids[0].sex === 'F' ? 'her' : 'him'} at the fair twice today. Found ${kids[0].sex === 'F' ? 'her' : 'him'} at the fire engine both times.`]) : r.pick(['Every one of them wants to stay up for the fireworks.', "The house is never quiet and I wouldn't have it any other way.", "They've eaten a week's allowance of candy apples already.", "I've lost them at the fair twice today. Found them at the fire engine both times."])}`,
+      `My ${wife} ${spouse.first} and I have ${kids.length === 1 ? 'one' : num(kids.length)}: ${kidsText}. ${kids.length === 1 && kids[0].age <= 3 ? r.pick([`${kids[0].sex === 'F' ? 'She' : 'He'} runs the house already.`, `${kids[0].sex === 'F' ? 'She' : 'He'} slept right through the fire engine this morning. Right through it.`]) : kids.length === 1 ? r.pick([`${kids[0].sex === 'F' ? 'She' : 'He'} wants to stay up for the fireworks. We'll see.`, `${kids[0].sex === 'F' ? 'She\'s' : 'He\'s'} eaten a week's allowance of candy apples already.`, `I lost ${kids[0].sex === 'F' ? 'her' : 'him'} at the fair twice today. Found ${kids[0].sex === 'F' ? 'her' : 'him'} at the fire engine both times.`]) : r.pick(['Every one of them wants to stay up for the fireworks.', "The house is never quiet and I wouldn't have it any other way.", "They've eaten a week's allowance of candy apples already.", "I've lost them at the fair twice today. Found them at the fire engine both times."])}`,
       `${spouse.first} — that's my ${wife} — has ${kids.length === 1 ? kids[0].first : 'the children'} at the fair. ${kids[0].first} wants to ride on the fire engine. ${kids.length > 1 ? `${kids[1].first} wants whatever ${kids[0].first} wants.` : 'So do I, frankly.'}`,
       `My ${wife} ${spouse.first} ${sw.kind === 'home' ? 'keeps the house and the lot of us in line' : sw.third}. We've got ${kids.length === 1 ? 'one' : num(kids.length)}: ${kidsText}.`,
     ]));

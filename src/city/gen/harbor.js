@@ -787,7 +787,7 @@ function buildShip(ctx) {
   W.box(-197, 33, -560, -196, 36, -508, MAT.ship_white);
   for (let vx = -196; vx <= -148; vx += 6) { W.box(vx, 33, -560, vx + 1, 36, -559, MAT.ship_white); W.box(vx, 33, -509, vx + 1, 36, -508, MAT.ship_white); }
   W.box(-196, 35, -560, -148, 36, -559, MAT.ship_white); W.box(-196, 35, -509, -148, 36, -508, MAT.ship_white);
-  W.box(-197, 33, -561, -193, 36, -560, MAT.traffic_green); W.box(-197, 33, -508, -193, 36, -507, MAT.traffic_red);   // sidelights
+  W.box(-196, 36, -561, -194, 38, -560, MAT.traffic_green); W.box(-196, 36, -508, -194, 38, -507, MAT.traffic_red);   // sidelights
   W.box(-192, 33, -548, -164, 42, -520, MAT.ship_white); W.box(-191, 33, -547, -165, 42, -521, 0);
   W.box(-193, 42, -549, -163, 43, -519, MAT.ship_white); W.box(-192, 43, -548, -164, 44, -520, MAT.ship_white);
   W.box(-192, 36, -546, -191, 40, -522, MAT.glass); for (let z = -546; z < -522; z += 5) W.box(-192, 36, z, -191, 40, z + 1, MAT.ship_white);
